@@ -1,0 +1,119 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+import { PRESETS, PRESET_CATEGORIES } from '../data/presets';
+---
+
+<BaseLayout title="Explore Mathematical Soundscapes - MathSonify" description="Explore our curated collection of mathematical equations and discover what mathematics sounds like.">
+  <Navigation />
+
+  <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="text-center max-w-3xl mx-auto mb-12 sc-reveal">
+      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4" data-i18n="explore.tag">
+        library of acoustic geometry
+      </div>
+      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-4" data-i18n="explore.title">
+        Explore equations
+      </h1>
+      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed" data-i18n="explore.subtitle">
+        Discover how different mathematical functions, from harmonic trig waves to chaotic damped oscillators, translate into distinct musical timbres.
+      </p>
+    </div>
+
+    <!-- Category filter bar -->
+    <div class="flex items-center justify-center gap-2 flex-wrap mb-10 sc-reveal">
+      {PRESET_CATEGORIES.map((cat) => (
+        <button
+          class="category-filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-sc-surface hover:bg-sc-accent/15 text-sc-text-soft hover:text-sc-text border border-sc-line/20 hover:border-sc-accent transition-colors"
+          data-category={cat.id}
+        >
+          {cat.name}
+        </button>
+      ))}
+    </div>
+
+    <!-- Equation grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sc-reveal-stagger" id="presets-grid">
+      {PRESETS.map((preset) => (
+        <div
+          class="preset-card panel p-5 hover:border-sc-accent/50 transition-colors duration-300 flex flex-col justify-between"
+          data-category={preset.category}
+        >
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-sc-accent/15 text-sc-accent border border-sc-accent/40">
+                {preset.category.toLowerCase()}
+              </span>
+              <span class="text-xs text-sc-text-faint font-mono">
+                {preset.recommendedSettings.instrument} / {preset.recommendedSettings.sonificationMode}
+              </span>
+            </div>
+
+            <h3 class="font-serif text-lg font-semibold text-sc-text mb-1">{preset.name}</h3>
+
+            <div class="code-mat text-sm px-3 py-2 mb-3 overflow-x-auto">
+              {preset.equation}
+            </div>
+
+            <p class="text-xs text-sc-text-soft leading-relaxed mb-3">
+              {preset.description}
+            </p>
+
+            <div class="p-2.5 rounded-md bg-sc-surface border border-sc-line/15 text-xs text-sc-text-soft mb-4">
+              <span class="text-sc-accent font-medium" data-i18n="explore.sonicProfile">Sonic profile:</span> {preset.soundDescription}
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-sc-line/15 flex items-center justify-between">
+            <span class="text-[11px] font-mono text-sc-text-faint">
+              <span data-i18n="explore.domain">Domain:</span> [{preset.recommendedSettings.minX}, {preset.recommendedSettings.maxX}]
+            </span>
+            <a
+              href={`/create?eq=${encodeURIComponent(preset.equation)}&inst=${preset.recommendedSettings.instrument}&mode=${preset.recommendedSettings.sonificationMode}&dur=${preset.recommendedSettings.duration}&minX=${preset.recommendedSettings.minX}&maxX=${preset.recommendedSettings.maxX}`}
+              class="px-4 py-1.5 rounded-md btn-primary text-xs"
+              data-i18n="explore.playInStudio"
+            >
+              Play in studio
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<script>
+  // Client-side category filtering
+  const filterBtns = document.querySelectorAll('.category-filter-btn');
+  const cards = document.querySelectorAll('.preset-card');
+
+  const ACTIVE = ['bg-sc-accent', 'text-sc-on-accent', 'border-sc-accent'];
+  const IDLE = ['bg-sc-surface', 'text-sc-text-soft', 'border-sc-line/20', 'hover:bg-sc-accent/15', 'hover:text-sc-text', 'hover:border-sc-accent'];
+
+  function setActive(btn) {
+    filterBtns.forEach((b) => {
+      b.classList.remove(...ACTIVE);
+      b.classList.add(...IDLE);
+    });
+    btn.classList.remove(...IDLE);
+    btn.classList.add(...ACTIVE);
+  }
+
+  if (filterBtns[0]) setActive(filterBtns[0]);
+
+  filterBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const cat = btn.getAttribute('data-category');
+      setActive(btn);
+
+      cards.forEach((card) => {
+        const cardCat = card.getAttribute('data-category');
+        card.style.display = cat === 'all' || cardCat === cat ? 'flex' : 'none';
+      });
+    });
+  });
+</script>

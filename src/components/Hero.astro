@@ -1,0 +1,296 @@
+---
+import { PRESETS } from '../data/presets';
+
+const heroPresets = PRESETS.slice(0, 3);
+---
+
+<section class="relative min-h-[92vh] flex items-center justify-center overflow-hidden pt-24 pb-16">
+  <!-- Static ruled graph-paper backdrop (no animation) -->
+  <div class="absolute inset-0 z-0 pointer-events-none" aria-hidden="true">
+    <div
+      class="absolute inset-0"
+      style="background-image: linear-gradient(rgb(var(--sc-line) / 0.05) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--sc-line) / 0.05) 1px, transparent 1px); background-size: 44px 44px;"
+    ></div>
+  </div>
+
+  <!-- Hero Content -->
+  <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <div class="mb-5 font-mono text-xs text-sc-accent animate-fade-in" data-i18n="hero.tagline">mathematical acoustics</div>
+
+    <h1 class="font-serif text-4xl sm:text-6xl lg:text-7xl font-semibold text-sc-text leading-[1.05] tracking-tight animate-fade-in" style="animation-delay: 0.05s">
+      <span data-i18n="hero.titleLine1">Turn mathematics into</span>
+      <br class="hidden sm:inline" />
+      <em class="text-sc-accent italic" style="font-family: 'Playfair Display', serif;" data-i18n="hero.titleAccent">living</em>
+      <span data-i18n="hero.titleLine2">sound</span>
+    </h1>
+
+    <p class="mt-6 text-base sm:text-lg text-sc-text-soft max-w-2xl mx-auto leading-relaxed animate-fade-in" style="animation-delay: 0.15s" data-i18n="hero.subtitle">
+      Type an equation. Read its geometry from the paper, press play, and hear its
+      harmonics synthesized through the Web Audio API in real time.
+    </p>
+
+    <!-- CTAs -->
+    <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in" style="animation-delay: 0.2s">
+      <a href="/create" class="w-full sm:w-auto px-8 py-3.5 text-base btn-primary" data-i18n="hero.ctaStudio">
+        Open the Sound Studio
+      </a>
+      <a href="/explore" class="w-full sm:w-auto px-8 py-3.5 text-base btn-ghost" data-i18n="hero.ctaLibrary">
+        Browse the library
+      </a>
+    </div>
+
+    <!-- Paper curve strip: inked onto the paper-toned surface -->
+    <div class="mt-14 mx-auto max-w-2xl text-left animate-fade-in" style="animation-delay: 0.25s">
+      <div class="bg-sc-paper border border-sc-ink/15 rounded-sm p-3 shadow-[0_1px_2px_rgba(27,36,48,0.25)]">
+        <canvas id="hero-curve" class="w-full h-[150px] block" aria-label="Example curve of sin(x) times cos(3x) inked onto paper"></canvas>
+        <div class="flex items-center justify-between mt-2 font-mono text-[11px] text-sc-ink/60">
+          <span>sin(x) cos(3x)</span>
+          <span data-i18n="hero.curveLabel">sampled at 800 points</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick experiments -->
+    <div class="mt-10">
+      <div class="text-xs text-sc-text-faint font-mono mb-3" data-i18n="hero.quickExperiments">quick experiments — click to open in the studio</div>
+      <div class="flex flex-wrap items-center justify-center gap-2">
+        {heroPresets.map((preset) => (
+          <a
+            href={`/create?eq=${encodeURIComponent(preset.equation)}&inst=${preset.recommendedSettings.instrument}&mode=${preset.recommendedSettings.sonificationMode}`}
+            class="chip chip-idle font-mono text-xs"
+          >
+            <span class="text-sc-text-soft">{preset.name}:</span>
+            <span class="text-sc-text">{preset.equation}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Wave continuously moves: initial draw-in, then looping scan with playhead + phase drift.
+  (function () {
+    const canvas = document.getElementById('hero-curve');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const WAVE = (x, phase) => Math.sin(x + phase) * Math.cos(3 * (x + phase * 0.2));
+    const DOMAIN = { min: -6.28, max: 6.28 };
+    const POINTS = 300;
+    const DRAW_IN_DURATION = 1300;
+
+    function palette() {
+      const mode = document.documentElement.dataset.theme;
+      if (mode === 'digital') {
+        return {
+          paper: '#ffffff',
+          grid: 'rgba(0,0,0,0.05)',
+          axis: 'rgba(0,0,0,0.22)',
+          label: 'rgba(0,0,0,0.55)',
+          curve: '#000000',
+          glow: 'rgba(0,0,0,0.20)',
+          dot: 'rgba(0,0,0,0.9)',
+          scan: 'rgba(0,0,0,0.18)',
+        };
+      }
+      if (mode === 'mono') {
+        return {
+          paper: '#080A0C',
+          grid: 'rgba(28,32,36,0.90)',
+          axis: 'rgba(142,148,154,0.70)',
+          label: 'rgba(167,171,176,0.95)',
+          curve: '#FFFFFF',
+          glow: 'rgba(255,255,255,0.30)',
+          dot: '#FFFFFF',
+          scan: 'rgba(255,255,255,0.18)',
+        };
+      }
+      return {
+        paper: '#EDE7D9',
+        grid: 'rgba(27,36,48,0.06)',
+        axis: 'rgba(27,36,48,0.22)',
+        label: 'rgba(27,36,48,0.55)',
+        curve: '#C9A24B',
+        glow: 'rgba(201,162,75,0.42)',
+        dot: '#C9A24B',
+        scan: 'rgba(201,162,75,0.22)',
+      };
+    }
+
+    let rafId = null;
+    const phase = { value: 0 };
+    const scan = { t: 0 };
+
+    function computeRange(phaseVal) {
+      const ys = [];
+      for (let i = 0; i <= POINTS; i++) {
+        const x = DOMAIN.min + (i / POINTS) * (DOMAIN.max - DOMAIN.min);
+        ys.push(WAVE(x, phaseVal));
+      }
+      let minY = Infinity, maxY = -Infinity;
+      for (const v of ys) { if (v < minY) minY = v; if (v > maxY) maxY = v; }
+      const pad = (maxY - minY) * 0.12;
+      return { y0: minY - pad, y1: maxY + pad };
+    }
+
+    function paint(w, h, dpr, drawProgress, phaseVal, scanPos) {
+      const p = palette();
+      if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+      }
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, w, h);
+
+      // Paper
+      ctx.fillStyle = p.paper;
+      ctx.fillRect(0, 0, w, h);
+
+      // Ruled grid
+      ctx.strokeStyle = p.grid;
+      ctx.lineWidth = 1;
+      const gs = 24;
+      for (let x = 0; x <= w; x += gs) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let y = 0; y <= h; y += gs) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      const range = computeRange(phaseVal);
+      const sx = (x) => ((x - DOMAIN.min) / (DOMAIN.max - DOMAIN.min)) * w;
+      const sy = (y) => h - ((y - range.y0) / (range.y1 - range.y0)) * h;
+
+      // Zero axis
+      ctx.strokeStyle = p.axis;
+      ctx.lineWidth = 1.25;
+      ctx.beginPath();
+      ctx.moveTo(0, sy(0));
+      ctx.lineTo(w, sy(0));
+      ctx.stroke();
+
+      // Curve
+      const count = Math.max(2, Math.floor(drawProgress * POINTS));
+      ctx.save();
+      ctx.shadowColor = p.glow;
+      ctx.shadowBlur = 8;
+      ctx.strokeStyle = p.curve;
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (let i = 0; i <= count; i++) {
+        const x = DOMAIN.min + (i / POINTS) * (DOMAIN.max - DOMAIN.min);
+        const px = sx(x);
+        const py = sy(WAVE(x, phaseVal));
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      // Scanning playhead (only after draw-in completes)
+      if (drawProgress >= 0.98) {
+        const sx1 = (scanPos % 1) * w;
+        // Vertical scan line with gradient
+        const grad = ctx.createLinearGradient(sx1, 0, sx1, h);
+        grad.addColorStop(0, 'transparent');
+        grad.addColorStop(0.45, p.scan);
+        grad.addColorStop(0.55, p.scan);
+        grad.addColorStop(1, 'transparent');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(sx1, 0);
+        ctx.lineTo(sx1, h);
+        ctx.stroke();
+
+        // Comet dot on the curve at scan position
+        const wx = DOMAIN.min + (scanPos % 1) * (DOMAIN.max - DOMAIN.min);
+        const wy = WAVE(wx, phaseVal);
+        const cx = sx(wx), cy = sy(wy);
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        ctx.fillStyle = p.glow;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = p.dot;
+        ctx.fill();
+      }
+
+      // Axis labels
+      ctx.fillStyle = p.label;
+      ctx.font = '10px "JetBrains Mono", ui-monospace, monospace';
+      ctx.fillText('y', 8, 14);
+      ctx.fillText('x', w - 12, h - 8);
+
+      ctx.restore();
+    }
+
+    let startTime = null;
+    let running = true;
+
+    function tick(now) {
+      if (!running) return;
+      const w = canvas.offsetWidth || 600;
+      const h = canvas.offsetHeight || 150;
+      const dpr = window.devicePixelRatio || 1;
+
+      if (startTime === null) startTime = now;
+      const elapsed = now - startTime;
+
+      let drawProgress, phaseVal, scanPos;
+      if (elapsed < DRAW_IN_DURATION) {
+        // Draw-in phase
+        const t = elapsed / DRAW_IN_DURATION;
+        const eased = 1 - Math.pow(1 - t, 3);
+        drawProgress = eased;
+        phaseVal = 0;
+        scanPos = 0;
+      } else {
+        // Looping phase: drift + scan
+        drawProgress = 1;
+        const loopT = (elapsed - DRAW_IN_DURATION) / 1000;
+        phaseVal = loopT * 0.35; // slow phase drift
+        scanPos = (loopT * 0.15) % 1; // playhead sweep
+        phase.value = phaseVal;
+        scan.t = scanPos;
+      }
+
+      paint(w, h, dpr, drawProgress, phaseVal, scanPos);
+      rafId = requestAnimationFrame(tick);
+    }
+
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) {
+      const w = canvas.offsetWidth || 600;
+      const h = canvas.offsetHeight || 150;
+      const dpr = window.devicePixelRatio || 1;
+      paint(w, h, dpr, 1, 0, 0);
+    } else {
+      rafId = requestAnimationFrame(tick);
+    }
+
+    window.addEventListener('mathsonify:themechange', () => {
+      // Repaint the canvas with the new theme on the next frame
+      if (!reduced) {
+        const w = canvas.offsetWidth || 600;
+        const h = canvas.offsetHeight || 150;
+        const dpr = window.devicePixelRatio || 1;
+        paint(w, h, dpr, 1, 0, 0);
+      }
+    });
+
+    window.addEventListener('resize', () => { /* tick handles on next frame */ });
+    document.addEventListener('visibilitychange', () => {
+      running = document.visibilityState === 'visible';
+      if (running && rafId === null && !reduced) {
+        rafId = requestAnimationFrame(tick);
+      }
+    });
+  })();
+</script>

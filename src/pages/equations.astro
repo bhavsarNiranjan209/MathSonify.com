@@ -1,0 +1,181 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+
+const mathCategories = [
+  {
+    title: 'Periodic trigonometric functions',
+    description: 'Fundamental cyclical oscillations that form the building blocks of acoustic waveforms and Fourier analysis.',
+    i18nTitle: 'eqref.periodicTitle',
+    i18nDesc: 'eqref.periodicDesc',
+    items: [
+      {
+        name: 'Sine wave',
+        eq: 'sin(x)',
+        latex: 'y = \\sin(x)',
+        char: 'Smooth, hypnotic, continuous pitch sweep without abrupt jumps.',
+      },
+      {
+        name: 'Cosine interference',
+        eq: 'cos(x) + cos(2*x)',
+        latex: 'y = \\cos(x) + \\cos(2x)',
+        char: 'Harmonic overtone reinforcement creating an octave bell resonance.',
+      },
+      {
+        name: 'High-frequency carrier',
+        eq: 'sin(x) * sin(8*x)',
+        latex: 'y = \\sin(x) \\cdot \\sin(8x)',
+        char: 'Fast rhythmic fluttering with amplitude-modulated tremolo.',
+      },
+    ],
+  },
+  {
+    title: 'Polynomial and algebraic curves',
+    description: 'Curves exhibiting acceleration, inflection points, and asymptotic growth.',
+    i18nTitle: 'eqref.polyTitle',
+    i18nDesc: 'eqref.polyDesc',
+    items: [
+      {
+        name: 'Quadratic parabola',
+        eq: 'x^2',
+        latex: 'y = x^2',
+        char: 'Symmetrical pitch dive into deep sub-bass followed by rapid ascent.',
+      },
+      {
+        name: 'Cubic S-curve',
+        eq: 'x^3 - 3*x',
+        latex: 'y = x^3 - 3x',
+        char: 'Double extrema creating a melodic crest and valley.',
+      },
+      {
+        name: 'Root function',
+        eq: 'sqrt(abs(x))',
+        latex: 'y = \\sqrt{|x|}',
+        char: 'Sharp V-shaped bottom rebound with steep frequency ascent.',
+      },
+    ],
+  },
+  {
+    title: 'Exponential, gaussian and damped systems',
+    description: 'Physical models of real-world energy dissipation, probability, and resonance.',
+    i18nTitle: 'eqref.expTitle',
+    i18nDesc: 'eqref.expDesc',
+    items: [
+      {
+        name: 'Gaussian bell curve',
+        eq: 'exp(-x^2)',
+        latex: 'y = e^{-x^2}',
+        char: 'Gentle fade-in from silence to a radiant harmonic peak and graceful decay.',
+      },
+      {
+        name: 'Damped pluck',
+        eq: 'exp(-0.3*x) * sin(5*x)',
+        latex: 'y = e^{-0.3x} \\sin(5x)',
+        char: 'Resonant ringing note that gradually fades away like an acoustic guitar string.',
+      },
+    ],
+  },
+];
+---
+
+<BaseLayout title="Equations Reference - MathSonify" description="Mathematical and acoustic catalog of functions supported in MathSonify.">
+  <Navigation />
+
+  <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div class="text-center max-w-3xl mx-auto mb-16 sc-reveal">
+      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4" data-i18n="equations.tag">
+        mathematical catalog
+      </div>
+      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-4" data-i18n="equations.title">
+        Equation acoustic reference
+      </h1>
+      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed" data-i18n="equations.subtitle">
+        A reference guide explaining the mathematical properties and sonic characteristics of supported functions.
+      </p>
+    </div>
+
+    <!-- Search bar -->
+    <div class="max-w-md mx-auto mb-10 sc-reveal">
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sc-text-faint">🔍</span>
+        <input
+          type="text"
+          id="equation-search"
+          placeholder="Search equations..."
+          class="w-full pl-10 pr-4 py-3 rounded-lg bg-sc-surface border border-sc-line/20 text-sm text-sc-text placeholder:text-sc-text-faint focus:outline-none focus:ring-2 focus:ring-sc-accent/50 focus:border-sc-accent transition-colors min-h-[44px]"
+        />
+      </div>
+    </div>
+
+    <!-- No results message -->
+    <div id="no-results-eq" class="hidden text-center py-12">
+      <p class="text-sc-text-soft text-sm">No equations found matching your search.</p>
+    </div>
+
+    <div class="space-y-12 sc-reveal-stagger" id="equations-sections">
+      {mathCategories.map((category) => (
+        <div class="equation-category space-y-5">
+          <div class="border-b border-sc-line/15 pb-3">
+            <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n={category.i18nTitle}>{category.title}</h2>
+            <p class="text-xs text-sc-text-soft mt-1" data-i18n={category.i18nDesc}>{category.description}</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {category.items.map((item) => (
+              <div class="equation-card panel p-5 flex flex-col justify-between hover:border-sc-accent/50 transition-colors">
+                <div>
+                  <h3 class="text-base font-semibold text-sc-text mb-2">{item.name}</h3>
+                  <div class="code-mat text-xs px-3 py-2 mb-3">
+                    {item.eq}
+                  </div>
+                  <p class="text-xs text-sc-text-soft leading-relaxed mb-4">
+                    {item.char}
+                  </p>
+                </div>
+
+                <div class="pt-3 border-t border-sc-line/15">
+                  <a
+                    href={`/create?eq=${encodeURIComponent(item.eq)}`}
+                    class="text-xs text-sc-accent hover:underline font-medium inline-flex items-center justify-center min-h-[44px] min-w-[44px]"
+                    data-i18n="equations.openInStudio"
+                  >
+                    Open in studio
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <script is:inline>
+      (function() {
+        var searchInput = document.getElementById('equation-search');
+        var noResults = document.getElementById('no-results-eq');
+        var cards = document.querySelectorAll('.equation-card');
+        var sections = document.querySelectorAll('.equation-category');
+        if (!searchInput || cards.length === 0) return;
+        searchInput.addEventListener('input', function() {
+          var term = searchInput.value.trim().toLowerCase();
+          var visible = 0;
+          cards.forEach(function(card) {
+            var text = (card.textContent || '').toLowerCase();
+            var show = !term || text.includes(term);
+            card.style.display = show ? '' : 'none';
+            if (show) visible++;
+          });
+          // Hide empty categories
+          sections.forEach(function(section) {
+            var anyVisible = section.querySelectorAll('.equation-card[style="display: none;"]').length < section.querySelectorAll('.equation-card').length;
+            section.style.display = !term || anyVisible ? '' : 'none';
+          });
+          if (noResults) noResults.classList.toggle('hidden', visible > 0);
+        });
+      })();
+    </script>
+  </main>
+
+  <Footer />
+</BaseLayout>

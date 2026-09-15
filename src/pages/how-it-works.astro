@@ -1,0 +1,138 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout title="How It Works - MathSonify Mathematical Audio Architecture" description="Discover how MathSonify parses math equations, samples coordinates, and synthesizes audio in real-time.">
+  <Navigation />
+
+  <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="text-center max-w-3xl mx-auto mb-16 sc-reveal">
+      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4" data-i18n="howItWorks.tag">
+        architectural specification
+      </div>
+      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-4" data-i18n="howItWorks.title">
+        How math becomes music
+      </h1>
+      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed" data-i18n="howItWorks.subtitle">
+        MathSonify is not a random sound generator. It implements a deterministic mathematical translation engine that converts geometric properties of equations into acoustic properties of sound.
+      </p>
+    </div>
+
+    <!-- The pipeline -->
+    <div class="space-y-8 sc-reveal-stagger">
+      <!-- Step 1 -->
+      <div class="panel p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row items-start gap-6">
+          <div class="w-12 h-12 rounded-full bg-sc-accent/15 border border-sc-accent/50 text-sc-accent font-mono font-bold text-lg flex items-center justify-center flex-shrink-0">
+            01
+          </div>
+          <div class="space-y-3 flex-1">
+            <h3 class="font-serif text-xl font-semibold text-sc-text" data-i18n="howItWorks.step1Title">Safe AST equation parsing</h3>
+            <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="howItWorks.step1Desc">
+              When you enter a formula like <code class="px-2 py-0.5 rounded bg-sc-sunken text-sc-accent font-mono text-xs border border-sc-line/15">sin(x) * cos(3*x)</code>, MathSonify uses <code class="text-sc-text">mathjs</code> to compile it into an abstract syntax tree (AST). We never execute raw <code class="text-red-400">eval()</code>, ensuring complete client-side security and eliminating code injection risks.
+            </p>
+            <div class="p-3 code-mat text-xs" data-i18n="howItWorks.step1Code">
+              Input string, tokenizer, AST expression tree, compiled function
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="panel p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row items-start gap-6">
+          <div class="w-12 h-12 rounded-full bg-sc-accent/15 border border-sc-accent/50 text-sc-accent font-mono font-bold text-lg flex items-center justify-center flex-shrink-0">
+            02
+          </div>
+          <div class="space-y-3 flex-1">
+            <h3 class="font-serif text-xl font-semibold text-sc-text" data-i18n="howItWorks.step2Title">High-resolution sampling and derivative estimation</h3>
+            <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="howItWorks.step2Desc">
+              The compiled equation is sampled across your chosen domain [x_min, x_max] at 600–800 discrete points. For each point we compute the coordinate (x, y), estimate the first derivative (slope dy/dx), and compute local curvature:
+            </p>
+            <div class="p-3 code-mat text-xs" data-i18n="howItWorks.step2Code">
+              slope(x) = [f(x + dx) - f(x - dx)] / 2dx
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="panel p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row items-start gap-6">
+          <div class="w-12 h-12 rounded-full bg-sc-accent/15 border border-sc-accent/50 text-sc-accent font-mono font-bold text-lg flex items-center justify-center flex-shrink-0">
+            03
+          </div>
+          <div class="space-y-3 flex-1">
+            <h3 class="font-serif text-xl font-semibold text-sc-text" data-i18n="howItWorks.step3Title">Acoustic parameter mapping</h3>
+            <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="howItWorks.step3Desc">
+              Mathematical dimensions are mapped to audio physics:
+            </p>
+            <ul class="space-y-2 text-xs text-sc-text-soft">
+              <li class="flex items-start gap-2">
+                <span class="text-sc-accent font-bold">•</span>
+                <span data-i18n="howItWorks.step3x"><strong class="text-sc-text">Horizontal coordinate (x):</strong> mapped directly to the audio timeline and clock progress.</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-sc-accent font-bold">•</span>
+                <span data-i18n="howItWorks.step3y"><strong class="text-sc-text">Vertical elevation (y):</strong> normalized to audio pitch or quantized to musical scale degrees (e.g. minor pentatonic).</span>
+              </li>
+              <li class="flex items-start gap-2">
+                <span class="text-sc-accent font-bold">•</span>
+                <span data-i18n="howItWorks.step3dy"><strong class="text-sc-text">Curve slope (|dy/dx|):</strong> dynamically opens the biquad lowpass filter cutoff to introduce higher harmonic brightness during steep transitions.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="panel p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row items-start gap-6">
+          <div class="w-12 h-12 rounded-full bg-sc-accent/15 border border-sc-accent/50 text-sc-accent font-mono font-bold text-lg flex items-center justify-center flex-shrink-0">
+            04
+          </div>
+          <div class="space-y-3 flex-1">
+            <h3 class="font-serif text-xl font-semibold text-sc-text" data-i18n="howItWorks.step4Title">Real-time Web Audio API synthesis</h3>
+            <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="howItWorks.step4Desc">
+              We construct custom audio routing graphs inside the browser using native <code class="text-sc-text">AudioContext</code>:
+            </p>
+            <div class="p-3 code-mat text-xs space-y-1">
+              <div>OscillatorNode (sine, triangle, saw, pulse) → BiquadFilterNode</div>
+              <div>→ gain envelope (ADSR) → DynamicsCompressorNode → AnalyserNode → destination</div>
+            </div>
+            <p class="text-xs text-sc-text-soft" data-i18n="howItWorks.step4Note">
+              A master <code class="text-sc-accent">DynamicsCompressorNode</code> ensures zero audio clipping, guarding your ears against sudden mathematical spikes or asymptotes.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="panel p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row items-start gap-6">
+          <div class="w-12 h-12 rounded-full bg-sc-accent/15 border border-sc-accent/50 text-sc-accent font-mono font-bold text-lg flex items-center justify-center flex-shrink-0">
+            05
+          </div>
+          <div class="space-y-3 flex-1">
+            <h3 class="font-serif text-xl font-semibold text-sc-text" data-i18n="howItWorks.step5Title">Audio-visual synchronized playback</h3>
+            <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="howItWorks.step5Desc">
+              As the audio context synthesizes the waveform, a 60 FPS animation loop drives the canvas 2D engine. The playhead traces the exact mathematical point on screen while the curve and spectrum state respond to the sound output.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="mt-16 text-center sc-reveal">
+      <a href="/create" class="btn-primary inline-flex items-center px-8 py-3.5 text-base" data-i18n="howItWorks.cta">
+        Try it in the sound studio
+      </a>
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>
