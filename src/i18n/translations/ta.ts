@@ -8,8 +8,8 @@ const ta = {
   'nav.about': 'பற்றி',
   'nav.displayMode': 'காட்சி முறை',
   'nav.analog': 'அனலாக்',
-  'nav.digital': 'டிஜிட்டல்',
-  'nav.mono': 'மோனோ',
+  'nav.light': 'ஒளி',
+  'nav.dark': 'இருண்ட',
   'nav.language': 'மொழி',
 
   // Hero

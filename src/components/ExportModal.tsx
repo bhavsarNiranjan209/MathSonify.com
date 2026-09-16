@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useStudioStore } from '../store/studioStore';
 import { useTranslation } from '../i18n/index';
 import { renderEquationToWavBlob } from '../utils/audioExporter';
@@ -24,13 +24,6 @@ export default function ExportModal() {
   const activeEquationName = useStudioStore((s) => s.activeEquationName);
 
   const [exportType, setExportType] = useState<'audio' | 'image' | 'video'>('audio');
-
-  // Reset to audio if video is selected but scientist is cleared
-  useEffect(() => {
-    if (exportType === 'video' && !activeScientist) {
-      setExportType('audio');
-    }
-  }, [activeScientist, exportType]);
   const [isExporting, setIsExporting] = useState(false);
   const [downloadReady, setDownloadReady] = useState(false);
   const [exportError, setExportError] = useState('');
@@ -143,7 +136,7 @@ export default function ExportModal() {
           {([
             { id: 'audio' as const, label: t('export.audioTab'), icon: '♪' },
             { id: 'image' as const, label: t('export.imageTab'), icon: '🖼' },
-            ...(activeScientist ? [{ id: 'video' as const, label: 'Video', icon: '▶' as const }] : []),
+            { id: 'video' as const, label: 'Video', icon: '▶' as const },
           ]).map((tab) => {
             const active = exportType === tab.id;
             return (
@@ -257,11 +250,11 @@ export default function ExportModal() {
             <>
               <div className="flex justify-between"><span className="text-sc-text-faint">Format</span><span className="font-mono text-sc-text">WebM (VP9, 720p)</span></div>
               <div className="flex justify-between"><span className="text-sc-text-faint">{t('export.duration')}</span><span className="font-mono text-sc-text">{duration} {t('export.seconds')}</span></div>
+              {activeEquationName && (
+                <div className="flex justify-between"><span className="text-sc-text-faint">Equation</span><span className="font-mono text-sc-text">{activeEquationName}</span></div>
+              )}
               {activeScientist && (
-                <>
-                  <div className="flex justify-between"><span className="text-sc-text-faint">Equation</span><span className="font-mono text-sc-text">{activeEquationName}</span></div>
-                  <div className="flex justify-between"><span className="text-sc-text-faint">Scientist</span><span className="font-mono text-sc-text">{activeScientist.name}</span></div>
-                </>
+                <div className="flex justify-between"><span className="text-sc-text-faint">Scientist</span><span className="font-mono text-sc-text">{activeScientist.name}</span></div>
               )}
               <div className="flex justify-between"><span className="text-sc-text-faint">Resolution</span><span className="font-mono text-sc-text">1280 × 720 @ 30fps</span></div>
             </>

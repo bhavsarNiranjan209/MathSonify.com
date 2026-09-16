@@ -8,8 +8,8 @@ const lb = {
   'nav.about': 'Iwwer',
   'nav.displayMode': 'Affichagemodus',
   'nav.analog': 'Analog',
-  'nav.digital': 'Digital',
-  'nav.mono': 'Mono',
+  'nav.light': 'Hell',
+  'nav.dark': 'Däischter',
   'nav.language': 'Sprooch',
 
   // Hero

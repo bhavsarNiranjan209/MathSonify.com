@@ -8,8 +8,8 @@ const ga = {
   'nav.about': 'Fúinn',
   'nav.displayMode': 'Mód taispeána',
   'nav.analog': 'Analógach',
-  'nav.digital': 'Digiteach',
-  'nav.mono': 'Aonchlaon',
+  'nav.light': 'Solas',
+  'nav.dark': 'Dorcha',
   'nav.language': 'Teanga',
 
   // Hero

@@ -8,8 +8,8 @@ const mi = {
   'nav.about': 'Mō Mātou',
   'nav.displayMode': 'Aratau whakaatu',
   'nav.analog': 'Tairitenga',
-  'nav.digital': 'Matihiko',
-  'nav.mono': 'Mōno',
+  'nav.light': 'Mārama',
+  'nav.dark': 'Pōuri',
   'nav.language': 'Reo',
 
   // Hero

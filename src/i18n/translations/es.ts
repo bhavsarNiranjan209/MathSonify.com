@@ -7,8 +7,8 @@ const es = {
   'nav.about': 'Acerca de',
   'nav.displayMode': 'Modo de visualización',
   'nav.analog': 'Analógico',
-  'nav.digital': 'Digital',
-  'nav.mono': 'Mono',
+  'nav.light': 'Claro',
+  'nav.dark': 'Oscuro',
   'nav.language': 'Idioma',
 
   'hero.tagline': 'acústica matemática',

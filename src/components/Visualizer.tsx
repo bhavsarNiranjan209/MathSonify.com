@@ -479,7 +479,7 @@ export default function Visualizer() {
   ];
 
   return (
-    <div className="relative w-full flex flex-col rounded-md border border-sc-ink/20 overflow-hidden bg-sc-paper">
+    <div className="relative w-full flex flex-col rounded-md border border-sc-ink/20 bg-sc-paper" style={{ contain: 'content' }}>
       {/* Toolbar strip — instrument bezel above the paper */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-sc-ink/10 bg-sc-surface text-sc-text-soft">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0 scrollbar-none">
@@ -943,18 +943,6 @@ function draw2DGraph(
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
   };
-
-  /*── Equation watermark centered in graph ─────────────────────────────── */
-  if (equation) {
-    ctx.save();
-    const fontSize = Math.max(11, Math.min(15, width / 55));
-    ctx.font = `500 ${fontSize}px "JetBrains Mono", ui-monospace, monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = alpha(p.label, 0.12);
-    ctx.fillText(equation, width / 2, height / 2);
-    ctx.restore();
-  }
 
   /* ---------- Reading animation: the playhead visibly scans the curve ---------- */
   // While audio scans the equation, the curve is split in two: the already-read

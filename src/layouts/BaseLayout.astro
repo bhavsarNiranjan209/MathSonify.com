@@ -15,7 +15,7 @@ const { title, description = "Turn Math Into Music - Type an equation, watch it 
     <meta charset="UTF-8" />
     <meta name="description" content={description} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/jpeg" href="/favicon.jpeg" />
     <meta name="generator" content={Astro.generator} />
 
     <!-- SEO -->
@@ -40,9 +40,11 @@ const { title, description = "Turn Math Into Music - Type an equation, watch it 
       (function () {
         try {
           var saved = localStorage.getItem('mathsonify-theme');
-          document.documentElement.dataset.theme = saved === 'digital' || saved === 'mono' ? saved : 'digital';
+          if (saved === 'digital') saved = 'light';
+          if (saved === 'mono') saved = 'dark';
+          document.documentElement.dataset.theme = saved === 'light' || saved === 'dark' ? saved : 'dark';
         } catch (e) {
-          document.documentElement.dataset.theme = 'digital';
+          document.documentElement.dataset.theme = 'dark';
         }
       })();
     </script>
@@ -118,36 +120,9 @@ const { title, description = "Turn Math Into Music - Type an equation, watch it 
 
     <slot />
 
-    <!-- Scroll-reveal + progress observer (no deps) -->
+    <!-- Scroll progress + button ripple (no reveal observer — pages render immediately) -->
     <script is:inline>
       (function () {
-        var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (reduced) {
-          // Show everything immediately for reduced-motion users
-          document.querySelectorAll('.sc-reveal,.sc-reveal-left,.sc-reveal-right,.sc-reveal-scale,.sc-reveal-stagger').forEach(function(el) {
-            el.classList.add('revealed');
-          });
-          return;
-        }
-
-        // ── IntersectionObserver for scroll reveals ──
-        var revealEls = document.querySelectorAll('.sc-reveal,.sc-reveal-left,.sc-reveal-right,.sc-reveal-scale,.sc-reveal-stagger');
-        if (revealEls.length && 'IntersectionObserver' in window) {
-          var obs = new IntersectionObserver(function(entries) {
-            entries.forEach(function(entry) {
-              if (entry.isIntersecting) {
-                entry.target.classList.add('revealed');
-                obs.unobserve(entry.target);
-              }
-            });
-          }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-          revealEls.forEach(function(el) { obs.observe(el); });
-        } else {
-          // Fallback: show all
-          revealEls.forEach(function(el) { el.classList.add('revealed'); });
-        }
-
-        // ── Scroll progress bar ──
         var bar = document.getElementById('scroll-progress');
         if (bar) {
           window.addEventListener('scroll', function() {
@@ -157,8 +132,6 @@ const { title, description = "Turn Math Into Music - Type an equation, watch it 
             bar.style.width = pct + '%';
           }, { passive: true });
         }
-
-        // ── Ripple position for buttons ──
         document.querySelectorAll('.btn-primary').forEach(function(btn) {
           btn.addEventListener('mousedown', function(e) {
             var rect = btn.getBoundingClientRect();

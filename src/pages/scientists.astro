@@ -11,7 +11,7 @@ import { SCIENTISTS, SCIENTIST_CATEGORIES } from '../data/scientists';
 
   <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
     <!-- Header -->
-    <div class="text-center max-w-3xl mx-auto mb-12 sc-reveal">
+    <div class="text-center max-w-3xl mx-auto mb-12">
       <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4" data-i18n="scientists.tag">
         hear the masters
       </div>
@@ -24,7 +24,7 @@ import { SCIENTISTS, SCIENTIST_CATEGORIES } from '../data/scientists';
     </div>
 
     <!-- Search bar -->
-    <div class="max-w-md mx-auto mb-8 sc-reveal">
+    <div class="max-w-md mx-auto mb-8">
       <div class="relative">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sc-text-faint">🔍</span>
         <input
@@ -37,7 +37,7 @@ import { SCIENTISTS, SCIENTIST_CATEGORIES } from '../data/scientists';
     </div>
 
     <!-- Category filter bar -->
-    <div class="flex items-center justify-center gap-2 flex-wrap mb-10 sc-reveal">
+    <div class="flex items-center justify-center gap-2 flex-wrap mb-10">
       {SCIENTIST_CATEGORIES.map((cat) => (
         <button
           class="category-filter-btn px-4 py-2 rounded-full text-xs font-medium bg-sc-surface hover:bg-sc-accent/15 text-sc-text-soft hover:text-sc-text border border-sc-line/20 hover:border-sc-accent transition-colors min-h-[44px]"
@@ -54,7 +54,7 @@ import { SCIENTISTS, SCIENTIST_CATEGORIES } from '../data/scientists';
     </div>
 
     <!-- Scientist card grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sc-reveal-stagger" id="scientists-grid">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="scientists-grid">
       {SCIENTISTS.map((scientist) => (
         <button
           type="button"

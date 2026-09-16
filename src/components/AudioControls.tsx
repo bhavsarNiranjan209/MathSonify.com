@@ -359,7 +359,7 @@ export default function AudioControls() {
               setVolume(v);
               audioEngine.setVolume(v);
             }}
-            className="w-full h-1.5 min-h-[44px] bg-transparent rounded appearance-none cursor-pointer accent-sc-accent"
+            className="w-full min-h-[44px] cursor-pointer"
           />
         </div>
 
@@ -375,7 +375,7 @@ export default function AudioControls() {
             step="1"
             value={duration}
             onChange={(e) => setDuration(parseInt(e.target.value))}
-            className="w-full h-1.5 min-h-[44px] bg-transparent rounded appearance-none cursor-pointer accent-sc-accent"
+            className="w-full min-h-[44px] cursor-pointer"
           />
         </div>
 
@@ -391,7 +391,7 @@ export default function AudioControls() {
             step="0.25"
             value={speed}
             onChange={(e) => setSpeed(parseFloat(e.target.value))}
-            className="w-full h-1.5 min-h-[44px] bg-transparent rounded appearance-none cursor-pointer accent-sc-accent"
+            className="w-full min-h-[44px] cursor-pointer"
           />
         </div>
 
@@ -432,7 +432,7 @@ export default function AudioControls() {
               step="10"
               value={minFreq}
               onChange={(e) => setMinFreq(parseInt(e.target.value))}
-              className="w-full h-1.5 min-h-[44px] bg-transparent rounded appearance-none cursor-pointer accent-sc-accent"
+              className="w-full min-h-[44px] cursor-pointer"
             />
           </div>
           <div>
@@ -444,7 +444,7 @@ export default function AudioControls() {
               step="20"
               value={maxFreq}
               onChange={(e) => setMaxFreq(parseInt(e.target.value))}
-              className="w-full h-1.5 min-h-[44px] bg-transparent rounded appearance-none cursor-pointer accent-sc-accent"
+              className="w-full min-h-[44px] cursor-pointer"
             />
           </div>
         </div>

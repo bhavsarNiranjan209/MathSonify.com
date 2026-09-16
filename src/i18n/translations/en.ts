@@ -8,8 +8,8 @@ const en = {
   'nav.about': 'About',
   'nav.displayMode': 'Display mode',
   'nav.analog': 'Analog',
-  'nav.digital': 'Digital',
-  'nav.mono': 'Mono',
+  'nav.light': 'Light',
+  'nav.dark': 'Dark',
   'nav.language': 'Language',
 
   // Hero

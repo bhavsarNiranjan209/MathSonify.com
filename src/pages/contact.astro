@@ -1,0 +1,153 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout title="Contact Us - MathSonify" description="Get in touch with MathSonify — feedback, partnerships, and creative collaborations welcome.">
+  <Navigation />
+
+  <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+    <!-- Hero -->
+    <div class="text-center max-w-3xl mx-auto mb-20">
+      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4">
+        ♪ resonance channel open
+      </div>
+      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-5">
+        Let's make some <span class="text-sc-accent">noise</span>
+      </h1>
+      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed max-w-2xl mx-auto">
+        Whether you're a mathematician who hears equations, a musician who sees frequencies, or a teacher who wants to bring math to life — we're all ears. Every great signal starts with a transmission.
+      </p>
+    </div>
+
+    <!-- Waveform separator -->
+    <div class="flex items-center justify-center gap-1 mb-16" aria-hidden="true">
+      <span class="w-1 h-3 rounded-full bg-sc-accent/40"></span>
+      <span class="w-1 h-5 rounded-full bg-sc-accent/60"></span>
+      <span class="w-1 h-8 rounded-full bg-sc-accent/80"></span>
+      <span class="w-1 h-12 rounded-full bg-sc-accent"></span>
+      <span class="w-1 h-8 rounded-full bg-sc-accent/80"></span>
+      <span class="w-1 h-5 rounded-full bg-sc-accent/60"></span>
+      <span class="w-1 h-3 rounded-full bg-sc-accent/40"></span>
+      <span class="w-1 h-1 rounded-full bg-sc-accent/20 mx-4"></span>
+      <span class="w-1 h-3 rounded-full bg-sc-accent/40"></span>
+      <span class="w-1 h-6 rounded-full bg-sc-accent/60"></span>
+      <span class="w-1 h-10 rounded-full bg-sc-accent"></span>
+      <span class="w-1 h-14 rounded-full bg-sc-accent"></span>
+      <span class="w-1 h-10 rounded-full bg-sc-accent"></span>
+      <span class="w-1 h-6 rounded-full bg-sc-accent/60"></span>
+      <span class="w-1 h-3 rounded-full bg-sc-accent/40"></span>
+    </div>
+
+    <!-- Contact cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+
+      <!-- General Inquiries -->
+      <div class="panel p-8 space-y-5 group hover:border-sc-accent/50 transition-all duration-300 relative overflow-hidden">
+        <div class="absolute -top-4 -right-4 text-7xl opacity-[0.04] font-serif select-none pointer-events-none">π</div>
+        <div class="w-12 h-12 rounded-xl bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center text-xl">
+          ✉
+        </div>
+        <h3 class="font-serif text-lg font-semibold text-sc-text">General Inquiries</h3>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          Questions about how MathSonify works, feature ideas, or just want to say hello? Drop us a line — we read every message like we read every equation.
+        </p>
+        <a
+          href="mailto:hello@mathsonify.com"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-sc-accent/15 border border-sc-accent/40 text-sc-accent text-sm font-medium hover:bg-sc-accent/25 hover:border-sc-accent/60 transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(var(--sc-accent),0.12)]"
+        >
+          hello@mathsonify.com
+          <span class="text-xs opacity-60">→</span>
+        </a>
+      </div>
+
+      <!-- Bug Reports -->
+      <div class="panel p-8 space-y-5 group hover:border-sc-accent/50 transition-all duration-300 relative overflow-hidden">
+        <div class="absolute -top-4 -right-4 text-7xl opacity-[0.04] font-serif select-none pointer-events-none">∫</div>
+        <div class="w-12 h-12 rounded-xl bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center text-xl">
+          🔧
+        </div>
+        <h3 class="font-serif text-lg font-semibold text-sc-text">Bug Reports</h3>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          Something sounds off? A graph misbehaving? An equation producing silence when it should scream? Help us debug the mathematics.
+        </p>
+        <a
+          href="mailto:bugs@mathsonify.com"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-sc-accent/15 border border-sc-accent/40 text-sc-accent text-sm font-medium hover:bg-sc-accent/25 hover:border-sc-accent/60 transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(var(--sc-accent),0.12)]"
+        >
+          bugs@mathsonify.com
+          <span class="text-xs opacity-60">→</span>
+        </a>
+      </div>
+
+      <!-- Collaborations -->
+      <div class="panel p-8 space-y-5 group hover:border-sc-accent/50 transition-all duration-300 relative overflow-hidden">
+        <div class="absolute -top-4 -right-4 text-7xl opacity-[0.04] font-serif select-none pointer-events-none">∞</div>
+        <div class="w-12 h-12 rounded-xl bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center text-xl">
+          🤝
+        </div>
+        <h3 class="font-serif text-lg font-semibold text-sc-text">Collaborations</h3>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          Educators, researchers, composers, and creative technologists — let's compose something extraordinary together.
+        </p>
+        <a
+          href="mailto:collab@mathsonify.com"
+          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-sc-accent/15 border border-sc-accent/40 text-sc-accent text-sm font-medium hover:bg-sc-accent/25 hover:border-sc-accent/60 transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(var(--sc-accent),0.12)]"
+        >
+          collab@mathsonify.com
+          <span class="text-xs opacity-60">→</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Creative "signal" section -->
+    <div class="panel p-10 sm:p-14 text-center space-y-6 relative overflow-hidden mb-16">
+      <div class="absolute inset-0 opacity-[0.03] pointer-events-none" aria-hidden="true">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-[200px] leading-none select-none">
+          ∿
+        </div>
+      </div>
+      <div class="relative z-10 space-y-5">
+        <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-sc-text">
+          The frequency of good ideas
+        </h2>
+        <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed max-w-2xl mx-auto">
+          MathSonify started as a simple question: <em class="text-sc-text font-medium">"What does an equation actually sound like?"</em> That curiosity became a platform used by students, musicians, educators, and mathematicians worldwide. Your idea might be the next waveform we build.
+        </p>
+        <div class="flex items-center justify-center gap-3 pt-2">
+          <span class="w-2 h-2 rounded-full bg-sc-accent/60"></span>
+          <span class="w-2 h-2 rounded-full bg-sc-accent/80"></span>
+          <span class="w-2 h-2 rounded-full bg-sc-accent"></span>
+          <span class="w-2 h-2 rounded-full bg-sc-accent/80"></span>
+          <span class="w-2 h-2 rounded-full bg-sc-accent/60"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- What to expect -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+      <div class="space-y-4">
+        <h3 class="font-serif text-lg font-semibold text-sc-text">Response timing</h3>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          MathSonify is maintained by a small, dedicated team. We aim to respond to all inquiries within 2–3 business days. For urgent issues — like a broken sound engine or a critical build failure — include "URGENT" in your subject line and we'll prioritize it.
+        </p>
+      </div>
+      <div class="space-y-4">
+        <h3 class="font-serif text-lg font-semibold text-sc-text">Open source spirit</h3>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          MathSonify is built on an open, transparent philosophy. We believe the best mathematical tools are shared freely. If you want to contribute code, report an issue, or suggest an equation for our library, we welcome it with open arms and open source.
+        </p>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="mt-16 text-center">
+      <a href="/create" class="btn-primary inline-flex items-center px-8 py-3.5 text-base">
+        Open the sound studio
+      </a>
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>

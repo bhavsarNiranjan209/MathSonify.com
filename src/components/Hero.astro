@@ -84,7 +84,7 @@ const heroPresets = PRESETS.slice(0, 3);
 
     function palette() {
       const mode = document.documentElement.dataset.theme;
-      if (mode === 'digital') {
+      if (mode === 'light') {
         return {
           paper: '#ffffff',
           grid: 'rgba(0,0,0,0.05)',
@@ -96,7 +96,7 @@ const heroPresets = PRESETS.slice(0, 3);
           scan: 'rgba(0,0,0,0.18)',
         };
       }
-      if (mode === 'mono') {
+      if (mode === 'dark') {
         return {
           paper: '#080A0C',
           grid: 'rgba(28,32,36,0.90)',

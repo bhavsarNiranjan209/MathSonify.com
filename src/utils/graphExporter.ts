@@ -68,17 +68,17 @@ export async function captureCanvasAsBlob(
 
   const theme = getThemeMode();
   const palette = getCanvasPalette(theme);
-  const isDigital = theme === 'digital';
-  const isMono = theme === 'mono';
+  const isLight = theme === 'light';
+  const isDark = theme === 'dark';
 
   const graphH = Math.round(displayHeight * scaleFactor);
 
   // ── 1. Gradient background ────────────────────────────────────────
   const gradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
-  if (isMono) {
+  if (isDark) {
     gradient.addColorStop(0, '#0E1216');
     gradient.addColorStop(1, palette.canvas);
-  } else if (isDigital) {
+  } else if (isLight) {
     gradient.addColorStop(0, '#FFFFFF');
     gradient.addColorStop(1, '#F2F2F2');
   } else {
@@ -117,7 +117,7 @@ export async function captureCanvasAsBlob(
 
   // ── 4. Accent line — thin rule separating graph from info bar ─────
   if (hasInfo) {
-    const accentColour = isMono ? '#FFFFFF' : isDigital ? '#000000' : '#C9A24B';
+    const accentColour = isDark ? '#FFFFFF' : isLight ? '#000000' : '#C9A24B';
     ctx.fillStyle = accentColour;
     ctx.fillRect(0, graphH, exportWidth, accentLineH_px);
   }
@@ -127,9 +127,9 @@ export async function captureCanvasAsBlob(
   //    Nothing is drawn inside the graph itself.
   if (hasInfo) {
     const barTop = graphH + accentLineH_px;
-    const barBg = isDigital
+    const barBg = isLight
       ? '#0F0F0F'
-      : isMono
+      : isDark
         ? '#1A1D20'
         : '#111827';
     ctx.fillStyle = barBg;
@@ -138,9 +138,9 @@ export async function captureCanvasAsBlob(
     // Compose single-row text: "Name  ·  equation  —  by Founder"
     // Fall back to whatever pieces are available.
     const parts: { text: string; font: string; color: string }[] = [];
-    const accentCol = isMono ? '#E8E8E6' : isDigital ? '#FFFFFF' : '#C9A24B';
-    const mutedCol  = isMono ? 'rgba(242,242,240,0.65)' : isDigital ? 'rgba(255,255,255,0.62)' : 'rgba(237,231,217,0.62)';
-    const eqCol     = isMono ? '#FFFFFF' : '#FFFFFF';
+    const accentCol = isDark ? '#E8E8E6' : isLight ? '#FFFFFF' : '#C9A24B';
+    const mutedCol  = isDark ? 'rgba(242,242,240,0.65)' : isLight ? 'rgba(255,255,255,0.62)' : 'rgba(237,231,217,0.62)';
+    const eqCol     = isDark ? '#FFFFFF' : '#FFFFFF';
 
     const nameFs = Math.round(11 * scaleFactor);
     const eqFs   = Math.round(13 * scaleFactor);
@@ -213,9 +213,9 @@ export async function captureCanvasAsBlob(
     const pillY = (graphH - pillH) / 2;
     const pillR = pillH / 2;
 
-    const wmBg = isDigital ? 'rgba(255,255,255,0.88)' : isMono ? 'rgba(255,255,255,0.10)' : 'rgba(27,36,48,0.62)';
-    const wmBorder = isDigital ? 'rgba(0,0,0,0.08)' : isMono ? 'rgba(255,255,255,0.14)' : 'rgba(237,231,217,0.14)';
-    const wmTextColor = isDigital ? 'rgba(0,0,0,0.58)' : isMono ? 'rgba(255,255,255,0.74)' : '#C9A24B';
+    const wmBg = isLight ? 'rgba(255,255,255,0.88)' : isDark ? 'rgba(255,255,255,0.10)' : 'rgba(27,36,48,0.62)';
+    const wmBorder = isLight ? 'rgba(0,0,0,0.08)' : isDark ? 'rgba(255,255,255,0.14)' : 'rgba(237,231,217,0.14)';
+    const wmTextColor = isLight ? 'rgba(0,0,0,0.58)' : isDark ? 'rgba(255,255,255,0.74)' : '#C9A24B';
 
     const opacity = 0.55;
     ctx.globalAlpha = opacity;
@@ -241,7 +241,7 @@ export async function captureCanvasAsBlob(
 
     // Text
     ctx.globalAlpha = opacity;
-    ctx.shadowColor = isDigital ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.35)';
+    ctx.shadowColor = isLight ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.35)';
     ctx.shadowBlur = 3;
     ctx.font = `600 ${wmFontSize}px "Inter", system-ui, sans-serif`;
     ctx.fillStyle = wmTextColor;

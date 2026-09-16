@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 export interface MathSymbol {
@@ -284,7 +285,15 @@ export default function MathSymbolPad({ onInsert, open, onClose }: MathSymbolPad
     return () => { clearTimeout(id); document.removeEventListener('mousedown', handler); };
   }, [open, onClose]);
 
-  return (
+  // Portal the keyboard to document.body so it escapes any parent stacking context
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      setPortalTarget(document.body);
+    }
+  }, []);
+
+  const content = (
     <AnimatePresence>
       {open && (
         <>
@@ -409,6 +418,7 @@ export default function MathSymbolPad({ onInsert, open, onClose }: MathSymbolPad
                   <motion.button
                     key={s.symbol}
                     type="button"
+                    onPointerDown={(e) => e.preventDefault()}
                     onClick={() => handleTap(s)}
                     title={s.hint ?? s.insert ?? s.symbol}
                     aria-label={s.hint ?? s.symbol}
@@ -430,7 +440,6 @@ export default function MathSymbolPad({ onInsert, open, onClose }: MathSymbolPad
                     }}
                     whileHover={reduceMotion ? undefined : { scale: 1.06, y: -1 }}
                     whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                    transition={reduceMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 22 }}
                   >
                     {/* Subtle inner glow on idle buttons */}
                     {!wasTapped && (
@@ -465,4 +474,7 @@ export default function MathSymbolPad({ onInsert, open, onClose }: MathSymbolPad
       )}
     </AnimatePresence>
   );
+
+  if (!portalTarget) return content;
+  return createPortal(content, portalTarget);
 }

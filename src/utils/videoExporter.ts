@@ -21,6 +21,11 @@ const VIDEO_W = 1280;
 const VIDEO_H = 720;
 const FPS = 30;
 
+// ── 3-Tier vertical viewport partitioning ──
+const GRAPH_TOP = 90;       // header zone ends here
+const GRAPH_BOTTOM = 660;   // watermark zone begins here
+const GRAPH_HEIGHT = GRAPH_BOTTOM - GRAPH_TOP; // 570px graph viewport
+
 /**
  * Export a video (WebM, VP9 if available) that matches the studio graph exactly:
  *  - Same grid, axes, ruler ticks, smoothed curve, fill-under-curve
@@ -162,8 +167,8 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, o: FrameOpts) {
   const { points, minX, maxX, equation, equationName, founderName, progress, frame, totalFrames } = o;
 
   const palette = getCanvasPalette();
-  const isDigital = getThemeMode() === 'digital';
-  const isMono = getThemeMode() === 'mono';
+  const isLight = getThemeMode() === 'light';
+  const isDark = getThemeMode() === 'dark';
 
   // ── Paper canvas background (same as studio) ──
   ctx.fillStyle = palette.canvas;
@@ -179,19 +184,19 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, o: FrameOpts) {
   const paddedMaxY = maxY + yPad;
 
   const toScreenX = (x: number) => ((x - minX) / (maxX - minX)) * VIDEO_W;
-  const toScreenY = (y: number) => VIDEO_H - ((y - paddedMinY) / (paddedMaxY - paddedMinY)) * VIDEO_H;
+  const toScreenY = (y: number) => GRAPH_BOTTOM - ((y - paddedMinY) / (paddedMaxY - paddedMinY)) * GRAPH_HEIGHT;
 
-  // ── Ruled grid (12 vertical × 8 horizontal, same as studio) ──
+  // ── Ruled grid (12 vertical × 8 horizontal, graph tier only) ──
   ctx.strokeStyle = palette.grid;
   ctx.lineWidth = 1;
   const vSteps = 12;
   for (let i = 0; i <= vSteps; i++) {
     const sx = (VIDEO_W / vSteps) * i;
-    ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, VIDEO_H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sx, GRAPH_TOP); ctx.lineTo(sx, GRAPH_BOTTOM); ctx.stroke();
   }
   const hSteps = 8;
   for (let j = 0; j <= hSteps; j++) {
-    const sy = (VIDEO_H / hSteps) * j;
+    const sy = GRAPH_TOP + (GRAPH_HEIGHT / hSteps) * j;
     ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(VIDEO_W, sy); ctx.stroke();
   }
 
@@ -204,7 +209,7 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, o: FrameOpts) {
   }
   if (minX <= 0 && maxX >= 0) {
     const x0 = toScreenX(0);
-    ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0, VIDEO_H); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0, GRAPH_TOP); ctx.lineTo(x0, GRAPH_BOTTOM); ctx.stroke();
   }
 
   // ── Ruler ticks with labels ──
@@ -213,8 +218,8 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, o: FrameOpts) {
   const fmt = (v: number) => String(Math.round(v * 10) / 10);
 
   const y0 = toScreenY(0);
-  const xAxisVisible = y0 > 0 && y0 < VIDEO_H;
-  const tickBaseY = xAxisVisible ? y0 : VIDEO_H - 4;
+  const xAxisVisible = y0 > GRAPH_TOP && y0 < GRAPH_BOTTOM;
+  const tickBaseY = xAxisVisible ? y0 : GRAPH_BOTTOM - 4;
   for (let i = 0; i <= 6; i++) {
     const xVal = minX + (i / 6) * (maxX - minX);
     const sx = toScreenX(xVal);
@@ -222,7 +227,7 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, o: FrameOpts) {
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(sx, tickBaseY - 3); ctx.lineTo(sx, tickBaseY + 3); ctx.stroke();
     ctx.textAlign = 'center';
-    ctx.fillText(fmt(xVal), sx, xAxisVisible ? tickBaseY + 11 : VIDEO_H - 8);
+    ctx.fillText(fmt(xVal), sx, xAxisVisible ? tickBaseY + 11 : GRAPH_BOTTOM - 8);
   }
 
   const x0 = toScreenX(0);
@@ -298,8 +303,8 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, o: FrameOpts) {
     }
     if (run.length) runs.push(run);
 
-    const curveColor = isMono ? '#FFFFFF' : isDigital ? '#000000' : palette.curve;
-    const baseY = Math.max(4, Math.min(VIDEO_H - 4, toScreenY(0)));
+    const curveColor = isDark ? '#FFFFFF' : isLight ? '#000000' : palette.curve;
+    const baseY = Math.max(GRAPH_TOP + 4, Math.min(GRAPH_BOTTOM - 4, toScreenY(0)));
     let topY = baseY;
     for (const r of runs) {
       for (const i of r) {
@@ -334,26 +339,16 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, o: FrameOpts) {
     }
   };
 
-  // ── Equation watermark centered in graph (faint, like studio) ──
-  if (equation) {
-    ctx.save();
-    const fontSize = Math.max(11, Math.min(15, VIDEO_W / 55));
-    ctx.font = `500 ${fontSize}px "JetBrains Mono", ui-monospace, monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = alpha(palette.label, 0.12);
-    ctx.fillText(equation, VIDEO_W / 2, VIDEO_H / 2);
-    ctx.restore();
-  }
+  // (removed: faint equation watermark in graph center — equation now only in header pill)
 
   // ── Curve rendering with animated playhead ──
   const strokeWidth = 3;
-  const liveColor = isMono ? '#FFFFFF' : isDigital ? '#000000' : '#E85D3F';
-  const liveGlow = isMono ? '#FFFFFF' : isDigital ? '#000000' : '#E85D3F';
-  const liveCore = isMono ? '#FFFFFF' : isDigital ? '#000000' : '#FFAE8B';
-  const curveColor = isMono ? '#FFFFFF' : isDigital ? '#000000' : palette.curve;
-  const curveGlow = isMono ? '#FFFFFF' : isDigital ? '#000000' : palette.curveGlow;
-  const coreColor = isMono ? '#FFFFFF' : isDigital ? '#000000' : palette.curveCore;
+  const liveColor = isDark ? '#FFFFFF' : isLight ? '#000000' : '#E85D3F';
+  const liveGlow = isDark ? '#FFFFFF' : isLight ? '#000000' : '#E85D3F';
+  const liveCore = isDark ? '#FFFFFF' : isLight ? '#000000' : '#FFAE8B';
+  const curveColor = isDark ? '#FFFFFF' : isLight ? '#000000' : palette.curve;
+  const curveGlow = isDark ? '#FFFFFF' : isLight ? '#000000' : palette.curveGlow;
+  const coreColor = isDark ? '#FFFFFF' : isLight ? '#000000' : palette.curveCore;
 
   const activeIdx = Math.min(points.length - 1, Math.floor(progress * (points.length - 1)));
 
@@ -382,18 +377,18 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, o: FrameOpts) {
       }
       strokeSegment(liveCore, Math.max(1.8, strokeWidth * 0.55), liveColor, 20, startIdx, tipIdx, true);
 
-      // Scanner beam
-      const beamGrad = ctx.createLinearGradient(0, 0, 0, VIDEO_H);
+      // Scanner beam (graph tier only)
+      const beamGrad = ctx.createLinearGradient(0, GRAPH_TOP, 0, GRAPH_BOTTOM);
       beamGrad.addColorStop(0, alpha(liveColor, 0.04));
-      beamGrad.addColorStop(Math.max(0, Math.min(1, py / VIDEO_H)), alpha(liveColor, 0.55));
+      beamGrad.addColorStop(Math.max(0, Math.min(1, (py - GRAPH_TOP) / GRAPH_HEIGHT)), alpha(liveColor, 0.55));
       beamGrad.addColorStop(1, alpha(liveColor, 0.04));
       ctx.fillStyle = beamGrad;
-      ctx.fillRect(px - 1.5, 0, 3, VIDEO_H);
+      ctx.fillRect(px - 1.5, GRAPH_TOP, 3, GRAPH_HEIGHT);
 
       // Beam caps
       ctx.fillStyle = alpha(liveColor, 0.85);
-      ctx.fillRect(px - 7, 0, 14, 2);
-      ctx.fillRect(px - 7, VIDEO_H - 2, 14, 2);
+      ctx.fillRect(px - 7, GRAPH_TOP, 14, 2);
+      ctx.fillRect(px - 7, GRAPH_BOTTOM - 2, 14, 2);
 
       // Comet playhead dot
       ctx.save();
@@ -420,7 +415,7 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, o: FrameOpts) {
       ctx.font = 'bold 11px "JetBrains Mono", ui-monospace, monospace';
       const tw = ctx.measureText(label).width;
       const labelLeft = px + 13;
-      const labelTop = Math.max(12, Math.min(VIDEO_H - 30, py - 14));
+      const labelTop = Math.max(GRAPH_TOP + 12, Math.min(GRAPH_BOTTOM - 30, py - 14));
       ctx.fillStyle = alpha(palette.canvas, 0.88);
       ctx.fillRect(labelLeft - 4, labelTop - 10, tw + 8, 16);
       ctx.strokeStyle = alpha(liveColor, 0.55);
@@ -447,101 +442,111 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, o: FrameOpts) {
   ctx.fillStyle = vignette;
   ctx.fillRect(0, 0, VIDEO_W, VIDEO_H);
 
-  // ── Header: equation name + scientist + equation pill ──
-  if (equationName || founderName) {
+  // ── Header zone: equation pill + "by Scientist Name" band at the top ──
+  {
     ctx.save();
-    const headerH = (equationName && founderName ? 92 : 64);
-    ctx.fillStyle = isDigital ? 'rgba(0,0,0,0.045)' : isMono ? 'rgba(255,255,255,0.05)' : 'rgba(201,162,75,0.07)';
-    ctx.fillRect(0, 0, VIDEO_W, headerH);
-    ctx.strokeStyle = isDigital ? 'rgba(0,0,0,0.06)' : isMono ? 'rgba(255,255,255,0.06)' : 'rgba(201,162,75,0.12)';
+    ctx.fillStyle = isLight ? 'rgba(0,0,0,0.045)' : isDark ? 'rgba(255,255,255,0.05)' : 'rgba(201,162,75,0.07)';
+    ctx.fillRect(0, 0, VIDEO_W, GRAPH_TOP);
+    ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.06)' : isDark ? 'rgba(255,255,255,0.06)' : 'rgba(201,162,75,0.12)';
     ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(0, headerH + 0.5); ctx.lineTo(VIDEO_W, headerH + 0.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, GRAPH_TOP + 0.5); ctx.lineTo(VIDEO_W, GRAPH_TOP + 0.5); ctx.stroke();
 
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-
-    if (equationName) {
-      ctx.font = 'bold 28px "Fraunces", serif';
-      ctx.fillStyle = isDigital ? '#1A1A1A' : isMono ? '#FFFFFF' : '#EDE7D9';
-      ctx.shadowColor = isMono ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.10)';
-      ctx.shadowBlur = 6;
-      ctx.fillText(equationName, VIDEO_W / 2, 16);
-      ctx.shadowBlur = 0;
-    }
-
-    if (founderName) {
-      ctx.font = '600 13px "Inter", sans-serif';
-      ctx.fillStyle = isDigital ? 'rgba(0,0,0,0.55)' : isMono ? 'rgba(255,255,255,0.60)' : 'rgba(237,231,217,0.72)';
-      ctx.fillText(`by ${founderName}`, VIDEO_W / 2, equationName ? 50 : 24);
-    }
-
-    // Equation pill in header
-    const pillFontSize = 13;
+    // Equation pill — equation string only, centered inside the header band
+    const pillFontSize = 14;
     ctx.font = `600 ${pillFontSize}px "JetBrains Mono", monospace`;
     const textW = ctx.measureText(equation).width;
     const pillPadH = 16;
-    const pillPadV = 7;
+    const pillPadV = 8;
     const pillW = textW + pillPadH * 2;
-    const pillH = pillFontSize + pillPadV * 2 + 3;
-    const eqY = founderName ? 68 : equationName ? 54 : 38;
+    const pillH = pillFontSize + pillPadV * 2 + 4;
     const pillX = (VIDEO_W - pillW) / 2;
-    const pillY = eqY - pillPadV + 1;
+    const pillY = Math.round((GRAPH_TOP - pillH) / 2);
     const pillR = pillH / 2;
 
-    const eqPillBg = isMono ? 'rgba(255,255,255,0.09)' : isDigital ? 'rgba(0,0,0,0.065)' : 'rgba(27,36,48,0.52)';
+    const eqPillBg = isDark ? 'rgba(255,255,255,0.09)' : isLight ? 'rgba(0,0,0,0.065)' : 'rgba(27,36,48,0.52)';
     ctx.fillStyle = eqPillBg;
-    ctx.strokeStyle = isMono ? 'rgba(255,255,255,0.10)' : isDigital ? 'rgba(0,0,0,0.07)' : 'rgba(237,231,217,0.13)';
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.10)' : isLight ? 'rgba(0,0,0,0.07)' : 'rgba(237,231,217,0.13)';
     ctx.lineWidth = 1;
     roundRect(ctx, pillX, pillY, pillW, pillH, pillR);
     ctx.fill(); ctx.stroke();
 
     ctx.font = `600 ${pillFontSize}px "JetBrains Mono", monospace`;
-    ctx.fillStyle = isMono ? '#F2F2F0' : isDigital ? '#1A1A1A' : '#EDE7D9';
+    ctx.fillStyle = isDark ? '#F2F2F0' : isLight ? '#1A1A1A' : '#EDE7D9';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = isMono ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.12)';
+    ctx.shadowColor = isDark ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.12)';
     ctx.shadowBlur = 3;
     ctx.fillText(equation, VIDEO_W / 2, pillY + pillH / 2 + 0.5);
     ctx.shadowBlur = 0;
+
+    // Scientist name sits right of the pill (optional) as "by <Scientist>"
+    if (founderName) {
+      const byText = `by ${founderName}`;
+      ctx.font = '600 11px "Inter", system-ui, sans-serif';
+      const byW = ctx.measureText(byText).width;
+      const byX = Math.min(VIDEO_W - 24, pillX + pillW + 16);
+      ctx.fillStyle = isLight ? 'rgba(0,0,0,0.55)' : isDark ? 'rgba(255,255,255,0.60)' : 'rgba(237,231,217,0.72)';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(byText, byX, pillY + pillH / 2 + 0.5);
+    }
+
     ctx.restore();
   }
 
-  // ── Centered "MathSonify.com" watermark pill ──
-  const wmText = 'MathSonify.com';
-  const wmFontSize = 13;
-  ctx.font = `600 ${wmFontSize}px "Inter", sans-serif`;
-  const wmW = ctx.measureText(wmText).width + 32;
-  const wmH = 28;
-  const wmX = (VIDEO_W - wmW) / 2;
-  const wmY = VIDEO_H - wmH - 16;
+  // ── Diagonal "MathSonify.com" floating logo (right→left + slight down drift) ──
+  // Moves continuously across the full duration so every exported frame shows
+  // the logo at a different position, tracing a diagonal band through the graph tier.
+  {
+    const wmText = 'MathSonify.com';
+    const wmFontSize = 15;
+    ctx.font = `700 ${wmFontSize}px "Inter", system-ui, sans-serif`;
+    const tw = ctx.measureText(wmText).width;
+    const padH = 16;
+    const padV = 7;
+    const pillW = tw + padH * 2;
+    const pillH = wmFontSize + padV * 2 + 2;
+    const pillR = pillH / 2;
 
-  // Pill shadow
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.18)';
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 3;
-  const wmBg = isDigital ? 'rgba(255,255,255,0.82)' : isMono ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.32)';
-  ctx.fillStyle = wmBg;
-  roundRect(ctx, wmX, wmY, wmW, wmH, wmH / 2);
-  ctx.fill();
-  ctx.restore();
+    // Diagonal sweep: logical progress (0..1) drives X from fully off-screen
+    // right to fully off-screen left, while Y drifts top→bottom of the graph tier.
+    // Invisible margins (±pillW) guarantee no pop-in/out mid-edge.
+    const startX = VIDEO_W + 24;
+    const endX   = -pillW - 24;
+    const startY = GRAPH_TOP + 22;
+    const endY   = GRAPH_BOTTOM - pillH - 18;
+    const pillX = Math.round(startX + (endX - startX) * progress);
+    const pillYwm = Math.round(startY + (endY - startY) * progress);
 
-  // Pill border
-  ctx.fillStyle = wmBg;
-  ctx.strokeStyle = isDigital ? 'rgba(0,0,0,0.07)' : isMono ? 'rgba(255,255,255,0.12)' : 'rgba(237,231,217,0.12)';
-  ctx.lineWidth = 1;
-  roundRect(ctx, wmX, wmY, wmW, wmH, wmH / 2);
-  ctx.fill(); ctx.stroke();
+    const wmBg = isLight ? 'rgba(255,255,255,0.90)' : isDark ? 'rgba(28,32,36,0.78)' : 'rgba(27,36,48,0.58)';
+    const wmBorder = isLight ? 'rgba(0,0,0,0.08)' : isDark ? 'rgba(255,255,255,0.14)' : 'rgba(237,231,217,0.16)';
+    const wmColor = isLight ? 'rgba(0,0,0,0.58)' : isDark ? 'rgba(242,242,240,0.82)' : 'rgba(237,231,217,0.88)';
 
-  // Text
-  ctx.fillStyle = isDigital ? 'rgba(0,0,0,0.58)' : isMono ? 'rgba(255,255,255,0.74)' : 'rgba(255,255,255,0.88)';
-  ctx.font = '600 12px "Inter", sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.shadowColor = isDigital ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.3)';
-  ctx.shadowBlur = 2;
-  ctx.fillText(wmText, wmX + wmW / 2, wmY + wmH / 2 + 0.5);
-  ctx.shadowBlur = 0;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.22)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = wmBg;
+    roundRect(ctx, pillX, pillYwm, pillW, pillH, pillR);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = wmBg;
+    ctx.strokeStyle = wmBorder;
+    ctx.lineWidth = 1;
+    roundRect(ctx, pillX, pillYwm, pillW, pillH, pillR);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = wmColor;
+    ctx.font = `600 ${wmFontSize}px "Inter", system-ui, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.shadowColor = isLight ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.30)';
+    ctx.shadowBlur = 3;
+    ctx.fillText(wmText, pillX + padH, pillYwm + padV);
+    ctx.shadowBlur = 0;
+  }
 }
 
 function alpha(hex: string, a: number): string {

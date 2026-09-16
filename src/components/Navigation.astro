@@ -15,7 +15,7 @@ const navLinks = [
       <!-- Wordmark -->
       <div class="flex-shrink-0">
         <a href="/" class="flex items-center gap-2 group/nav">
-          <img src="/logo.jpeg" alt="MathSonify" class="h-8 w-8 rounded-full object-cover border border-sc-line/20 transition-transform duration-300 group-hover/nav:scale-110 group-hover/nav:rotate-[8deg]" loading="eager" />
+          <img src="/favicon.jpeg" alt="MathSonify" class="h-8 w-8 rounded-full object-cover border border-sc-line/20 transition-transform duration-300 group-hover/nav:scale-110 group-hover/nav:rotate-[8deg]" loading="eager" />
           <span class="text-lg font-bold text-sc-text tracking-tight transition-colors duration-300 group-hover/nav:text-sc-accent" style="font-family: 'Space Grotesk', sans-serif;">MathSonify.com</span>
         </a>
       </div>
@@ -35,7 +35,7 @@ const navLinks = [
 
       <!-- Right Side -->
       <div class="flex items-center space-x-3">
-        <!-- Mode Selector: Digital / Mono -->
+        <!-- Mode Selector: Light / Dark -->
         <div
           id="mode-selector"
           role="group"
@@ -44,19 +44,19 @@ const navLinks = [
         >
           <button
             type="button"
-            data-mode="digital"
+            data-mode="light"
             class="mode-option px-3 py-1 text-xs font-medium rounded-full transition-colors"
-            data-i18n="nav.digital"
+            data-i18n="nav.light"
           >
-            Digital
+            Light
           </button>
           <button
             type="button"
-            data-mode="mono"
+            data-mode="dark"
             class="mode-option px-3 py-1 text-xs font-medium rounded-full transition-colors"
-            data-i18n="nav.mono"
+            data-i18n="nav.dark"
           >
-            Mono
+            Dark
           </button>
         </div>
 
@@ -116,19 +116,19 @@ const navLinks = [
         <div class="flex items-center gap-2">
           <button
             type="button"
-            data-mode="digital"
+            data-mode="light"
             class="mode-option px-3 py-1 text-xs font-medium rounded-full border border-sc-line/20 transition-colors"
-            data-i18n="nav.digital"
+            data-i18n="nav.light"
           >
-            Digital
+            Light
           </button>
           <button
             type="button"
-            data-mode="mono"
+            data-mode="dark"
             class="mode-option px-3 py-1 text-xs font-medium rounded-full border border-sc-line/20 transition-colors"
-            data-i18n="nav.mono"
+            data-i18n="nav.dark"
           >
-            Mono
+            Dark
           </button>
         </div>
       </div>
@@ -151,8 +151,10 @@ const navLinks = [
   const THEME_CHANGE_EVENT = 'mathsonify:themechange';
 
   function currentTheme() {
-    const stored = document.documentElement.dataset.theme;
-    return stored === 'digital' || stored === 'mono' ? stored : 'digital';
+    var stored = document.documentElement.dataset.theme;
+    if (stored === 'digital') stored = 'light';
+    if (stored === 'mono') stored = 'dark';
+    return stored === 'light' || stored === 'dark' ? stored : 'dark';
   }
 
   function applyTheme(mode) {

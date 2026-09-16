@@ -41,8 +41,8 @@ export function drawWatermark(
   const resolvedOpacity = opacity ?? (position === 'center' ? 0.55 : 0.48);
 
   const theme = getThemeMode();
-  const isDigital = theme === 'digital';
-  const isMono = theme === 'mono';
+  const isLight = theme === 'light';
+  const isDark = theme === 'dark';
 
   const baseFontSize = scale
     ? Math.round(13 * scale)
@@ -102,9 +102,9 @@ export function drawWatermark(
   ctx.shadowColor = 'rgba(0,0,0,0.22)';
   ctx.shadowBlur = 14;
   ctx.shadowOffsetY = 4;
-  const shadowBg = isDigital
+  const shadowBg = isLight
     ? 'rgba(255,255,255,0.82)'
-    : isMono
+    : isDark
       ? 'rgba(255,255,255,0.10)'
       : 'rgba(27,36,48,0.58)';
   ctx.fillStyle = shadowBg;
@@ -115,15 +115,15 @@ export function drawWatermark(
 
   // Pill background
   ctx.globalAlpha = resolvedOpacity;
-  const pillBg = isDigital
+  const pillBg = isLight
     ? 'rgba(255,255,255,0.88)'
-    : isMono
+    : isDark
       ? 'rgba(255,255,255,0.10)'
       : 'rgba(27,36,48,0.62)';
   ctx.fillStyle = pillBg;
-  ctx.strokeStyle = isDigital
+  ctx.strokeStyle = isLight
     ? 'rgba(0,0,0,0.08)'
-    : isMono
+    : isDark
       ? 'rgba(255,255,255,0.14)'
       : 'rgba(237,231,217,0.14)';
   ctx.lineWidth = 1;
@@ -137,14 +137,14 @@ export function drawWatermark(
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
   ctx.font = `600 ${baseFontSize}px "Inter", system-ui, sans-serif`;
-  ctx.fillStyle = isDigital
+  ctx.fillStyle = isLight
     ? 'rgba(0,0,0,0.58)'
-    : isMono
+    : isDark
       ? 'rgba(255,255,255,0.74)'
       : '#C9A24B';
   ctx.textBaseline = 'top';
   ctx.textAlign = 'left';
-  ctx.shadowColor = isDigital ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.35)';
+  ctx.shadowColor = isLight ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.35)';
   ctx.shadowBlur = 3;
   ctx.fillText(wmText, x + pillPadH, y + pillPadV);
   ctx.shadowBlur = 0;

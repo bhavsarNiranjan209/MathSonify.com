@@ -1,20 +1,23 @@
 /**
- * Shared theme helpers. The Digital / Monochrome modes are stored
+ * Shared theme helpers. The Light / Dark modes are stored
  * on <html data-theme="..."> and persisted under `mathsonify-theme`.
  * Canvas renderers read a palette from this module so graph colors follow
  * the active mode automatically.
  */
-export type ThemeMode = 'digital' | 'mono';
+export type ThemeMode = 'light' | 'dark';
 
 export const THEME_KEY = 'mathsonify-theme';
 export const THEME_CHANGE_EVENT = 'mathsonify:themechange';
 
 export function getThemeMode(): ThemeMode {
-  if (typeof document === 'undefined') return 'digital';
+  if (typeof document === 'undefined') return 'dark';
   const v = document.documentElement.dataset.theme;
-  if (v === 'digital') return 'digital';
-  if (v === 'mono') return 'mono';
-  return 'digital';
+  if (v === 'light') return 'light';
+  if (v === 'dark') return 'dark';
+  // Legacy migration
+  if (v === 'digital') return 'light';
+  if (v === 'mono') return 'dark';
+  return 'dark';
 }
 
 /** Colors used by the canvas graph renderer for each mode. */
@@ -37,7 +40,7 @@ let cachedTheme: ThemeMode | null = null;
 export function getCanvasPalette(theme: ThemeMode = getThemeMode()): CanvasPalette {
   if (cachedPalette && cachedTheme === theme) return cachedPalette;
 
-  if (theme === 'digital') {
+  if (theme === 'light') {
     cachedPalette = {
       canvas: '#ffffff',
       grid: 'rgba(0, 0, 0, 0.06)',
@@ -50,8 +53,8 @@ export function getCanvasPalette(theme: ThemeMode = getThemeMode()): CanvasPalet
       liveGlow: 'rgba(0, 0, 0, 0.35)',
       liveCore: '#ffffff',
     };
-  } else if (theme === 'mono') {
-    // Monochrome Elegant — spec palette:
+  } else {
+    // Dark — spec palette:
     // Background #080A0C / Panels #101316 / Grid #1C2024 / Axes #8E949A
     // Main text #F2F2F0 / Equation graph #FFFFFF / Secondary #A7ABB0
     // Borders #292D32 / Buttons #E8E8E6 / Button text #080A0C

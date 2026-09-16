@@ -8,8 +8,8 @@ const ms = {
   'nav.about': 'Tentang',
   'nav.displayMode': 'Mod paparan',
   'nav.analog': 'Analog',
-  'nav.digital': 'Digital',
-  'nav.mono': 'Mono',
+  'nav.light': 'Terang',
+  'nav.dark': 'Gelap',
   'nav.language': 'Bahasa',
 
   // Hero
