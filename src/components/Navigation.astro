@@ -2,6 +2,7 @@
 const navLinks = [
   { name: 'Explore', href: '/explore', i18nKey: 'nav.explore' },
   { name: 'Scientists', href: '/scientists', i18nKey: 'nav.scientists' },
+  { name: 'SoundLab', href: '/soundlab', i18nKey: 'nav.soundlab' },
   { name: 'Create', href: '/create', i18nKey: 'nav.create' },
   { name: 'How It Works', href: '/how-it-works', i18nKey: 'nav.howItWorks' },
   { name: 'Equations', href: '/equations', i18nKey: 'nav.equations' },
@@ -22,7 +23,15 @@ const navLinks = [
 
       <!-- Desktop Navigation -->
       <div class="hidden md:flex items-center space-x-8">
-        {navLinks.map((link) => (
+        {navLinks.map((link) => link.name === 'SoundLab' ? (
+          <a
+            href={link.href}
+            class="nav-soundlab relative text-sm font-semibold transition-opacity"
+            data-i18n={link.i18nKey}
+          >
+            <span class="nav-soundlab-text">{link.name}</span>
+          </a>
+        ) : (
           <a
             href={link.href}
             class="text-sm text-sc-text-soft hover:text-sc-text transition-colors"
@@ -102,7 +111,15 @@ const navLinks = [
   <!-- Mobile Menu -->
   <div id="mobile-menu" class="hidden md:hidden border-t border-sc-line/15 bg-sc-bg">
     <div class="px-4 py-4 space-y-3">
-      {navLinks.map((link) => (
+      {navLinks.map((link) => link.name === 'SoundLab' ? (
+        <a
+          href={link.href}
+          class="block nav-soundlab relative text-sm font-semibold"
+          data-i18n={link.i18nKey}
+        >
+          <span class="nav-soundlab-text">{link.name}</span>
+        </a>
+      ) : (
         <a
           href={link.href}
           class="block text-sc-text-soft hover:text-sc-text transition-colors"
@@ -267,3 +284,62 @@ const navLinks = [
   renderLangSwitcher(current);
   applyStaticTranslations(current);
 </script>
+
+<style is:global>
+  .nav-soundlab-text {
+    display: inline;
+    background-image: linear-gradient(
+      120deg,
+      #ffb7c5 0%,
+      #8e7cf3 18%,
+      #66d2ff 36%,
+      #3be0b0 52%,
+      #ffe680 70%,
+      #ff6b9d 88%,
+      #ffb7c5 100%
+    );
+    background-size: 220% 100%;
+    background-position: 0 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: nav-soundlab-flow 5.6s linear infinite;
+    /* legibility boost without destroying text-clip: inner shadow glow */
+    filter: drop-shadow(0 0 14px rgba(142, 124, 243, 0.52))
+      drop-shadow(0 0 3px rgba(102, 210, 255, 0.4));
+  }
+
+  .nav-soundlab::after {
+    /* faint flowing underline */
+    content: '';
+    position: absolute;
+    left: -2%;
+    right: -2%;
+    top: calc(100% + 0.25rem);
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 183, 197, 0.7) 14%,
+      rgba(142, 124, 243, 0.9) 30%,
+      rgba(102, 210, 255, 0.9) 48%,
+      rgba(59, 224, 176, 0.75) 64%,
+      rgba(255, 230, 128, 0.6) 82%,
+      transparent 100%
+    );
+    background-size: 220% 100%;
+    opacity: 0.95;
+    animation: nav-soundlab-flow 5.6s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes nav-soundlab-flow {
+    to { background-position: 220% 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-soundlab-text, .nav-soundlab::after { animation: none; }
+  }
+</style>

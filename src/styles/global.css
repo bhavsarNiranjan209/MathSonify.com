@@ -260,6 +260,21 @@ body {
 }
 
 /* Subtle glow for live/active canvas moments */
+.soundlab-accent-border {
+  border-top: 2px solid rgb(var(--sc-accent) / 0.28);
+}
+
+.soundlab .panel {
+  transition: border-color 0.25s ease;
+}
+
+/* Sticky player controls: translucent inset + focus legibility */
+.soundlab .soundlab-player input[type='range']:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(var(--sc-accent) / 0.35);
+  border-radius: 9999px;
+}
+
 .glow-live {
   box-shadow: 0 0 0 1px rgb(var(--sc-live) / 0.4), 0 0 20px rgb(var(--sc-live) / 0.35);
 }

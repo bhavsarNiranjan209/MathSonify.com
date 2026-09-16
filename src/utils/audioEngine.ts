@@ -81,6 +81,10 @@ export class AudioEngine {
     return this.audioContext;
   }
 
+  getMasterGain(): GainNode | null {
+    return this.masterGain;
+  }
+
   isPlayingStatus(): boolean {
     return this.isPlaying;
   }
