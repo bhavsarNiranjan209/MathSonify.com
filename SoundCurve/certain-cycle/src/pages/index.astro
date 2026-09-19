@@ -1,0 +1,150 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Hero from '../components/Hero.astro';
+import Footer from '../components/Footer.astro';
+import { PRESETS } from '../data/presets';
+
+const showcaseEquations = PRESETS.slice(0, 6);
+---
+
+<BaseLayout title="MathSonify - Turn Math Into Music">
+  <Navigation />
+
+  <main>
+    <Hero />
+
+    <!-- Showcase -->
+    <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-sc-line/15">
+      <div class="text-center max-w-3xl mx-auto mb-12">
+        <h2 class="font-mono text-xs text-sc-accent mb-2" data-i18n="home.showcaseTag">curated sonifications</h2>
+        <h3 class="font-serif text-3xl sm:text-4xl font-semibold text-sc-text tracking-tight" data-i18n="home.showcaseTitle">
+          Every formula has its own distinct timbre
+        </h3>
+        <p class="text-sc-text-soft text-sm mt-3" data-i18n="home.showcaseSubtitle">
+          Explore iconic mathematical relationships and hear how changes in geometry translate into intervals and timbral brightness.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {showcaseEquations.map((preset) => (
+          <div class="panel p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-sc-accent/15 text-sc-accent border border-sc-accent/40">
+                  {preset.category.toLowerCase()}
+                </span>
+                <span class="text-xs text-sc-text-faint">{preset.recommendedSettings.instrument}</span>
+              </div>
+
+              <h4 class="text-lg font-semibold text-sc-text mb-1">
+                {preset.name}
+              </h4>
+
+              <div class="code-mat text-sm px-3 py-2 mb-3">
+                {preset.equation}
+              </div>
+
+              <p class="text-xs text-sc-text-soft leading-relaxed mb-4">
+                {preset.description}
+              </p>
+            </div>
+
+            <div class="pt-4 border-t border-sc-line/15 flex items-center justify-between">
+              <div class="text-[11px] text-sc-text-faint italic truncate pr-2">
+                "{preset.soundDescription}"
+              </div>
+              <a
+                href={`/create?eq=${encodeURIComponent(preset.equation)}&inst=${preset.recommendedSettings.instrument}&mode=${preset.recommendedSettings.sonificationMode}`}
+                class="px-3.5 py-1.5 rounded-md bg-sc-accent/15 hover:bg-sc-accent text-sc-accent hover:text-sc-on-accent text-xs font-medium transition-colors whitespace-nowrap"
+                data-i18n="home.hearIt"
+              >
+                Hear it
+              </a>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div class="text-center mt-12">
+        <a href="/equations" class="text-sm text-sc-accent hover:underline font-medium" data-i18n="home.browseLibrary">
+          Browse the full library
+        </a>
+      </div>
+    </section>
+
+    <!-- SoundLab teaser -->
+    <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-sc-line/15">
+      <div class="text-center max-w-3xl mx-auto mb-10">
+        <h2 class="font-mono text-xs text-sc-accent mb-2" data-i18n="home.soundlabTag">new · proprietary compositions</h2>
+        <h3 class="font-serif text-3xl sm:text-4xl font-semibold text-sc-text tracking-tight" data-i18n="home.soundlabTitle">Hear the SoundLab</h3>
+        <p class="text-sc-text-soft text-sm mt-3" data-i18n="home.soundlabSubtitle">Fifteen original equation systems — each handcrafted into a full-band composition: melody, harmony, bass, and rhythm. Play, tweak, and hear the math as music. © MathSonify.</p>
+      </div>
+      <div class="max-w-xl mx-auto panel p-6 text-center border-t-2 border-sc-accent/40">
+        <p class="font-serif text-lg font-semibold text-sc-text mb-2" data-i18n="home.soundlabCardTitle">Introducing SoundLab</p>
+        <p class="text-xs text-sc-text-soft leading-relaxed mb-6" data-i18n="home.soundlabCardDesc">From Iron Equation (rock, 128 BPM) to Tidal Resonance (lo-fi) and Celestial Drift (ambient) — every track is a copyrighted composition rendered from its own equations. Limited-colour, vibe-forward gallery.</p>
+        <div class="flex items-center justify-center gap-3">
+          <a href="/soundlab" class="btn-primary inline-flex items-center px-6 py-2.5 text-sm" data-i18n="home.soundlabCta">Hear the lab →</a>
+          <a href="/soundlab#iron-equation" class="btn-ghost px-6 py-2.5 text-sm" data-i18n="home.soundlabTryIron">Try Iron Equation</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-sc-line/15">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <h2 class="font-mono text-xs text-sc-accent mb-2" data-i18n="home.featuresTag">engineered for accuracy</h2>
+        <h3 class="font-serif text-3xl sm:text-4xl font-semibold text-sc-text tracking-tight" data-i18n="home.featuresTitle">
+          A deterministic math-to-sound pipeline
+        </h3>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="panel p-6 space-y-3">
+          <h4 class="text-base font-semibold text-sc-text" data-i18n="home.feature1Title">Safe math parsing</h4>
+          <p class="text-xs text-sc-text-soft leading-relaxed" data-i18n="home.feature1Desc">
+            Zero <code class="text-red-400">eval()</code>. Every equation is parsed into an abstract syntax tree via <code class="text-sc-accent">mathjs</code>.
+          </p>
+        </div>
+
+        <div class="panel p-6 space-y-3">
+          <h4 class="text-base font-semibold text-sc-text" data-i18n="home.feature2Title">Six synth voices</h4>
+          <p class="text-xs text-sc-text-soft leading-relaxed" data-i18n="home.feature2Desc">
+            From pure sine and triangle to analog saw, 8-bit square, resonant piano body, and plucked-string synthesis.
+          </p>
+        </div>
+
+        <div class="panel p-6 space-y-3">
+          <h4 class="text-base font-semibold text-sc-text" data-i18n="home.feature3Title">Four sonification modes</h4>
+          <p class="text-xs text-sc-text-soft leading-relaxed" data-i18n="home.feature3Desc">
+            Microtonal pitch sweeps, scale quantization, rhythmic peak triggers, and chord voicings.
+          </p>
+        </div>
+
+        <div class="panel p-6 space-y-3">
+          <h4 class="text-base font-semibold text-sc-text" data-i18n="home.feature4Title">Client-side WAV export</h4>
+          <p class="text-xs text-sc-text-soft leading-relaxed" data-i18n="home.feature4Desc">
+            Render any composition to uncompressed 16-bit 44.1kHz stereo without a server.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Callout -->
+    <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center">
+      <div class="panel p-8 sm:p-12 border-t-2 border-sc-accent/50">
+        <blockquote class="font-serif text-xl sm:text-2xl md:text-3xl font-medium text-sc-text mb-6 leading-snug" data-i18n="home.calloutQuote">
+          "Wait... you can actually hear the geometry of mathematics?"
+        </blockquote>
+        <p class="text-sm text-sc-text-soft max-w-xl mx-auto mb-8" data-i18n="home.calloutDesc">
+          MathSonify turns abstract equations into an intuitive sensory experience for students, musicians, educators, and creative coders.
+        </p>
+        <a href="/create" class="btn-primary inline-flex items-center px-8 py-3.5 text-base" data-i18n="home.calloutCta">
+          Start creating in the studio
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>

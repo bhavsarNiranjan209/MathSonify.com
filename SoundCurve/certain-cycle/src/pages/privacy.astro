@@ -1,0 +1,157 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout title="Privacy Policy - MathSonify" description="MathSonify's privacy-first approach: no accounts, no tracking, no data collection. Everything happens in your browser.">
+  <Navigation />
+
+  <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+    <div class="text-center max-w-2xl mx-auto mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4">
+        privacy-first architecture
+      </div>
+      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-4">
+        Privacy Policy
+      </h1>
+      <p class="text-sm text-sc-text-soft leading-relaxed max-w-lg mx-auto">
+        MathSonify is built on a radical premise: a creative tool doesn't need to know who you are. This policy explains how that works.
+      </p>
+      <div class="mt-4 text-xs text-sc-text-faint font-mono">
+        Effective date: September 14, 2026 &nbsp;·&nbsp; Version 1.0
+      </div>
+    </div>
+
+    <div class="space-y-8">
+
+      <!-- 1. Philosophy -->
+      <div class="panel p-8 sm:p-10 space-y-5">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">01</span>
+          <h2 class="font-serif text-xl font-semibold text-sc-text">Our privacy philosophy</h2>
+        </div>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          MathSonify was designed from the ground up as a <strong class="text-sc-text">zero-data application</strong>. We don't just minimize data collection — we eliminated it entirely. There are no servers processing your equations, no databases storing your patterns, and no analytics pipelines watching your interactions. When you close your browser, nothing about your session exists anywhere except on your own device.
+        </p>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          This isn't a policy choice — it's an architectural one. MathSonify runs 100% client-side using the Web Audio API, native Canvas 2D rendering, and a sandboxed mathjs expression parser. The math happens on your CPU. The sound happens through your speakers. Nothing leaves your machine.
+        </p>
+      </div>
+
+      <!-- 2. What we don't collect -->
+      <div class="panel p-8 sm:p-10 space-y-5">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">02</span>
+          <h2 class="font-serif text-xl font-semibold text-sc-text">What we do not collect</h2>
+        </div>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          To be explicit about what MathSonify does <em class="text-sc-text">not</em> gather, store, transmit, or monetize:
+        </p>
+        <ul class="space-y-3 text-sm text-sc-text-soft">
+          <li class="flex items-start gap-3">
+            <span class="text-sc-accent mt-0.5">✗</span>
+            <span><strong class="text-sc-text">No accounts or authentication.</strong> There is no sign-up, no login, no password, no email address stored anywhere.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="text-sc-accent mt-0.5">✗</span>
+            <span><strong class="text-sc-text">No analytics or tracking.</strong> We do not use Google Analytics, Mixpanel, Segment, Hotjar, or any third-party telemetry service.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="text-sc-accent mt-0.5">✗</span>
+            <span><strong class="text-sc-text">No cookies.</strong> MathSonify sets no first-party or third-party cookies. Period.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="text-sc-accent mt-0.5">✗</span>
+            <span><strong class="text-sc-text">No equation or usage data.</strong> The equations you type, the audio you generate, and the visualizations you create never leave your browser.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="text-sc-accent mt-0.5">✗</span>
+            <span><strong class="text-sc-text">No advertising or profiling.</strong> We do not serve ads, build user profiles, or sell data to third parties.</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="text-sc-accent mt-0.5">✗</span>
+            <span><strong class="text-sc-text">No IP logging.</strong> Our hosting infrastructure does not log or retain visitor IP addresses beyond what is required for ephemeral request serving.</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 3. Local storage -->
+      <div class="panel p-8 sm:p-10 space-y-5">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">03</span>
+          <h2 class="font-serif text-xl font-semibold text-sc-text">Local browser storage</h2>
+        </div>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          MathSonify uses your browser's <code class="px-1.5 py-0.5 rounded bg-sc-sunken text-sc-accent font-mono text-xs border border-sc-line/15">localStorage</code> API to persist exactly two preferences on your device:
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+          <div class="p-4 rounded-lg bg-sc-surface border border-sc-line/15 space-y-2">
+            <div class="font-mono text-xs text-sc-accent">mathsonify-theme</div>
+            <p class="text-xs text-sc-text-soft">Remembers whether you prefer light or dark display mode. Value: <code class="text-sc-accent">"light"</code> or <code class="text-sc-accent">"dark"</code>.</p>
+          </div>
+          <div class="p-4 rounded-lg bg-sc-surface border border-sc-line/15 space-y-2">
+            <div class="font-mono text-xs text-sc-accent">mathsonify-lang</div>
+            <p class="text-xs text-sc-text-soft">Remembers your selected interface language. Value: a two-letter language code (e.g. <code class="text-sc-accent">"en"</code>, <code class="text-sc-accent">"hi"</code>).</p>
+          </div>
+        </div>
+        <p class="text-sm text-sc-text-soft leading-relaxed mt-3">
+          This data is stored exclusively in your browser. It is never transmitted to any server, shared with any service, or accessible to any other website. You can clear it at any time through your browser settings — MathSonify will simply ask for your preferences again on the next visit.
+        </p>
+      </div>
+
+      <!-- 4. Third-party services -->
+      <div class="panel p-8 sm:p-10 space-y-5">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">04</span>
+          <h2 class="font-serif text-xl font-semibold text-sc-text">Third-party dependencies</h2>
+        </div>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          MathSonify makes requests to exactly one external service: <strong class="text-sc-text">Google Fonts</strong> (fonts.googleapis.com and fonts.gstatic.com) to load typography. Google Fonts is governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" class="text-sc-accent hover:underline">Google's Privacy Policy</a>. We do not control what Google collects when serving these font files, but standard industry practice is that Google does not use font requests for individual user tracking.
+        </p>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          MathSonify uses no other external scripts, CDNs, analytics providers, advertising networks, or social media embeds. Our JavaScript dependencies (mathjs, React, Astro) are bundled and served from our own domain.
+        </p>
+      </div>
+
+      <!-- 5. Children -->
+      <div class="panel p-8 sm:p-10 space-y-5">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">05</span>
+          <h2 class="font-serif text-xl font-semibold text-sc-text">Children's privacy</h2>
+        </div>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          MathSonify does not knowingly collect personal information from any user, regardless of age. Since our architecture requires no data collection whatsoever, there is no risk of children's personal information being compromised through our service. MathSonify is safe and private for users of all ages.
+        </p>
+      </div>
+
+      <!-- 6. Changes -->
+      <div class="panel p-8 sm:p-10 space-y-5">
+        <div class="flex items-center gap-3 mb-2">
+          <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">06</span>
+          <h2 class="font-serif text-xl font-semibold text-sc-text">Changes to this policy</h2>
+        </div>
+        <p class="text-sm text-sc-text-soft leading-relaxed">
+          If this privacy policy is updated, the effective date at the top of this page will be revised and the changes will be posted here. Given MathSonify's zero-data architecture, material changes to this policy are unlikely. Any future changes will only expand privacy protections, never reduce them.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- Bottom note -->
+    <div class="mt-12 p-6 rounded-xl bg-sc-surface border border-sc-line/15 text-center space-y-2">
+      <p class="text-xs text-sc-text-faint leading-relaxed max-w-lg mx-auto">
+        This privacy policy is provided for informational purposes and does not constitute legal advice. MathSonify is committed to transparency about its data practices. If you have questions, reach out at <a href="mailto:privacy@mathsonify.com" class="text-sc-accent hover:underline">privacy@mathsonify.com</a>.
+      </p>
+    </div>
+
+    <!-- CTA -->
+    <div class="mt-12 text-center">
+      <a href="/create" class="btn-primary inline-flex items-center px-8 py-3.5 text-base">
+        Open the sound studio
+      </a>
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>

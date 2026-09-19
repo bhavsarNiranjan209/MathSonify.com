@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- Black background circle -->
+  <circle cx="150" cy="150" r="150" fill="#000"/>
+  <!-- Stylized S with sine wave -->
+  <g transform="translate(60, 42)">
+    <!-- S letterform — smooth curves -->
+    <path d="M 88 24 C 56 24, 28 44, 28 72 C 28 96, 52 112, 80 128 C 108 144, 132 160, 132 188 C 132 216, 104 236, 72 236"
+          fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Sine wave flowing through the S curve -->
+    <path d="M 44 0 C 74 20, 74 40, 44 60 C 14 80, 14 100, 44 120 C 74 140, 74 160, 44 180 C 14 200, 14 220, 44 240 C 74 260, 74 280, 44 280"
+          fill="none" stroke="#C9A24B" stroke-width="5" stroke-linecap="round" opacity="0.85"/>
+    <!-- Small dot at the top of the sine wave -->
+    <circle cx="44" cy="0" r="4" fill="#C9A24B" opacity="0.9"/>
+  </g>
+</svg>

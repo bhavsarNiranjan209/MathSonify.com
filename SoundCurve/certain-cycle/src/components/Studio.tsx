@@ -1,0 +1,220 @@
+import { useEffect, useRef } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { useStudioStore, type InstrumentType, type SonificationMode } from '../store/studioStore';
+import { useTranslation } from '../i18n/index';
+import EquationInput from './EquationInput';
+import Visualizer from './Visualizer';
+import AudioControls from './AudioControls';
+import PresetDrawer from './PresetDrawer';
+import ShareModal from './ShareModal';
+import ExportModal from './ExportModal';
+import { audioEngine } from '../utils/audioEngine';
+
+export default function Studio() {
+  const { t } = useTranslation();
+  const isPlaying = useStudioStore((s) => s.isPlaying);
+  const setPlaying = useStudioStore((s) => s.setPlaying);
+  const setProgress = useStudioStore((s) => s.setProgress);
+
+  const equation = useStudioStore((s) => s.equation);
+  const setEquation = useStudioStore((s) => s.setEquation);
+  const setOriginalEquation = useStudioStore((s) => s.setOriginalEquation);
+  const instrument = useStudioStore((s) => s.instrument);
+  const setInstrument = useStudioStore((s) => s.setInstrument);
+  const sonificationMode = useStudioStore((s) => s.sonificationMode);
+  const setSonificationMode = useStudioStore((s) => s.setSonificationMode);
+  const duration = useStudioStore((s) => s.duration);
+  const setDuration = useStudioStore((s) => s.setDuration);
+  const minX = useStudioStore((s) => s.minX);
+  const setMinX = useStudioStore((s) => s.setMinX);
+  const maxX = useStudioStore((s) => s.maxX);
+  const setMaxX = useStudioStore((s) => s.setMaxX);
+  const speed = useStudioStore((s) => s.speed);
+  const volume = useStudioStore((s) => s.volume);
+  const loop = useStudioStore((s) => s.loop);
+  const hasPendingChanges = useStudioStore((s) => s.hasPendingChanges);
+  const setHasPendingChanges = useStudioStore((s) => s.setHasPendingChanges);
+  const minFreq = useStudioStore((s) => s.minFreq);
+  const maxFreq = useStudioStore((s) => s.maxFreq);
+  const scale = useStudioStore((s) => s.scale);
+
+  const graphSectionRef = useRef<HTMLDivElement>(null);
+  const wasPlayingRef = useRef(false);
+
+  // Mobile: scroll to graph when playback starts
+  useEffect(() => {
+    if (isPlaying && !wasPlayingRef.current && typeof window !== 'undefined') {
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        document.getElementById('graph-area')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+    wasPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  // Read URL query params on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const eqParam = urlParams.get('eq');
+    const instParam = urlParams.get('inst');
+    const modeParam = urlParams.get('mode');
+    const durParam = urlParams.get('dur');
+    const minXParam = urlParams.get('minX');
+    const maxXParam = urlParams.get('maxX');
+
+    if (eqParam) {
+      setEquation(eqParam);
+      setOriginalEquation(eqParam);
+    }
+    if (instParam) setInstrument(instParam as InstrumentType);
+    if (modeParam) setSonificationMode(modeParam as SonificationMode);
+    if (durParam) setDuration(parseInt(durParam) || 4);
+    if (minXParam) setMinX(parseFloat(minXParam) || -6.28);
+    if (maxXParam) setMaxX(parseFloat(maxXParam) || 6.28);
+
+    // Restore active scientist context from URL (survives reload / link)
+    const sciParam = urlParams.get('sci');
+    const eqNameParam = urlParams.get('eqName');
+    if (sciParam && eqNameParam) {
+      // Import dynamically to avoid SSR issues — already safely wrapped by client:only
+      import('../data/scientists').then(({ SCIENTISTS }) => {
+        const sci = SCIENTISTS.find((s) => s.id === sciParam);
+        if (sci) {
+          useStudioStore.getState().setActiveScientist(sci, eqNameParam);
+        }
+      }).catch(() => {});
+    }
+  }, [setEquation, setOriginalEquation, setInstrument, setSonificationMode, setDuration, setMinX, setMaxX]);
+
+  // One deliberate hero moment on load: the studio shell eases in with a gentle
+  // stagger. Motion elsewhere only follows real user actions (Play/Stop, taps).
+  const reduceMotion = !!useReducedMotion();
+
+  const entranceContainer = {
+    hidden: {},
+    show: {
+      transition: { staggerChildren: reduceMotion ? 0 : 0.09, delayChildren: reduceMotion ? 0 : 0.04 },
+    },
+  };
+
+  const entranceItem = {
+    hidden: { opacity: 0, y: reduceMotion ? 0 : 16 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: reduceMotion ? 0 : 0.5, ease: [0.22, 1, 0.36, 1] as const },
+    },
+  };
+
+  // Keyboard shortcut: Spacebar to toggle Play/Stop (when not typing in an input)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
+        return;
+      }
+
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (isPlaying) {
+          audioEngine.stop();
+          setPlaying(false);
+          setProgress(0, 0, 0);
+          setHasPendingChanges(false);
+        } else {
+          setHasPendingChanges(false);
+          audioEngine
+            .play(
+              equation,
+              minX,
+              maxX,
+              minFreq,
+              maxFreq,
+              duration / speed,
+              volume,
+              instrument,
+              sonificationMode,
+              loop,
+              scale,
+              (prog, cx, cy) => {
+                setProgress(prog, cx, cy);
+              },
+              () => {
+                setPlaying(false);
+                setProgress(0, 0, 0);
+              }
+            )
+            .then(() => setPlaying(true))
+            .catch((err) => console.error(err));
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, equation, minX, maxX, minFreq, maxFreq, duration, speed, volume, instrument, sonificationMode, loop, scale, setPlaying, setProgress]);
+
+  return (
+    <motion.div
+      className="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto"
+      initial="hidden"
+      animate="show"
+      variants={entranceContainer}
+    >
+      {/* Studio Header */}
+      <motion.div variants={entranceItem} className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div>
+          <div className="flex items-center gap-3 mb-1.5">
+            <span className="text-xs font-mono text-sc-accent">{t('studio.interactiveLabel')}</span>
+            <span className="text-xs font-mono text-sc-text-faint">{t('studio.version')}</span>
+          </div>
+          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-sc-text tracking-tight">
+            MathSonify <em className="text-sc-accent">Studio</em>
+          </h1>
+          <p className="text-sm text-sc-text-soft mt-1 max-w-xl leading-relaxed">
+            {t('studio.subtitle')}
+          </p>
+        </div>
+
+        <div className="hidden sm:flex items-center gap-3">
+          <div className="panel-inset px-3 py-1.5 text-xs font-mono text-sc-text-faint flex items-center gap-2 min-h-[44px]">
+            <kbd className="px-1.5 py-0.5 rounded bg-sc-accent text-sc-on-accent font-semibold">Space</kbd>
+            <span>{t('studio.spaceHint')}</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Main Studio Grid */}
+      <motion.div variants={entranceItem} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Equation Input & Audio Controls (5 cols) */}
+        <div className="lg:col-span-5 space-y-6 w-full min-w-0">
+          <div className="panel p-5 sm:p-6 border-t-2 border-sc-accent/60">
+            <EquationInput />
+          </div>
+
+          <div className="panel p-5 sm:p-6 border-t-2 border-sc-accent/40">
+            <AudioControls />
+          </div>
+        </div>
+
+        {/* Right Column: Visualizer (7 cols) */}
+        <div id="graph-area" ref={graphSectionRef} className="lg:col-span-7 space-y-6 w-full min-w-0">
+          <Visualizer />
+
+          <div className="p-4 rounded-sc-md bg-sc-surface/60 border border-sc-line/15 text-xs text-sc-text-soft flex items-start gap-3">
+            <span className="text-base">💡</span>
+            <div>
+              <span className="text-sc-text font-medium">{t('studio.howMathTitle')}</span> {t('studio.howMathDesc')}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      <PresetDrawer />
+      <ShareModal />
+      <ExportModal />
+    </motion.div>
+  );
+}

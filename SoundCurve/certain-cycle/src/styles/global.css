@@ -1,0 +1,607 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================================
+   MathSonify theme system
+   Two modes: "Dark" (default, warm petrol/paper/clay/teal) and
+   "Light" (pure white / pure black / one black accent).
+   The active mode lives on <html data-theme="dark|light"> and is
+   persisted under `mathsonify-theme` in localStorage.
+   ===================================================================== */
+
+:root {
+  /* Dark — the default mode */
+  --sc-bg: 27 36 48; /* deep petrol-ink */
+  --sc-surface: 46 58 74; /* panel surface, slightly lighter than base */
+  --sc-sunken: 20 27 37; /* inset wells and code mats */
+  --sc-text: 237 231 217; /* warm bone, primary text */
+  --sc-text-soft: 185 178 160; /* secondary text */
+  --sc-text-faint: 138 133 120; /* tertiary text */
+  --sc-line: 237 231 217; /* ruling lines / borders */
+  --sc-paper: 237 231 217; /* graph paper surface */
+  --sc-ink: 27 36 48; /* ink applied onto paper */
+  --sc-accent: 201 162 75; /* brass-amber, interactive accent */
+  --sc-live: 74 124 116; /* muted phosphor teal — LIVE ONLY */
+  --sc-on-accent: 27 36 48; /* text sitting on clay */
+  --sc-on-live: 237 231 217; /* text sitting on teal */
+}
+
+:root[data-theme='light'] {
+  /* Light — pure white / pure black / one black accent */
+  --sc-bg: 255 255 255;
+  --sc-surface: 244 244 244;
+  --sc-sunken: 235 235 235;
+  --sc-text: 0 0 0;
+  --sc-text-soft: 64 64 64;
+  --sc-text-faint: 128 128 128;
+  --sc-line: 0 0 0;
+  --sc-paper: 255 255 255;
+  --sc-ink: 0 0 0;
+  --sc-accent: 0 0 0;
+  --sc-live: 0 0 0; /* live = the single black accent */
+  --sc-on-accent: 255 255 255;
+  --sc-on-live: 255 255 255;
+}
+
+:root[data-theme='dark'] {
+  /* Dark — spec palette:
+     Background #080A0C | Panels #101316 | Grid #1C2024 | Axes #8E949A
+     Main text #F2F2F0 | Equation/graph #FFFFFF | Secondary #A7ABB0
+     Borders #292D32 | Buttons #E8E8E6 | Button text #080A0C            */
+  --sc-bg: 8 10 12;
+  --sc-surface: 16 19 22;
+  --sc-sunken: 12 14 17;
+  --sc-text: 242 242 240;
+  --sc-text-soft: 167 171 176;
+  --sc-text-faint: 142 148 154;
+  --sc-line: 41 45 50;
+  --sc-paper: 8 10 12;
+  --sc-ink: 242 242 240;
+  --sc-accent: 232 232 230;
+  --sc-on-accent: 8 10 12;
+  --sc-live: 232 232 230;
+  --sc-on-live: 8 10 12;
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                               */
+/* ------------------------------------------------------------------ */
+
+* {
+  border-color: rgb(var(--sc-line) / 0.15);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: rgb(var(--sc-bg));
+  color: rgb(var(--sc-text));
+  font-family: 'Inter', system-ui, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: rgb(var(--sc-accent));
+  color: rgb(var(--sc-on-accent));
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--sc-accent));
+  outline-offset: 2px;
+}
+
+/* Layout scroll: hide scrollbars inside horizontal chip strips */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Motion */
+.animate-fade-in {
+  animation: fade-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Components                                                          */
+/* ------------------------------------------------------------------ */
+
+/* Flat analog panel — no glass, no blur, no drop shadow pile */
+.panel {
+  background-color: rgb(var(--sc-surface));
+  border: 1px solid rgb(var(--sc-line) / 0.15);
+  border-radius: 8px;
+}
+
+/* Inset well / tactile slot */
+.panel-inset {
+  background-color: rgb(var(--sc-sunken));
+  border: 1px solid rgb(var(--sc-line) / 0.12);
+  border-radius: 6px;
+}
+
+/* Code / equation mat */
+.code-mat {
+  background-color: rgb(var(--sc-sunken));
+  border: 1px solid rgb(var(--sc-line) / 0.12);
+  border-radius: 6px;
+  color: rgb(var(--sc-text));
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background-color: rgb(var(--sc-accent));
+  color: rgb(var(--sc-on-accent));
+  transition: filter 0.15s ease;
+  cursor: pointer;
+}
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  border-radius: 8px;
+  background-color: transparent;
+  border: 1px solid rgb(var(--sc-line) / 0.25);
+  color: rgb(var(--sc-text-soft));
+  transition: color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+.btn-ghost:hover {
+  color: rgb(var(--sc-text));
+  border-color: rgb(var(--sc-accent));
+}
+
+/* Live button — teal only while actually playing */
+.btn-live {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background-color: rgb(var(--sc-live));
+  color: rgb(var(--sc-on-live));
+  transition: filter 0.15s ease;
+  cursor: pointer;
+}
+.btn-live:hover {
+  filter: brightness(1.1);
+}
+
+/* Chips */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  cursor: pointer;
+}
+.chip-idle {
+  background-color: rgb(var(--sc-surface));
+  border: 1px solid rgb(var(--sc-line) / 0.2);
+  color: rgb(var(--sc-text-soft));
+}
+.chip-idle:hover {
+  border-color: rgb(var(--sc-accent));
+  color: rgb(var(--sc-text));
+}
+.chip-active {
+  background-color: rgb(var(--sc-accent));
+  color: rgb(var(--sc-on-accent));
+  border: 1px solid rgb(var(--sc-accent));
+}
+
+/* Subtle glow for live/active canvas moments */
+.soundlab-accent-border {
+  border-top: 2px solid rgb(var(--sc-accent) / 0.28);
+}
+
+.soundlab .panel {
+  transition: border-color 0.25s ease;
+}
+
+/* Sticky player controls: translucent inset + focus legibility */
+.soundlab .soundlab-player input[type='range']:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(var(--sc-accent) / 0.35);
+  border-radius: 9999px;
+}
+
+.glow-live {
+  box-shadow: 0 0 0 1px rgb(var(--sc-live) / 0.4), 0 0 20px rgb(var(--sc-live) / 0.35);
+}
+
+/* Range sliders — explicit track + thumb styling for both themes */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgb(var(--sc-line) / 0.3);
+  border-radius: 9999px;
+  outline: none;
+  border: 1px solid rgb(var(--sc-line) / 0.12);
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgb(var(--sc-accent));
+  border: 2px solid rgb(var(--sc-bg));
+  box-shadow: 0 0 0 1px rgb(var(--sc-accent) / 0.3), 0 1px 3px rgba(0,0,0,0.18);
+  cursor: pointer;
+}
+input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgb(var(--sc-accent));
+  border: 2px solid rgb(var(--sc-bg));
+  box-shadow: 0 0 0 1px rgb(var(--sc-accent) / 0.3), 0 1px 3px rgba(0,0,0,0.18);
+  cursor: pointer;
+}
+input[type='range']::-moz-range-track {
+  height: 6px;
+  background: rgb(var(--sc-line) / 0.3);
+  border-radius: 9999px;
+  border: none;
+}
+input[type='range']:focus-visible {
+  outline: 2px solid rgb(var(--sc-accent));
+  outline-offset: 2px;
+}
+
+/* =====================================================================
+   Website-wide animations
+   Hover effects, micro-interactions (scroll-reveal removed — no-ops)
+   ===================================================================== */
+
+/* Scroll-reveal classes are kept as no-ops so old markup never breaks. */
+.sc-reveal,
+.sc-reveal-stagger,
+.sc-reveal-left,
+.sc-reveal-right,
+.sc-reveal-scale {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+.sc-reveal-stagger > * {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+.sc-reveal-stagger.revealed > * {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* ── Card hover effects — scale + glow + border ── */
+.panel {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.3s ease,
+              border-color 0.3s ease;
+}
+.panel:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgb(var(--sc-accent) / 0.08),
+              0 2px 8px rgb(0 0 0 / 0.12);
+  border-color: rgb(var(--sc-accent) / 0.3);
+}
+
+/* ── Button micro-interactions ── */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  transition: filter 0.15s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.3s ease;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+    rgb(var(--sc-on-accent) / 0.25) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.btn-primary:active {
+  transform: scale(0.97);
+}
+.btn-primary:active::after {
+  opacity: 1;
+}
+.btn-primary:hover {
+  box-shadow: 0 4px 20px rgb(var(--sc-accent) / 0.35);
+}
+
+.btn-ghost {
+  transition: color 0.15s ease, border-color 0.15s ease,
+              transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.3s ease, background-color 0.3s ease;
+}
+.btn-ghost:active {
+  transform: scale(0.97);
+}
+.btn-ghost:hover {
+  box-shadow: 0 2px 12px rgb(var(--sc-accent) / 0.1);
+}
+
+/* ── Nav link hover underline animation ── */
+nav a[href] {
+  position: relative;
+}
+nav a[href]::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 1.5px;
+  background: rgb(var(--sc-accent));
+  transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1), left 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 1px;
+}
+nav a[href]:hover::after {
+  width: 100%;
+  left: 0;
+}
+
+/* ── Link hover glow ── */
+.link-glow {
+  transition: color 0.2s ease, text-shadow 0.3s ease;
+}
+.link-glow:hover {
+  text-shadow: 0 0 12px rgb(var(--sc-accent) / 0.5);
+}
+
+/* ── Hover lift for "Hear it" style cards links ── */
+a[class*="rounded-md"]:hover {
+  transform: translateY(-1px);
+  transition: transform 0.2s ease;
+}
+
+/* ── Footer link hover ── */
+footer a {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+footer a:hover {
+  transform: translateX(3px);
+}
+
+/* ── Scroll progress indicator on body ── */
+#scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 0%;
+  background: linear-gradient(90deg, rgb(var(--sc-accent)), rgb(var(--sc-live)));
+  z-index: 100;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+
+/* ── Floating label pulse for interactive elements ── */
+@keyframes float-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--sc-accent) / 0.2); }
+  50% { box-shadow: 0 0 0 8px rgb(var(--sc-accent) / 0); }
+}
+.float-pulse {
+  animation: float-pulse 2.5s ease-in-out infinite;
+}
+
+/* ── Subtle float for hero / callout ── */
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.float-gentle {
+  animation: float-gentle 4s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/* RTL (Arabic) support                                                */
+/* ------------------------------------------------------------------ */
+.dir-rtl,
+[dir="rtl"] .dir-rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Flip flex row direction for RTL */
+.dir-rtl .flex-row,
+[dir="rtl"] .dir-rtl .flex-row {
+  flex-direction: row-reverse;
+}
+
+/* Flip gap-based horizontal layouts */
+.dir-rtl .gap-2,
+.dir-rtl .gap-3,
+.dir-rtl .gap-4 {
+  direction: rtl;
+}
+
+/* Flip icon+text order in buttons */
+.dir-rtl button > svg + span,
+.dir-rtl button > span + span {
+  direction: rtl;
+}
+
+/* Number inputs keep LTR for numeric values */
+.dir-rtl input[type="number"] {
+  direction: ltr;
+  text-align: right;
+}
+
+/* Code / equation inputs stay LTR */
+.dir-rtl input.font-mono,
+.dir-rtl .code-mat {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Keyboard hints stay LTR */
+.dir-rtl kbd {
+  direction: ltr;
+}
+
+/* Music Lab: dense instrument-studio surface, responsive by stacking rather than shrinking. */
+.music-lab-page { min-height: 100vh; padding: 6.5rem 1rem 3rem; background: radial-gradient(circle at 85% 8%, rgb(var(--sc-accent) / .08), transparent 28rem), rgb(var(--sc-bg)); }
+.music-lab-shell { max-width: 1500px; margin: 0 auto; }
+.music-lab-topbar { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgb(var(--sc-line) / .18); }
+.music-lab-kicker, .music-lab-label { color: rgb(var(--sc-accent)); font: 10px/1.2 'JetBrains Mono', ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; }
+.music-lab-topbar h1 { margin: .45rem 0 0; font: 600 clamp(2rem, 4vw, 3.4rem)/.95 Georgia, serif; letter-spacing: -.04em; }
+.music-lab-topbar h1 span { color: rgb(var(--sc-accent)); font: 12px 'JetBrains Mono', monospace; vertical-align: top; letter-spacing: 0; }
+.music-lab-transport { display: flex; flex-wrap: wrap; justify-content: end; align-items: center; gap: .45rem; }
+.music-lab-transport label { display: grid; gap: .25rem; color: rgb(var(--sc-text-faint)); font: 9px 'JetBrains Mono', monospace; text-transform: uppercase; }
+.music-lab-transport input, .music-lab-transport select, .music-lab-transport button, .music-lab-arrangement-actions button { min-height: 38px; border: 1px solid rgb(var(--sc-line) / .22); border-radius: 5px; background: rgb(var(--sc-sunken)); color: rgb(var(--sc-text)); padding: .5rem .7rem; font: 11px 'JetBrains Mono', monospace; }
+.music-lab-transport input { width: 4.5rem; }
+.music-lab-transport button { cursor: pointer; }
+.music-lab-transport button:hover, .music-lab-transport button:focus-visible { border-color: rgb(var(--sc-accent) / .8); color: rgb(var(--sc-accent)); }
+.music-lab-transport .music-lab-play { background: rgb(var(--sc-accent)); border-color: rgb(var(--sc-accent)); color: rgb(var(--sc-on-accent)); font-weight: 700; }
+.music-lab-grid { display: grid; grid-template-columns: minmax(190px, 1fr) minmax(360px, 2.2fr) minmax(220px, 1.15fr); gap: .8rem; margin-top: .8rem; }
+.music-lab-library, .music-lab-arrangement, .music-lab-inspector, .music-lab-mixer { padding: 1rem; }
+.music-lab-section-heading { display: flex; align-items: start; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
+.music-lab-section-heading h2, .music-lab-mixer h2 { margin: .35rem 0 0; font: 600 1.15rem Georgia, serif; }
+.music-lab-count, .music-lab-status { color: rgb(var(--sc-text-faint)); font: 10px 'JetBrains Mono', monospace; }
+.music-lab-status { max-width: 12rem; text-align: right; }
+.music-lab-tabs { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .8rem; }
+.music-lab-tabs button { border: 0; background: transparent; color: rgb(var(--sc-text-faint)); padding: .35rem .45rem; cursor: pointer; font: 10px 'JetBrains Mono', monospace; text-transform: uppercase; }
+.music-lab-tabs button.is-active { color: rgb(var(--sc-accent)); border-bottom: 1px solid rgb(var(--sc-accent)); }
+.music-lab-instruments { display: grid; gap: .35rem; }
+.music-lab-instrument { display: grid; grid-template-columns: 28px 1fr 16px; align-items: center; gap: .55rem; width: 100%; border: 1px solid transparent; border-radius: 5px; background: transparent; color: rgb(var(--sc-text)); padding: .55rem .35rem; text-align: left; cursor: pointer; }
+.music-lab-instrument:hover, .music-lab-instrument:focus-visible { background: rgb(var(--sc-accent) / .08); border-color: rgb(var(--sc-accent) / .3); }
+.music-lab-instrument-icon { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid rgb(var(--sc-accent) / .45); color: rgb(var(--sc-accent)); font: 11px 'JetBrains Mono', monospace; }
+.music-lab-instrument strong, .music-lab-instrument small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-lab-instrument strong { font: 11px Georgia, serif; }
+.music-lab-instrument small { margin-top: .2rem; color: rgb(var(--sc-text-faint)); font: 9px 'JetBrains Mono', monospace; }
+.music-lab-instrument b { color: rgb(var(--sc-accent)); font: 18px/1 sans-serif; }
+.music-lab-ruler { display: grid; grid-template-columns: 7rem repeat(7, 1fr); gap: .35rem; color: rgb(var(--sc-text-faint)); font: 9px 'JetBrains Mono', monospace; padding: .5rem 0; border-bottom: 1px solid rgb(var(--sc-line) / .16); }
+.music-lab-track { display: grid; grid-template-columns: 7rem 1fr; width: 100%; min-height: 68px; border: 0; border-bottom: 1px solid rgb(var(--sc-line) / .12); background: transparent; color: rgb(var(--sc-text)); text-align: left; cursor: pointer; }
+.music-lab-track.is-selected { background: rgb(var(--sc-accent) / .07); }
+.music-lab-track-name { display: flex; flex-direction: column; justify-content: center; gap: .25rem; min-width: 0; padding-right: .5rem; font: 11px Georgia, serif; }
+.music-lab-track-name b { color: rgb(var(--sc-accent)); font: 9px 'JetBrains Mono', monospace; }
+.music-lab-track-name small { overflow: hidden; color: rgb(var(--sc-text-faint)); text-overflow: ellipsis; white-space: nowrap; font: 8px 'JetBrains Mono', monospace; }
+.music-lab-lane { position: relative; min-height: 68px; background-image: linear-gradient(to right, rgb(var(--sc-line) / .1) 1px, transparent 1px); background-size: 14.28% 100%; }
+.music-lab-playhead { position: absolute; z-index: 3; top: 0; bottom: 0; left: var(--music-lab-playhead, 0%); width: 2px; background: #62d4c4; box-shadow: 0 0 14px #62d4c4; pointer-events: none; transition: left .08s linear; }
+.music-lab-lane i { position: absolute; top: 17px; height: 34px; min-width: 12px; border-left: 2px solid rgb(var(--sc-accent)); border-radius: 3px; background: rgb(var(--sc-accent) / .3); }
+.music-lab-arrangement-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; padding-top: .8rem; color: rgb(var(--sc-text-faint)); font: 9px 'JetBrains Mono', monospace; }
+.music-lab-arrangement-actions button { cursor: pointer; color: rgb(var(--sc-accent)); }
+.music-lab-visualizer { margin-top: 1rem; padding: .8rem; background: rgb(var(--sc-sunken)); border: 1px solid rgb(var(--sc-line) / .12); border-radius: 5px; }
+.music-lab-visualizer code { display: block; margin-top: .45rem; color: rgb(var(--sc-text)); font: 12px 'JetBrains Mono', monospace; overflow-wrap: anywhere; }
+.music-lab-visualizer-heading, .music-lab-subheading { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+.music-lab-graph-tabs { display: flex; flex-wrap: wrap; gap: .25rem; }
+.music-lab-graph-tabs button, .music-lab-subheading button, .music-lab-randomize { border: 1px solid rgb(var(--sc-line) / .18); border-radius: 4px; background: transparent; color: rgb(var(--sc-text-faint)); padding: .35rem .45rem; cursor: pointer; font: 9px 'JetBrains Mono', monospace; text-transform: uppercase; }
+.music-lab-graph-tabs button.is-active, .music-lab-graph-tabs button:hover, .music-lab-subheading button:hover, .music-lab-randomize:hover { border-color: rgb(var(--sc-accent) / .7); color: rgb(var(--sc-accent)); }
+.music-lab-equation-pair { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; border-top: 1px solid rgb(var(--sc-line) / .12); padding-top: .7rem; color: rgb(var(--sc-text-faint)); font: 9px 'JetBrains Mono', monospace; }
+.music-lab-equation-pair b { display: block; margin-top: .3rem; color: rgb(var(--sc-text-soft)); font-weight: 400; overflow-wrap: anywhere; }
+.music-lab-history { display: grid; gap: .35rem; margin-top: .75rem; border-top: 1px solid rgb(var(--sc-line) / .12); padding-top: .65rem; }
+.music-lab-history button, .music-lab-history small { overflow: hidden; border: 0; background: transparent; color: rgb(var(--sc-text-faint)); text-align: left; text-overflow: ellipsis; white-space: nowrap; font: 9px 'JetBrains Mono', monospace; }
+.music-lab-history button:hover { color: rgb(var(--sc-accent)); }
+.music-lab-piano-roll, .music-lab-drum-machine { margin-top: .8rem; padding: .8rem; background: rgb(var(--sc-sunken)); border: 1px solid rgb(var(--sc-line) / .12); border-radius: 5px; }
+.music-lab-roll-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; margin-top: .65rem; }
+.music-lab-roll-grid button { min-height: 24px; border: 1px solid rgb(var(--sc-line) / .15); background: rgb(var(--sc-surface)); cursor: pointer; }
+.music-lab-roll-grid button:hover { border-color: rgb(var(--sc-accent) / .7); }
+.music-lab-roll-grid button.is-note { background: rgb(var(--sc-accent) / .65); border-color: rgb(var(--sc-accent)); box-shadow: 0 0 10px rgb(var(--sc-accent) / .2); }
+.music-lab-drum-machine small { color: rgb(var(--sc-text-faint)); font: 9px 'JetBrains Mono', monospace; }
+.music-lab-drum-steps { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; margin-top: .65rem; }
+.music-lab-drum-steps button { min-height: 30px; border: 1px solid rgb(var(--sc-line) / .18); background: rgb(var(--sc-surface)); color: rgb(var(--sc-text-faint)); cursor: pointer; font: 8px 'JetBrains Mono', monospace; }
+.music-lab-drum-steps button:nth-child(4n + 1) { border-color: rgb(var(--sc-accent) / .3); }
+.music-lab-drum-steps button.is-active { background: rgb(var(--sc-accent)); color: rgb(var(--sc-on-accent)); box-shadow: 0 0 12px rgb(var(--sc-accent) / .25); }
+.music-lab-randomize { width: 100%; margin-top: 1rem; min-height: 34px; }
+.music-lab-premium-gate { max-width: 620px; margin: 12vh auto; padding: 3rem; text-align: center; }
+.music-lab-premium-gate h1 { margin: .75rem 0; font: 600 2.4rem Georgia, serif; }
+.music-lab-premium-gate p { color: rgb(var(--sc-text-soft)); line-height: 1.6; }
+.music-lab-premium-gate button { margin-top: 1rem; border: 0; border-radius: 5px; background: rgb(var(--sc-accent)); color: rgb(var(--sc-on-accent)); padding: .8rem 1rem; cursor: pointer; font: 600 11px 'JetBrains Mono', monospace; }
+.music-lab-inspector h2 { margin: .55rem 0 .25rem; font: 600 1.55rem Georgia, serif; }
+.music-lab-base-equation { margin: 0 0 1.1rem; color: rgb(var(--sc-accent)); font: 11px 'JetBrains Mono', monospace; }
+.music-lab-controls { display: grid; gap: .75rem; max-height: 610px; overflow-y: auto; padding-right: .2rem; }
+.music-lab-controls label > span { display: flex; justify-content: space-between; color: rgb(var(--sc-text-soft)); font: 10px 'JetBrains Mono', monospace; }
+.music-lab-controls output { color: rgb(var(--sc-accent)); }
+.music-lab-controls input[type='range'], .music-lab-channels input[type='range'] { width: 100%; accent-color: rgb(var(--sc-accent)); cursor: pointer; }
+.music-lab-mixer { display: grid; grid-template-columns: 170px 1fr; gap: 1rem; margin-top: .8rem; }
+.music-lab-channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .65rem; }
+.music-lab-channels label { display: grid; gap: .3rem; padding: .55rem; background: rgb(var(--sc-sunken)); border: 1px solid rgb(var(--sc-line) / .12); border-radius: 5px; }
+.music-lab-channels label > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgb(var(--sc-text-soft)); font: 10px 'JetBrains Mono', monospace; }
+.music-lab-channels button { border: 0; background: transparent; color: rgb(var(--sc-text-faint)); cursor: pointer; text-align: left; font: 9px 'JetBrains Mono', monospace; }
+.music-lab-channels button.is-muted { color: rgb(var(--sc-accent)); }
+.music-lab-footnote { margin: 1rem 0 0; color: rgb(var(--sc-text-faint)); text-align: right; font: 9px 'JetBrains Mono', monospace; }
+.music-lab-cta { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding: clamp(1.4rem, 4vw, 2.8rem); border: 1px solid rgb(var(--sc-accent) / .35); border-radius: 10px; background: radial-gradient(circle at 10% 10%, rgb(var(--sc-accent) / .13), transparent 24rem), rgb(var(--sc-sunken)); }
+.music-lab-cta h2 { margin: .5rem 0; font: 600 clamp(1.5rem, 3vw, 2.6rem) Georgia, serif; }
+.music-lab-cta p { max-width: 38rem; margin: 0; color: rgb(var(--sc-text-soft)); font-size: .9rem; line-height: 1.65; }
+.music-lab-cta-button { display: inline-flex; flex: 0 0 auto; align-items: center; gap: .8rem; padding: 1rem 1.3rem; border: 1px solid rgb(var(--sc-accent)); border-radius: 6px; background: rgb(var(--sc-accent)); color: rgb(var(--sc-on-accent)); font: 600 11px 'JetBrains Mono', monospace; text-transform: uppercase; transition: transform .2s ease, box-shadow .2s ease; }
+.music-lab-cta-button:hover, .music-lab-cta-button:focus-visible { transform: translateY(-2px); box-shadow: 0 0 28px rgb(var(--sc-accent) / .22); }
+@media (max-width: 980px) { .music-lab-topbar { align-items: start; flex-direction: column; } .music-lab-transport { justify-content: start; } .music-lab-grid { grid-template-columns: 1fr 1.6fr; } .music-lab-inspector { grid-column: 1 / -1; } .music-lab-controls { grid-template-columns: repeat(3, 1fr); max-height: none; } }
+@media (max-width: 700px) { .music-lab-page { padding: 5.5rem .65rem 2rem; } .music-lab-transport { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; } .music-lab-transport button { grid-column: span 1; } .music-lab-grid { display: flex; flex-direction: column; } .music-lab-library { order: 3; } .music-lab-arrangement { order: 1; } .music-lab-inspector { order: 2; } .music-lab-ruler { grid-template-columns: 5.5rem repeat(7, 1fr); overflow: hidden; } .music-lab-track { grid-template-columns: 5.5rem 1fr; } .music-lab-controls { grid-template-columns: repeat(2, 1fr); } .music-lab-mixer { display: block; } .music-lab-channels { margin-top: 1rem; } .music-lab-cta { align-items: start; flex-direction: column; } .music-lab-cta-button { width: 100%; justify-content: center; } .music-lab-visualizer-heading, .music-lab-subheading { display: block; } .music-lab-graph-tabs { margin-top: .7rem; } .music-lab-drum-steps { gap: 2px; } .music-lab-drum-steps button { min-height: 26px; padding: 0; } }
+@media (prefers-reduced-motion: reduce) { .music-lab-cta-button { transition: none; } }

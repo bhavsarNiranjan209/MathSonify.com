@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+import MusicLab from '../components/MusicLab/MusicLab';
+---
+
+<BaseLayout
+  title="Music Lab — MathSonify"
+  description="Compose mathematical music with live equations, instruments, arrangement, and Web Audio synthesis."
+>
+  <Navigation />
+  <main class="music-lab-page"><MusicLab client:only="react" /></main>
+  <Footer />
+</BaseLayout>

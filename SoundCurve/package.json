@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "cloudflare": "^7.1.0"
+  }
+}

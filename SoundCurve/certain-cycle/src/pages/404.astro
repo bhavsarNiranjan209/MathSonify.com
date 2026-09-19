@@ -1,0 +1,99 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<BaseLayout title="404 - Equation Not Found | MathSonify" description="This page doesn't exist — but there are infinitely many equations that do. Head back to the Sound Studio.">
+  <Navigation />
+
+  <main class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-16 px-4">
+
+    <!-- Subtle graph-paper grid (same as Hero) -->
+    <div class="absolute inset-0 z-0 pointer-events-none" aria-hidden="true">
+      <div
+        class="absolute inset-0"
+        style="background-image: linear-gradient(rgb(var(--sc-line) / 0.04) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--sc-line) / 0.04) 1px, transparent 1px); background-size: 44px 44px;"
+      ></div>
+    </div>
+
+    <!-- Noise/static waveform SVG — "lost signal" visual -->
+    <div class="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.07] select-none" aria-hidden="true">
+      <svg viewBox="0 0 800 120" class="w-[110%] max-w-none" preserveAspectRatio="none">
+        <path id="sc-404-wave" fill="none" stroke="rgb(var(--sc-accent))" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </div>
+
+    <!-- Content -->
+    <div class="relative z-10 max-w-lg mx-auto text-center space-y-8">
+
+      <!-- 404 as a "failed equation" -->
+      <div class="space-y-3">
+        <p class="font-mono text-xs text-sc-accent tracking-wider uppercase">
+          error: undefined route
+        </p>
+        <h1 class="font-serif text-7xl sm:text-8xl font-bold text-sc-text tracking-tighter leading-none">
+          4<span class="text-sc-accent">0</span>4
+        </h1>
+        <p class="text-sm text-sc-text-soft font-mono">
+          f(page) = <span class="text-red-400">undefined</span>
+        </p>
+      </div>
+
+      <!-- Divider -->
+      <div class="border-t border-sc-line/15 mx-8" />
+
+      <!-- Message -->
+      <div class="space-y-2">
+        <p class="font-serif text-lg sm:text-xl text-sc-text font-medium">
+          This equation doesn't exist in our domain.
+        </p>
+        <p class="text-xs text-sc-text-soft leading-relaxed max-w-sm mx-auto">
+          The page you're looking for may have been moved, or the function simply doesn't converge here. Try heading back to the studio — there are infinitely many valid equations waiting.
+        </p>
+      </div>
+
+      <!-- Mini fake equation strip -->
+      <div class="mx-auto max-w-xs">
+        <div class="panel p-3 space-y-1.5">
+          <div class="code-mat text-xs px-2.5 py-1.5 font-mono text-sc-text-soft">
+            404 = ∫<sub>0</sub><sup>∞</sup> <span class="text-red-400">missing</span>(x) dx
+          </div>
+          <p class="text-[10px] font-mono text-sc-text-faint text-center">
+            diverges — no solution found
+          </p>
+        </div>
+      </div>
+
+      <!-- CTAs -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+        <a href="/" class="w-full sm:w-auto px-8 py-3 text-sm btn-primary">
+          Return home
+        </a>
+        <a href="/create" class="w-full sm:w-auto px-8 py-3 text-sm btn-ghost">
+          Open the studio
+        </a>
+        <a href="/equations" class="w-full sm:w-auto px-8 py-3 text-sm btn-ghost">
+          Browse equations
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+
+  <!-- Generate the "lost signal" noise waveform -->
+  <script is:inline>
+    (function () {
+      const path = document.getElementById('sc-404-wave');
+      if (!path) return;
+      const W = 800, H = 120, mid = H / 2;
+      let d = '';
+      for (let x = 0; x <= W; x += 4) {
+        const y = mid + (Math.random() - 0.5) * H * 0.9;
+        d += (x === 0 ? 'M' : 'L') + x + ',' + y.toFixed(1);
+      }
+      path.setAttribute('d', d);
+    })();
+  </script>
+</BaseLayout>

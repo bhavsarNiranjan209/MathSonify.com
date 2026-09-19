@@ -1,0 +1,65 @@
+---
+import { LANGUAGES } from '../i18n/index';
+---
+
+<footer class="border-t border-sc-line/15 bg-sc-bg py-12 px-4 sm:px-6 lg:px-8 text-sc-text-soft text-sm">
+  <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+    <!-- Brand -->
+    <div class="space-y-3">
+      <a href="/" class="flex items-center gap-2 group/footer">
+        <img src="/favicon.jpeg" alt="MathSonify" class="h-9 w-9 rounded-full object-cover border border-sc-line/20 transition-all duration-300 group-hover/footer:scale-110 group-hover/footer:shadow-[0_0_16px_rgba(var(--sc-accent),0.25)]" />
+        <span class="font-serif text-lg font-semibold text-sc-text transition-colors duration-300 group-hover/footer:text-sc-accent">MathSonify.com</span>
+      </a>
+      <p class="text-xs text-sc-text-soft leading-relaxed" data-i18n="footer.brandDesc">
+        An interactive mathematical audio experiment and creative sonification platform — turn math into music.
+      </p>
+      <div class="text-[11px] font-mono text-sc-accent" data-i18n="footer.zeroBackend">
+        zero backend · 100% Web Audio API
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <div>
+      <h4 class="text-xs font-semibold text-sc-text mb-3" data-i18n="footer.product">Product</h4>
+      <ul class="space-y-2 text-xs">
+        <li><a href="/create" class="hover:text-sc-text transition-colors" data-i18n="footer.creationStudio">Creation Studio</a></li>
+        <li><a href="/equations" class="hover:text-sc-text transition-colors" data-i18n="footer.equationLibrary">Equation Library</a></li>
+        <li><a href="/how-it-works" class="hover:text-sc-text transition-colors" data-i18n="footer.howItWorks">How It Works</a></li>
+        <li><a href="/equations" class="hover:text-sc-text transition-colors" data-i18n="footer.equationGuide">Equation Guide</a></li>
+        <li><a href="/scientists" class="hover:text-sc-text transition-colors" data-i18n="footer.scientists">Famous Scientists</a></li>
+      </ul>
+    </div>
+
+    <!-- Technology -->
+    <div>
+      <h4 class="text-xs font-semibold text-sc-text mb-3" data-i18n="footer.architecture">Architecture</h4>
+      <ul class="space-y-2 text-xs text-sc-text-soft">
+        <li>Astro + React islands</li>
+        <li>Safe <code class="text-sc-accent">mathjs</code> expression parser</li>
+        <li>Native Web Audio API synthesis</li>
+        <li>Client-side 16-bit WAV export</li>
+        <li>Canvas 2D 60fps visualizer</li>
+      </ul>
+    </div>
+
+    <!-- About -->
+    <div>
+      <h4 class="text-xs font-semibold text-sc-text mb-3" data-i18n="footer.about">About</h4>
+      <ul class="space-y-2 text-xs">
+        <li><a href="/about" class="hover:text-sc-text transition-colors" data-i18n="footer.aboutMathSonify">About MathSonify</a></li>
+        <li><span class="text-sc-text-faint" data-i18n="footer.freeAccess">Free and open access</span></li>
+      </ul>
+      <h4 class="text-xs font-semibold text-sc-text mb-3 mt-5">Legal</h4>
+      <ul class="space-y-2 text-xs">
+        <li><a href="/privacy" class="hover:text-sc-text transition-colors">Privacy Policy</a></li>
+        <li><a href="/terms" class="hover:text-sc-text transition-colors">Terms of Use</a></li>
+        <li><a href="/contact" class="hover:text-sc-text transition-colors">Contact Us</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto pt-8 border-t border-sc-line/15 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-sc-text-faint">
+    <p data-i18n="footer.copyright">© 2026 MathSonify. All mathematical expressions sonified deterministically.</p>
+    <a href="/create" class="text-sc-accent hover:underline" data-i18n="footer.openStudio">Open the studio</a>
+  </div>
+</footer>

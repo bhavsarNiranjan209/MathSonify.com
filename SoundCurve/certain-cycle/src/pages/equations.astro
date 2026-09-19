@@ -1,0 +1,150 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+import { PRESETS, PRESET_CATEGORIES } from '../data/presets';
+---
+
+<BaseLayout title="Equations Reference - MathSonify" description="Mathematical and acoustic catalog of functions supported in MathSonify.">
+  <Navigation />
+
+  <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div class="text-center max-w-3xl mx-auto mb-12">
+      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4" data-i18n="equations.tag">
+        mathematical catalog
+      </div>
+      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-4" data-i18n="equations.title">
+        Equation acoustic reference
+      </h1>
+      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed" data-i18n="equations.subtitle">
+        A complete reference of all mathematical functions supported in MathSonify — browse by category or search by name.
+      </p>
+    </div>
+
+    <!-- Search bar -->
+    <div class="max-w-md mx-auto mb-6">
+      <div class="relative">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sc-text-faint">🔍</span>
+        <input
+          type="text"
+          id="equation-search"
+          placeholder="Search equations..."
+          class="w-full pl-10 pr-4 py-3 rounded-lg bg-sc-surface border border-sc-line/20 text-sm text-sc-text placeholder:text-sc-text-faint focus:outline-none focus:ring-2 focus:ring-sc-accent/50 focus:border-sc-accent transition-colors min-h-[44px]"
+        />
+      </div>
+    </div>
+
+    <!-- Category filter bar -->
+    <div class="flex items-center justify-center gap-2 flex-wrap mb-10">
+      {PRESET_CATEGORIES.map((cat) => (
+        <button
+          class="category-filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-sc-surface hover:bg-sc-accent/15 text-sc-text-soft hover:text-sc-text border border-sc-line/20 hover:border-sc-accent transition-colors"
+          data-category={cat.id}
+        >
+          {cat.name}
+        </button>
+      ))}
+    </div>
+
+    <!-- No results message -->
+    <div id="no-results-eq" class="hidden text-center py-12">
+      <p class="text-sc-text-soft text-sm">No equations found matching your search.</p>
+    </div>
+
+    <!-- Equation grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="equations-grid">
+      {PRESETS.map((preset) => (
+        <div
+          class="equation-card panel p-5 flex flex-col justify-between hover:border-sc-accent/50 transition-colors"
+          data-category={preset.category}
+        >
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-sc-accent/15 text-sc-accent border border-sc-accent/40">
+                {preset.category}
+              </span>
+              <span class="text-xs text-sc-text-faint font-mono">
+                {preset.recommendedSettings.instrument} / {preset.recommendedSettings.sonificationMode}
+              </span>
+            </div>
+            <h3 class="text-base font-semibold text-sc-text mb-2">{preset.name}</h3>
+            <div class="code-mat text-xs px-3 py-2 mb-3 overflow-x-auto">
+              {preset.equation}
+            </div>
+            <p class="text-xs text-sc-text-soft leading-relaxed mb-3">
+              {preset.description}
+            </p>
+            <div class="p-2.5 rounded-md bg-sc-surface border border-sc-line/15 text-xs text-sc-text-soft mb-4">
+              <span class="text-sc-accent font-medium">Sonic profile:</span> {preset.soundDescription}
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-sc-line/15 flex items-center justify-between">
+            <span class="text-[11px] font-mono text-sc-text-faint">
+              Domain: [{preset.recommendedSettings.minX}, {preset.recommendedSettings.maxX}]
+            </span>
+            <a
+              href={`/create?eq=${encodeURIComponent(preset.equation)}&inst=${preset.recommendedSettings.instrument}&mode=${preset.recommendedSettings.sonificationMode}&dur=${preset.recommendedSettings.duration}&minX=${preset.recommendedSettings.minX}&maxX=${preset.recommendedSettings.maxX}`}
+              class="px-4 py-1.5 rounded-md btn-primary text-xs"
+            >
+              Open in studio
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <script is:inline>
+      (function() {
+        var searchInput = document.getElementById('equation-search');
+        var noResults = document.getElementById('no-results-eq');
+        var cards = document.querySelectorAll('.equation-card');
+        var filterBtns = document.querySelectorAll('.category-filter-btn');
+        if (!searchInput || cards.length === 0) return;
+
+        var ACTIVE = ['bg-sc-accent', 'text-sc-on-accent', 'border-sc-accent'];
+        var IDLE = ['bg-sc-surface', 'text-sc-text-soft', 'border-sc-line/20', 'hover:bg-sc-accent/15', 'hover:text-sc-text', 'hover:border-sc-accent'];
+
+        function setActive(btn) {
+          filterBtns.forEach(function(b) {
+            b.classList.remove.apply(b.classList, ACTIVE);
+            b.classList.add.apply(b.classList, IDLE);
+          });
+          btn.classList.remove.apply(btn.classList, IDLE);
+          btn.classList.add.apply(btn.classList, ACTIVE);
+        }
+
+        if (filterBtns[0]) setActive(filterBtns[0]);
+
+        var activeCategory = 'all';
+
+        function applyFilters() {
+          var term = searchInput.value.trim().toLowerCase();
+          var visible = 0;
+          cards.forEach(function(card) {
+            var cardCat = card.getAttribute('data-category');
+            var text = (card.textContent || '').toLowerCase();
+            var catMatch = activeCategory === 'all' || cardCat === activeCategory;
+            var searchMatch = !term || text.includes(term);
+            var show = catMatch && searchMatch;
+            card.style.display = show ? '' : 'none';
+            if (show) visible++;
+          });
+          if (noResults) noResults.classList.toggle('hidden', visible > 0);
+        }
+
+        filterBtns.forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            activeCategory = btn.getAttribute('data-category');
+            setActive(btn);
+            applyFilters();
+          });
+        });
+
+        searchInput.addEventListener('input', applyFilters);
+      })();
+    </script>
+  </main>
+
+  <Footer />
+</BaseLayout>

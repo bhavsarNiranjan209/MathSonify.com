@@ -1,0 +1,10 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Studio from '../components/Studio';
+---
+
+<BaseLayout title="Create - MathSonify">
+  <Navigation />
+  <Studio client:only="react" />
+</BaseLayout>
