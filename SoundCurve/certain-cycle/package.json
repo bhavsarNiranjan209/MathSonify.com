@@ -9,6 +9,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "test": "node --import ./scripts/ts-resolve.mjs --test \"src/**/*.test.ts\"",
     "astro": "astro"
   },
   "dependencies": {
@@ -21,6 +22,12 @@
     "react-dom": "^19.3.0",
     "tailwindcss": "^3.4.19",
     "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "typescript": "^7.0.2"
   },
   "allowScripts": {
     "esbuild": true

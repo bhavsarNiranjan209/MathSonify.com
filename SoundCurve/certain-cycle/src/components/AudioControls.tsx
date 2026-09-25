@@ -4,6 +4,7 @@ import { useStudioStore, type InstrumentType, type SonificationMode } from '../s
 import { useTranslation } from '../i18n/index';
 import { audioEngine } from '../utils/audioEngine';
 import { MUSICAL_SCALES, type ScaleKey } from '../utils/equationParser';
+import type { SamplePoint } from '../utils/equationParser';
 
 const INSTRUMENTS: { id: InstrumentType; labelKey: string; descKey: string; icon: string }[] = [
   { id: 'sine', labelKey: 'inst.sine', descKey: 'inst.sineDesc', icon: '∿' },
@@ -49,6 +50,8 @@ export default function AudioControls() {
   const equation = useStudioStore((s) => s.equation);
   const minX = useStudioStore((s) => s.minX);
   const maxX = useStudioStore((s) => s.maxX);
+  const isCustomCurve = useStudioStore((s) => s.isCustomCurve);
+  const splineControlPoints = useStudioStore((s) => s.splineControlPoints);
 
   const setShareModalOpen = useStudioStore((s) => s.setShareModalOpen);
 
@@ -86,27 +89,51 @@ export default function AudioControls() {
 
       const effectiveDuration = duration / speed;
 
-      await audioEngine.play(
-        equation,
-        minX,
-        maxX,
-        minFreq,
-        maxFreq,
-        effectiveDuration,
-        volume,
-        instrument,
-        sonificationMode,
-        loop,
-        scale,
-        (prog, cx, cy) => {
-          setProgress(prog, cx, cy);
-        },
-        () => {
-          // Playback reached 100% naturally — flip the transport back to idle
-          setPlaying(false);
-          setProgress(0, 0, 0);
-        }
-      );
+      if (isCustomCurve && splineControlPoints.length > 0) {
+        const { evaluateCatmullRomSpline } = await import('../utils/curveSpline');
+        const samplePoints = evaluateCatmullRomSpline(splineControlPoints, 800);
+        await audioEngine.playPoints(
+          samplePoints,
+          minX,
+          maxX,
+          minFreq,
+          maxFreq,
+          effectiveDuration,
+          volume,
+          instrument,
+          sonificationMode,
+          loop,
+          scale,
+          (prog, cx, cy) => {
+            setProgress(prog, cx, cy);
+          },
+          () => {
+            setPlaying(false);
+            setProgress(0, 0, 0);
+          }
+        );
+      } else {
+        await audioEngine.play(
+          equation,
+          minX,
+          maxX,
+          minFreq,
+          maxFreq,
+          effectiveDuration,
+          volume,
+          instrument,
+          sonificationMode,
+          loop,
+          scale,
+          (prog, cx, cy) => {
+            setProgress(prog, cx, cy);
+          },
+          () => {
+            setPlaying(false);
+            setProgress(0, 0, 0);
+          }
+        );
+      }
     } catch (err) {
       setAudioError(err instanceof Error ? err.message : 'Error playing audio');
       setPlaying(false);

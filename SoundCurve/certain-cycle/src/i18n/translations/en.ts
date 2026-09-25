@@ -3,6 +3,7 @@ const en = {
   'nav.scientists': 'Scientists',
   'nav.explore': 'Explore',
   'nav.create': 'Create',
+  'nav.draw': 'Draw',
   'nav.howItWorks': 'How It Works',
   'nav.equations': 'Equations',
   'nav.about': 'About',

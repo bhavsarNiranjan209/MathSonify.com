@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "strict": true
+  },
+  "include": ["MusicLab.tsx"],
+  "exclude": ["dist"]
+}

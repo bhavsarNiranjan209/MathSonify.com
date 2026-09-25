@@ -1,0 +1,172 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+import { PREMIUM_ENABLED, STRIPE_PUBLISHABLE_KEY, STRIPE_PRICE_ID_PREMIUM, stripeCheckoutReturnUrl, CONTACT_EMAIL, BUY_ME_A_COFFEE_URL } from '../utils/productConfig';
+---
+
+<BaseLayout
+  title="Premium - MathSonify"
+  description="Unlock Music Lab, advanced instruments, full SoundLab access, and export features with MathSonify Premium."
+>
+  <Navigation />
+
+  <main class="min-h-screen pt-20 pb-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+
+    <!-- Header -->
+    <div class="text-center mb-16">
+      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-5">
+        ♪ unlock the studio
+      </div>
+      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-5">
+        MathSonify <span class="text-sc-accent">Premium</span>
+      </h1>
+      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed max-w-2xl mx-auto">
+        Go deeper. Build your own mathematical instruments, arrange notes, export your work, and access the full SoundLab archive.
+      </p>
+    </div>
+
+    <!-- Pricing card -->
+    <div class="pricing-card p-8 sm:p-10 mb-12 relative overflow-hidden">
+      <div class="absolute -top-10 -right-10 text-[120px] opacity-[0.03] font-serif select-none pointer-events-none leading-none">Σ</div>
+
+      <div class="relative z-10 space-y-8">
+
+        <!-- Plan header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-serif text-2xl font-semibold text-sc-text">Premium</h2>
+            <p class="text-sm text-sc-text-soft mt-1">Full access to everything MathSonify offers.</p>
+          </div>
+          <div class="text-4xl font-serif font-semibold text-sc-text">
+            $<span class="text-2xl">9</span><span class="text-sm font-normal text-sc-text-soft">/month</span>
+          </div>
+        </div>
+
+        <!-- What's included -->
+        <ul class="pricing-grid grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm">
+          <li class="flex items-start gap-3">
+            <span class="pricing-check text-sc-accent text-base flex-shrink-0">✓</span>
+            <span class="text-sc-text"><strong class="font-semibold">Music Lab</strong> — full mathematical music studio</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="pricing-check text-sc-accent text-base flex-shrink-0">✓</span>
+            <span class="text-sc-text"><strong class="font-semibold">Full SoundLab</strong> — all compositions, unlimited plays</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="pricing-check text-sc-accent text-base flex-shrink-0">✓</span>
+            <span class="text-sc-text"><strong class="font-semibold">Advanced instruments</strong> — all synthesis models</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="pricing-check text-sc-accent text-base flex-shrink-0">✓</span>
+            <span class="text-sc-text"><strong class="font-semibold">WAV export</strong> — download your compositions</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="pricing-check text-sc-accent text-base flex-shrink-0">✓</span>
+            <span class="text-sc-text"><strong class="font-semibold">Advanced visualizers</strong> — audio-reactive canvas</span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span class="pricing-check text-sc-accent text-base flex-shrink-0">✓</span>
+            <span class="text-sc-text"><strong class="font-semibold">Future premium features</strong> — early access to new tools</span>
+          </li>
+        </ul>
+
+        <!-- CTA -->
+        <div class="flex flex-col sm:flex-row gap-4 pt-4">
+          <button
+            class="pricing-cta-group relative inline-flex flex-col items-center justify-center gap-1.5 min-w-[200px] min-h-[48px] px-6 py-3 border border-sc-accent/40 bg-sc-accent/10 rounded-lg font-mono text-sm text-sc-accent transition hover:bg-sc-accent/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-sc-accent/50"
+            type="button"
+          >
+            {PREMIUM_ENABLED ? `☕ $${STRIPE_PRICE_ID_PREMIUM.split('-')[1] ?? '9'}/mo` : 'Preview'}
+            <span class="absolute -bottom-0.5 left-0 right-0 h-px bg-sc-accent/40"></span>
+          </button>
+          <button
+            class="pricing-cta-primary relative inline-flex flex-col items-center justify-center gap-1.5 min-w-[200px] min-h-[48px] px-6 py-3 border border-sc-accent bg-sc-accent text-sc-on-accent rounded-lg font-mono text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sc-accent/50"
+            type="button"
+            {PREMIUM_ENABLED ? `onclick="window.location.href='${stripeCheckoutReturnUrl()}'"` : ''}
+          >
+            {PREMIUM_ENABLED ? 'Continue to secure checkout →' : 'Coming soon'}
+          </button>
+        </div>
+        <!-- Secure checkout note -->
+        <p class="text-xs text-sc-text-faint text-center mt-4 leading-relaxed">
+          {PREMIUM_ENABLED ? 'Payments are processed securely by Stripe. No storage of card details on our servers.' : 'We\'re finalizing pricing — join the waitlist to be notified.'}
+        </p>
+
+      </div>
+    </div>
+
+    <!-- Trust / about row -->
+    <div class="pricing-trust-grid grid grid-cols-1 sm:grid-cols-3 gap-6 mb-16 text-sm text-sc-text-soft">
+      <div class="pricing-trust-card p-5 border border-sc-line/15 rounded-lg bg-sc-surface/50">
+        <h3 class="font-serif text-base font-semibold text-sc-text mb-2">What you get</h3>
+        <ul class="space-y-2 text-sc-text-soft">
+          <li class="flex items-center gap-2"><span class="pricing-check text-sc-accent">✓</span> Music Lab full studio</li>
+          <li class="flex items-center gap-2"><span class="pricing-check text-sc-accent">✓</span> Full SoundLab archive</li>
+          <li class="flex items-center gap-2"><span class="pricing-check text-sc-accent">✓</span> WAV export &amp; advanced visualizers</li>
+        </ul>
+      </div>
+      <div class="pricing-trust-card p-5 border border-sc-line/15 rounded-lg bg-sc-surface/50">
+        <h3 class="font-serif text-base font-semibold text-sc-text mb-2">Billing</h3>
+        <p class="text-sc-text-soft leading-relaxed">
+          Monthly subscription, cancel anytime. If you cancel, you keep access until the end of your current billing period.
+        </p>
+      </div>
+      <div class="pricing-trust-card p-5 border border-sc-line/15 rounded-lg bg-sc-surface/50">
+        <h3 class="font-serif text-base font-semibold text-sc-text mb-2">Support</h3>
+        <p class="text-sc-text-soft leading-relaxed">
+          Questions? Reach us at <a href="mailto:{CONTACT_EMAIL}" class="text-sc-accent underline underline-offset-2">{CONTACT_EMAIL}</a>.
+        </p>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="pricing-faq mb-16">
+      <h2 class="font-serif text-2xl font-semibold text-sc-text mb-6 text-center">Questions</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="pricing-faq-item p-5 border border-sc-line/15 rounded-lg bg-sc-surface/50">
+          <h3 class="font-medium text-sc-text mb-2">Is there a free trial?</h3>
+          <p class="text-sm text-sc-text-soft leading-relaxed">
+            Premium is available immediately. If a trial period is offered, it will be clearly shown before checkout.
+          </p>
+        </div>
+        <div class="pricing-faq-item p-5 border border-sc-line/15 rounded-lg bg-sc-surface/50">
+          <h3 class="font-medium text-sc-text mb-2">What payment methods do you accept?</h3>
+          <p class="text-sm text-sc-text-soft leading-relaxed">
+            All payments are processed by Stripe, which supports major credit and debit cards.
+          </p>
+        </div>
+        <div class="pricing-faq-item p-5 border border-sc-line/15 rounded-lg bg-sc-surface/50">
+          <h3 class="font-medium text-sc-text mb-2">Can I cancel anytime?</h3>
+          <p class="text-sm text-sc-text-soft leading-relaxed">
+            Yes. Cancel from your account at any time. Your access continues through the paid period.
+          </p>
+        </div>
+        <div class="pricing-faq-item p-5 border border-sc-line/15 rounded-lg bg-sc-surface/50">
+          <h3 class="font-medium text-sc-text mb-2">What if Premium isn't available yet?</h3>
+          <p class="text-sm text-sc-text-soft leading-relaxed">
+            The free MathSonify experience, SoundLab previews, and Music Lab remain usable. Premium unlocks the deeper studio features when it goes live.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buy Me a Coffee note -->
+    <div class="pricing-coffee-notice text-center p-6 border border-sc-line/15 rounded-lg bg-sc-surface/50 mb-16">
+      <p class="text-sm text-sc-text-soft leading-relaxed mb-4">
+        Enjoying MathSonify? You can also support the project directly.
+      </p>
+      <a
+        href="{BUY_ME_A_COFFEE_URL}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-2 px-5 py-2.5 border border-sc-accent/30 bg-sc-accent/10 text-sc-accent rounded-lg font-mono text-xs hover:bg-sc-accent/20 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sc-accent/50"
+      >
+        ☕ Buy Me a Coffee
+      </a>
+    </div>
+
+  </main>
+
+  <Footer />
+</BaseLayout>

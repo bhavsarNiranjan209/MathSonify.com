@@ -3,6 +3,7 @@ const navLinks = [
   { name: 'SoundLab', href: '/soundlab', i18nKey: 'nav.soundlab' },
   { name: 'How It Works', href: '/how-it-works', i18nKey: 'nav.howItWorks' },
   { name: 'Create', href: '/create', i18nKey: 'nav.create' },
+  { name: 'Draw', href: '/draw', i18nKey: 'nav.draw' },
   { name: 'Scientists', href: '/scientists', i18nKey: 'nav.scientists' },
   { name: 'Equations', href: '/equations', i18nKey: 'nav.equations' },
   { name: 'About', href: '/about', i18nKey: 'nav.about' },
@@ -27,7 +28,7 @@ function isCurrent(href: string) {
       </div>
 
       <!-- Desktop Navigation -->
-      <div class="hidden md:flex items-center space-x-8">
+      <div class="hidden lg:flex items-center space-x-5">
         {navLinks.map((link) => link.name === 'SoundLab' ? (
           <a
             href={link.href}
@@ -62,7 +63,10 @@ function isCurrent(href: string) {
           id="mode-selector"
           role="group"
           aria-label="Display mode"
-          class="hidden sm:flex items-center p-0.5 border border-sc-line/20 rounded-full bg-sc-surface"
+          class:list={[
+            'hidden items-center p-0.5 border border-sc-line/20 rounded-full bg-sc-surface',
+            { 'sm:flex': currentPath !== '/draw' },
+          ]}
         >
           <button
             type="button"
@@ -107,14 +111,20 @@ function isCurrent(href: string) {
           </div>
         </div>
 
-        <!-- Mobile Menu Toggle -->
+                <!-- Mobile Menu Toggle -->
         <button
           id="mobile-menu-toggle"
-          class="md:hidden p-2 rounded-md hover:bg-sc-surface transition-colors"
+          type="button"
+          class="lg:hidden p-2 rounded-md hover:bg-sc-surface transition-colors"
           aria-label="Toggle menu"
+          aria-controls="mobile-menu"
+          aria-expanded="false"
         >
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg id="mobile-menu-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <svg id="mobile-menu-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
@@ -122,7 +132,7 @@ function isCurrent(href: string) {
   </div>
 
   <!-- Mobile Menu -->
-  <div id="mobile-menu" class="hidden md:hidden border-t border-sc-line/15 bg-sc-bg">
+  <div id="mobile-menu" class="hidden lg:hidden border-t border-sc-line/15 bg-sc-bg">
     <div class="px-4 py-4 space-y-3">
       {navLinks.map((link) => link.name === 'SoundLab' ? (
         <a
@@ -149,7 +159,7 @@ function isCurrent(href: string) {
           {link.name}
         </a>
       ))}
-      <div class="pt-3 border-t border-sc-line/15">
+      <div class:list={['pt-3 border-t border-sc-line/15', { hidden: currentPath === '/draw' }]}>
         <div class="text-xs text-sc-text-faint mb-2" data-i18n="nav.displayMode">Display mode</div>
         <div class="flex items-center gap-2">
           <button
@@ -221,13 +231,63 @@ function isCurrent(href: string) {
   // Paint the current state
   applyTheme(currentTheme());
 
-  // Mobile menu toggle
+    // Mobile menu toggle
   const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
   const mobileMenu = document.getElementById('mobile-menu');
+  const mobileMenuIconOpen = document.getElementById('mobile-menu-icon-open');
+  const mobileMenuIconClose = document.getElementById('mobile-menu-icon-close');
+
+  /** Drive open/close from a single source of truth so scroll lock, icons and
+   *  aria state can never drift apart. */
+  function setMobileMenu(open: boolean) {
+    if (!mobileMenu || !mobileMenuToggle) return;
+    mobileMenu.classList.toggle('hidden', !open);
+    mobileMenuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    mobileMenuIconOpen?.classList.toggle('hidden', open);
+    mobileMenuIconClose?.classList.toggle('hidden', !open);
+    // Lock background scroll while open; never leave it stuck.
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+
+  function closeMobileMenu() {
+    setMobileMenu(false);
+  }
 
   mobileMenuToggle?.addEventListener('click', () => {
-    mobileMenu?.classList.toggle('hidden');
+    setMobileMenu(mobileMenu?.classList.contains('hidden') ?? false);
   });
+
+  // Tapping any nav link inside the menu dismisses it — including links to the
+  // page you are already on, which the browser does not reload.
+  mobileMenu?.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', closeMobileMenu);
+  });
+
+  // Clicking outside the nav dismisses an open menu.
+  document.addEventListener('click', (e) => {
+    const target = e.target as Element | null;
+    if (!mobileMenu || mobileMenu.classList.contains('hidden')) return;
+    if (target?.closest?.('#mobile-menu') || target?.closest?.('#mobile-menu-toggle')) return;
+    closeMobileMenu();
+  });
+
+  // Escape dismisses the menu (parity with the language dropdown).
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobileMenu && !mobileMenu.classList.contains('hidden')) {
+      closeMobileMenu();
+      mobileMenuToggle?.focus();
+    }
+  });
+
+  // Crossing into the desktop breakpoint hides the menu via `md:hidden` — clear
+  // the inline scroll lock too so the page is never frozen.
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768) closeMobileMenu();
+  });
+
+  // Reset on every Astro navigation. A no-op for today's full-page loads, but
+  // keeps the mobile menu correct if the site later adopts client-side routing.
+  document.addEventListener('astro:page-load', closeMobileMenu);
 
   // ── Language switcher ──
   const langMenu = document.getElementById('lang-switcher-menu');

@@ -9,6 +9,7 @@ import PresetDrawer from './PresetDrawer';
 import ShareModal from './ShareModal';
 import ExportModal from './ExportModal';
 import { audioEngine } from '../utils/audioEngine';
+import { evaluateCatmullRomSpline } from '../utils/curveSpline';
 
 export default function Studio() {
   const { t } = useTranslation();
@@ -37,6 +38,8 @@ export default function Studio() {
   const minFreq = useStudioStore((s) => s.minFreq);
   const maxFreq = useStudioStore((s) => s.maxFreq);
   const scale = useStudioStore((s) => s.scale);
+  const isCustomCurve = useStudioStore((s) => s.isCustomCurve);
+  const splineControlPoints = useStudioStore((s) => s.splineControlPoints);
 
   const graphSectionRef = useRef<HTMLDivElement>(null);
   const wasPlayingRef = useRef(false);
@@ -125,36 +128,45 @@ export default function Studio() {
           setHasPendingChanges(false);
         } else {
           setHasPendingChanges(false);
-          audioEngine
-            .play(
-              equation,
-              minX,
-              maxX,
-              minFreq,
-              maxFreq,
-              duration / speed,
-              volume,
-              instrument,
-              sonificationMode,
-              loop,
-              scale,
-              (prog, cx, cy) => {
-                setProgress(prog, cx, cy);
-              },
-              () => {
-                setPlaying(false);
-                setProgress(0, 0, 0);
-              }
-            )
-            .then(() => setPlaying(true))
-            .catch((err) => console.error(err));
+          const playPromise = isCustomCurve && splineControlPoints.length > 0
+            ? audioEngine.playPoints(
+                evaluateCatmullRomSpline(splineControlPoints, 800),
+                minX,
+                maxX,
+                minFreq,
+                maxFreq,
+                duration / speed,
+                volume,
+                instrument,
+                sonificationMode,
+                loop,
+                scale,
+                (prog, cx, cy) => { setProgress(prog, cx, cy); },
+                () => { setPlaying(false); setProgress(0, 0, 0); }
+              )
+            : audioEngine.play(
+                equation,
+                minX,
+                maxX,
+                minFreq,
+                maxFreq,
+                duration / speed,
+                volume,
+                instrument,
+                sonificationMode,
+                loop,
+                scale,
+                (prog, cx, cy) => { setProgress(prog, cx, cy); },
+                () => { setPlaying(false); setProgress(0, 0, 0); }
+              );
+          playPromise.then(() => setPlaying(true)).catch((err) => console.error(err));
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, equation, minX, maxX, minFreq, maxFreq, duration, speed, volume, instrument, sonificationMode, loop, scale, setPlaying, setProgress]);
+  }, [isPlaying, isCustomCurve, splineControlPoints, equation, minX, maxX, minFreq, maxFreq, duration, speed, volume, instrument, sonificationMode, loop, scale, setPlaying, setProgress]);
 
   return (
     <motion.div

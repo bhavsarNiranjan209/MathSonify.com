@@ -16,6 +16,7 @@ import { useSoundLabStore } from '../../store/soundLabStore';
 import { compositionEngine } from '../../utils/compositionEngine';
 import { MUSICAL_SCALES, type ScaleKey } from '../../utils/equationParser';
 import { getCanvasPalette, onThemeChange, type CanvasPalette } from '../../utils/theme';
+import { contactHref } from '../../utils/productConfig';
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -86,9 +87,13 @@ function appendWavCopyright(wavBuffer: ArrayBuffer, comment: string, artist = 'M
 
 interface Props {
   initialId?: string | null;
+  /** When false the transport is replaced with a launch-phase access gate. */
+  playable?: boolean;
+  /** SoundLab launch phase — drives gate copy and CTA routing. */
+  phase?: string;
 }
 
-export default function CompositionPlayer({ initialId }: Props) {
+export default function CompositionPlayer({ initialId, playable = true, phase = 'full-release' }: Props) {
   const reduceMotion = !!useReducedMotion();
 
   // ── Store selectors ─────────────────────────────────────────────────
@@ -151,6 +156,18 @@ export default function CompositionPlayer({ initialId }: Props) {
     }
   }, [initialId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Lifecycle ──
+  // Ensure no audio / graph loop survives if the island is unmounted (e.g. a
+  // future client-side route swap or StrictMode remount). stop() cancels the
+  // RAF + timeouts and disconnects every active node, so the analyser never
+  // keeps feeding a dangling visualizer after we leave.
+  useEffect(() => {
+    return () => {
+      compositionEngine.stop();
+      useSoundLabStore.getState().setPlaying(false);
+    };
+  }, []);
+
   // ── Theme watcher ──────────────────────────────────────────────────
   useEffect(() => onThemeChange(() => { paletteRef.current = getCanvasPalette(); }), []);
 
@@ -177,7 +194,7 @@ export default function CompositionPlayer({ initialId }: Props) {
       ctx.fillRect(0, 0, w, h);
 
       const analyser = compositionEngine.getAnalyser();
-      const playing = isPlayingRef.current;
+      const playing = isPlaying;
 
       if (analyser && playing) {
         // Spectrum bars (bottom layer)
@@ -227,11 +244,28 @@ export default function CompositionPlayer({ initialId }: Props) {
       }
 
       ctx.restore();
-      raf = requestAnimationFrame(draw);
     };
-    raf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(raf);
-  }, []);
+    let cancelled = false;
+    const renderLoop = () => {
+      if (cancelled) return;
+      draw();
+      raf = requestAnimationFrame(renderLoop);
+    };
+
+    // Drive the visualizer only while audio is actually playing. When idle,
+    // paint a single static baseline frame — no perpetual 60fps loop in a
+    // silent / hidden tab.
+    if (isPlaying) {
+      raf = requestAnimationFrame(renderLoop);
+    } else {
+      draw();
+    }
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [isPlaying]);
 
   // ── Keyboard: Space = toggle play, Esc = stop ──────────────────────
   useEffect(() => {
@@ -387,6 +421,66 @@ export default function CompositionPlayer({ initialId }: Props) {
   const elapsed = progress * effectiveDuration;
 
   // ── Render ─────────────────────────────────────────────────────────
+
+  // ── Launch-phase access gate ──
+  // All hooks have run above; an early return is safe and swaps the live
+  // transport for a read-only gate panel when playback is disabled.
+  if (!playable) {
+    // Tint the accent to ~55% opacity. Composition accents are hex strings
+    // (e.g. "#4f46e5"); we expand 3-digit forms to 6 and append an alpha
+    // channel so the border stays faithful to the accent in both themes.
+    // We render the panel directly (no `display: none`) so it paints on
+    // first paint and SSR/hydration stays consistent.
+    const hex = composition.accent.replace("#", "");
+    const full = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
+    const tintedAccent = `#${full}8C`;
+    return (
+      <div
+        className="soundlab-player panel overflow-hidden"
+        style={{ borderTop: `2px solid ${tintedAccent}` }}
+      >
+        <div className="px-5 pt-5 pb-2 flex items-center justify-between">
+          <h2 className="font-serif text-xl font-semibold text-sc-text">{composition.title}</h2>
+          <span className="inline-flex items-center gap-1 rounded-full border border-sc-accent/30 bg-sc-accent/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider text-sc-accent">
+            © Proprietary
+          </span>
+        </div>
+        <div className="px-5 pt-6 pb-5 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-sc-accent/10 border border-sc-accent/30 mb-3">
+            <svg className="w-5 h-5 text-sc-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V3m0 0l-4 4m4-4l4 4M5 12h14" />
+            </svg>
+          </div>
+          {phase === 'teaser' ? (
+            <p className="text-sm text-sc-text-soft max-w-sm mx-auto">
+              SoundLab is in preview. Playback opens for early-access listeners soon.
+            </p>
+          ) : phase === 'premium' ? (
+            <p className="text-sm text-sc-text-soft max-w-sm mx-auto">
+              This composition is reserved for MathSonify Premium subscribers.
+            </p>
+          ) : (
+            <p className="text-sm text-sc-text-soft max-w-sm mx-auto">
+              Playback is locked while this feature is being prepared.
+            </p>
+          )}
+        </div>
+        <div className="px-5 pb-5 border-t border-sc-line/10">
+          <a
+            href={phase === 'teaser' ? contactHref() : '/pricing'}
+            className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-xs"
+          >
+            {phase === 'teaser' ? 'Request early access' : 'Unlock SoundLab →'}
+          </a>
+          <a href="/pricing" className="ml-3 btn-ghost px-4 py-2 text-xs">
+            View plans
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render ──
   return (
     <div
       className="soundlab-player panel overflow-hidden"

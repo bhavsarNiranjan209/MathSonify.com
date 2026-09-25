@@ -1,99 +1,340 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import Navigation from '../components/Navigation.astro';
-import Footer from '../components/Footer.astro';
 ---
 
-<BaseLayout title="404 - Equation Not Found | MathSonify" description="This page doesn't exist — but there are infinitely many equations that do. Head back to the Sound Studio.">
-  <Navigation />
+<BaseLayout title="404 — This Point Doesn't Exist | MathSonify" description="The page you're looking for is undefined. The curve continues everywhere else.">
+  <main class="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20 pb-16 px-4">
 
-  <main class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-16 px-4">
+    <!-- Background grid -->
+    <div
+      class="absolute inset-0 z-0 pointer-events-none"
+      id="bg-grid"
+      aria-hidden="true"
+      style="background-image: linear-gradient(rgb(var(--sc-line) / 0.06) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--sc-line) / 0.06) 1px, transparent 1px); background-size: 40px 40px; opacity: 0;"
+    ></div>
 
-    <!-- Subtle graph-paper grid (same as Hero) -->
-    <div class="absolute inset-0 z-0 pointer-events-none" aria-hidden="true">
-      <div
-        class="absolute inset-0"
-        style="background-image: linear-gradient(rgb(var(--sc-line) / 0.04) 1px, transparent 1px), linear-gradient(90deg, rgb(var(--sc-line) / 0.04) 1px, transparent 1px); background-size: 44px 44px;"
-      ></div>
-    </div>
-
-    <!-- Noise/static waveform SVG — "lost signal" visual -->
-    <div class="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.07] select-none" aria-hidden="true">
-      <svg viewBox="0 0 800 120" class="w-[110%] max-w-none" preserveAspectRatio="none">
-        <path id="sc-404-wave" fill="none" stroke="rgb(var(--sc-accent))" stroke-width="2" stroke-linecap="round" />
+    <!-- Axes overlay -->
+    <div
+      class="absolute inset-0 z-0 pointer-events-none"
+      id="bg-axes"
+      aria-hidden="true"
+      style="opacity: 0;"
+    >
+      <svg class="absolute inset-0 w-full h-full" viewBox="0 0 800 600">
+        <line x1="0" y1="300" x2="800" y2="300" stroke="rgb(var(--sc-line) / 0.3)" stroke-width="1" />
+        <line x1="400" y1="0" x2="400" y2="600" stroke="rgb(var(--sc-line) / 0.3)" stroke-width="1" />
       </svg>
     </div>
 
-    <!-- Content -->
-    <div class="relative z-10 max-w-lg mx-auto text-center space-y-8">
+    <!-- Main content -->
+    <div class="relative z-10 flex flex-col items-center w-full max-w-5xl">
 
-      <!-- 404 as a "failed equation" -->
-      <div class="space-y-3">
-        <p class="font-mono text-xs text-sc-accent tracking-wider uppercase">
-          error: undefined route
-        </p>
-        <h1 class="font-serif text-7xl sm:text-8xl font-bold text-sc-text tracking-tighter leading-none">
-          4<span class="text-sc-accent">0</span>4
-        </h1>
-        <p class="text-sm text-sc-text-soft font-mono">
-          f(page) = <span class="text-red-400">undefined</span>
-        </p>
+      <!-- Status chip -->
+      <div class="status-chip hidden sm:inline-flex items-center gap-2 px-3 py-1 border border-sc-line/20 bg-sc-surface rounded-full font-mono text-xs text-sc-text-soft mb-8" aria-hidden="true">
+        <span class="w-1.5 h-1.5 rounded-full bg-sc-accent/60"></span>
+        status 404 · undefined
       </div>
 
-      <!-- Divider -->
-      <div class="border-t border-sc-line/15 mx-8" />
+      <!-- Numerals + Plot -->
+      <div class="flex flex-col sm:flex-row items-center gap-6 sm:gap-12 mb-10">
 
-      <!-- Message -->
-      <div class="space-y-2">
-        <p class="font-serif text-lg sm:text-xl text-sc-text font-medium">
-          This equation doesn't exist in our domain.
-        </p>
-        <p class="text-xs text-sc-text-soft leading-relaxed max-w-sm mx-auto">
-          The page you're looking for may have been moved, or the function simply doesn't converge here. Try heading back to the studio — there are infinitely many valid equations waiting.
-        </p>
-      </div>
+        <!-- "404" numerals — middle gap reads as asymptote -->
+        <div class="font-serif text-7xl sm:text-8xl lg:text-9xl font-bold tracking-tighter leading-none select-none" aria-hidden="true">
+          <span class="inline-block">4</span><span class="inline-block mx-1 sm:mx-2" style="width:2px;height:0.9em;background:rgb(var(--sc-line)/0.5);display:inline-block;vertical-align:middle;"></span><span class="inline-block">0</span><span class="inline-block mx-1 sm:mx-2" style="width:2px;height:0.9em;background:rgb(var(--sc-line)/0.5);display:inline-block;vertical-align:middle;"></span><span class="inline-block">4</span>
+        </div>
 
-      <!-- Mini fake equation strip -->
-      <div class="mx-auto max-w-xs">
-        <div class="panel p-3 space-y-1.5">
-          <div class="code-mat text-xs px-2.5 py-1.5 font-mono text-sc-text-soft">
-            404 = ∫<sub>0</sub><sup>∞</sup> <span class="text-red-400">missing</span>(x) dx
-          </div>
-          <p class="text-[10px] font-mono text-sc-text-faint text-center">
-            diverges — no solution found
-          </p>
+        <!-- SVG Plot -->
+        <div class="w-full sm:w-auto flex-shrink-0" style="max-width:420px;width:min(420px,60vw);">
+          <svg
+            id="plot-svg"
+            viewBox="0 0 400 300"
+            class="w-full h-auto block"
+            aria-hidden="true"
+          >
+            <defs>
+              <pattern id="pg" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M40 0L0 0 0 40" fill="none" stroke="rgb(var(--sc-line)/0.12)" stroke-width="0.5"/>
+              </pattern>
+              <clipPath id="pc"><rect width="400" height="300"/></clipPath>
+            </defs>
+
+            <!-- Plot grid -->
+            <rect width="400" height="300" fill="url(#pg)"/>
+
+            <!-- Plot axes -->
+            <line x1="0" y1="250" x2="400" y2="250" stroke="rgb(var(--sc-line)/0.4)" stroke-width="1"/>
+            <line x1="200" y1="0" x2="200" y2="300" stroke="rgb(var(--sc-line)/0.4)" stroke-width="1"/>
+
+            <!-- Axis labels -->
+            <text x="388" y="268" fill="#8E949A" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="end">x</text>
+            <text x="14" y="16" fill="#8E949A" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="start">y</text>
+
+            <!-- Ticks -->
+            <g stroke="rgb(var(--sc-line)/0.2)" stroke-width="0.5" font-family="JetBrains Mono,monospace" font-size="7" fill="#8E949A">
+              <line x1="100" y1="247" x2="100" y2="253"/><text x="100" y="264" text-anchor="middle">−10</text>
+              <line x1="300" y1="247" x2="300" y2="253"/><text x="300" y="264" text-anchor="middle">10</text>
+              <line x1="197" y1="5" x2="203" y2="5"/><text x="208" y="8">10</text>
+              <line x1="197" y1="245" x2="203" y2="245"/><text x="208" y="248">−10</text>
+            </g>
+
+            <!-- Asymptote label + dashed line -->
+            <text x="200" y="12" fill="#8E949A" font-family="JetBrains Mono,monospace" font-size="8" text-anchor="middle" opacity="0.6">x = 404</text>
+            <line x1="200" y1="0" x2="200" y2="300" stroke="#8E949A" stroke-width="1" stroke-dasharray="6 4" opacity="0.5"/>
+
+            <!-- Curve branches -->
+            <g clip-path="url(#pc)">
+              <path id="c-left" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+              <path id="c-right" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+            </g>
+
+            <!-- Playhead -->
+            <g id="ph" opacity="0">
+              <circle id="ph-dot" r="5" fill="#FFFFFF"/>
+              <circle id="ph-ring" r="5" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0"/>
+            </g>
+          </svg>
         </div>
       </div>
 
-      <!-- CTAs -->
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-        <a href="/" class="w-full sm:w-auto px-8 py-3 text-sm btn-primary">
-          Return home
-        </a>
-        <a href="/create" class="w-full sm:w-auto px-8 py-3 text-sm btn-ghost">
-          Open the studio
-        </a>
-        <a href="/equations" class="w-full sm:w-auto px-8 py-3 text-sm btn-ghost">
-          Browse equations
-        </a>
+      <!-- Equation -->
+      <div class="code-mat px-5 py-3 mb-8 text-center" role="note" aria-label="Equation">
+        <p class="font-mono text-sm sm:text-base" style="color:rgb(255 255 255);">y = <span style="opacity:0.6;">1</span> / (x − 404)</p>
+        <p class="font-mono text-xs mt-1.5" style="color:#8E949A;">undefined at x = 404</p>
       </div>
+
+      <!-- Headline -->
+      <h1 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-sc-text tracking-tight text-center mb-4">
+        This point doesn't exist.
+      </h1>
+
+      <!-- Subtext -->
+      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed text-center max-w-md mb-10">
+        The page isn't on the curve — everything else still is.
+      </p>
+
+      <!-- Actions -->
+      <div class="flex flex-col sm:flex-row items-center gap-3 mb-10">
+        <a href="/" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-primary text-center">Back to the Lab</a>
+        <a href="/equations" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-ghost text-center">Explore equations</a>
+      </div>
+
+      <!-- Tap the break button -->
+      <button
+        id="tap-btn"
+        class="items-center gap-2 px-5 py-2.5 border border-sc-line/20 bg-sc-surface rounded-full font-mono text-xs text-sc-text-soft transition hover:border-sc-accent/40 hover:text-sc-text focus:outline-none focus-visible:ring-2 focus-visible:ring-sc-accent/50"
+        type="button"
+        aria-label="Tap the break — hear the curve fail"
+        style="display:none;opacity:0;"
+      >
+        <span id="tap-label">tap the break — hear it</span>
+      </button>
     </div>
   </main>
 
-  <Footer />
+  <!-- Footer fallback -->
+  <div class="relative z-10 text-center pb-8">
+    <p class="text-xs text-sc-text-faint font-mono">
+      No solution here — try the <a href="/equations" class="text-sc-accent underline underline-offset-2 hover:no-underline transition-colors">equation library</a> instead.
+    </p>
+  </div>
 
-  <!-- Generate the "lost signal" noise waveform -->
+  <style>
+    @media (prefers-reduced-motion: reduce) {
+      #ph-dot, #ph-ring { transition: none !important; }
+    }
+  </style>
+
+  <!-- ── Scripts ── -->
   <script is:inline>
-    (function () {
-      const path = document.getElementById('sc-404-wave');
-      if (!path) return;
-      const W = 800, H = 120, mid = H / 2;
-      let d = '';
-      for (let x = 0; x <= W; x += 4) {
-        const y = mid + (Math.random() - 0.5) * H * 0.9;
-        d += (x === 0 ? 'M' : 'L') + x + ',' + y.toFixed(1);
+    (function() {
+      'use strict';
+
+      var red = false;
+      try { red = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e) {}
+      var $ = function(id) { return document.getElementById(id); };
+
+      var gridEl = $('bg-grid');
+      var axesEl = $('bg-axes');
+      var svgEl = $('plot-svg');
+      var cLeft = $('c-left');
+      var cRight = $('c-right');
+      var phEl = $('ph');
+      var phDot = $('ph-dot');
+      var phRing = $('ph-ring');
+      var tapBtn = $('tap-btn');
+      var tapLabel = $('tap-label');
+
+      // Coordinate mapping: x domain [384,424] -> svg x = (x-384)*10
+      // Asymptote x=404 -> svgX=200
+      var VS = 14; // vertical scale
+
+      function sY(x) {
+        var v = (1 / (x - 404)) * VS;
+        if (v > 8) v = 8; if (v < -8) v = -8;
+        return 150 - v;
       }
-      path.setAttribute('d', d);
+
+      function buildPath(sx, ex, step) {
+        var d = '', f = true;
+        for (var x = sx; x <= ex; x += step) {
+          if (Math.abs(1 / (x - 404)) > 12) continue;
+          var px = (x - 384) * 10;
+          var py = sY(x);
+          d += (f ? 'M' : 'L') + px.toFixed(1) + ',' + py.toFixed(1) + ' ';
+          f = false;
+        }
+        return d.trim();
+      }
+
+      // Set curve paths
+      cLeft.setAttribute('d', buildPath(384, 403.9, 0.08));
+      cRight.setAttribute('d', buildPath(404.1, 424, 0.08));
+
+      // Get exact lengths for dash animation
+      var lLen = cLeft.getTotalLength();
+      var rLen = cRight.getTotalLength();
+      cLeft.style.strokeDasharray = lLen;
+      cLeft.style.strokeDashoffset = lLen;
+      cRight.style.strokeDasharray = rLen;
+      cRight.style.strokeDashoffset = rLen;
+
+      // Stall position for playhead
+      var stallX = (403.95 - 384) * 10;
+      var stallY = sY(403.95);
+
+      function fadeIn(el, delay, dur) {
+        setTimeout(function() {
+          el.style.transition = 'opacity ' + dur + 's ease';
+          el.style.opacity = '1';
+        }, delay);
+      }
+
+      function showTap() {
+        tapBtn.style.display = 'inline-flex';
+        requestAnimationFrame(function() { tapBtn.style.opacity = '1'; });
+      }
+
+      // ── Sequence ──
+      if (red) {
+        // Reduced: instant finished state
+        gridEl.style.opacity = '1';
+        axesEl.style.opacity = '1';
+        svgEl.style.opacity = '1';
+        cLeft.style.strokeDashoffset = '0';
+        cRight.style.strokeDashoffset = '0';
+        phDot.setAttribute('cx', stallX.toFixed(1));
+        phDot.setAttribute('cy', stallY.toFixed(1));
+        phRing.setAttribute('cx', stallX.toFixed(1));
+        phRing.setAttribute('cy', stallY.toFixed(1));
+        phEl.style.opacity = '1';
+        phRing.setAttribute('r', '24');
+        phRing.style.opacity = '0';
+        showTap();
+      } else {
+        // Grid
+        fadeIn(gridEl, 0, 0.5);
+        // Axes
+        fadeIn(axesEl, 300, 0.5);
+        // SVG + curve draw
+        setTimeout(function() {
+          svgEl.style.opacity = '1';
+          cLeft.style.strokeDashoffset = '0';
+          cRight.style.strokeDashoffset = '0';
+        }, 650);
+        // Playhead appear and travel
+        setTimeout(function() {
+          phEl.style.transition = 'opacity 0.3s ease';
+          phEl.style.opacity = '1';
+          movePlayhead();
+        }, 1200);
+      }
+
+      function movePlayhead() {
+        var t0 = performance.now();
+        (function tick(now) {
+          var p = Math.min((now - t0) / 2000, 1);
+          var e = p * p;
+          var xD = 384 + (403.95 - 384) * e;
+          var px = (xD - 384) * 10;
+          var py = sY(xD);
+          phDot.setAttribute('cx', px.toFixed(1));
+          phDot.setAttribute('cy', py.toFixed(1));
+          phRing.setAttribute('cx', px.toFixed(1));
+          phRing.setAttribute('cy', py.toFixed(1));
+          if (p < 1) requestAnimationFrame(tick);
+          else onStall();
+        })(t0);
+      }
+
+      function onStall() {
+        // Pulse ring
+        phRing.style.transition = 'none';
+        phRing.setAttribute('r', '5');
+        phRing.style.opacity = '0.7';
+        phRing.offsetHeight;
+        phRing.style.transition = 'r 0.6s ease-out, opacity 0.6s ease-out';
+        phRing.setAttribute('r', '24');
+        phRing.style.opacity = '0';
+
+        // Breathing
+        var bright = true;
+        (function breathe() {
+          if (red) return;
+          phDot.style.transition = 'opacity 2.2s ease-in-out';
+          phDot.style.opacity = bright ? '0.3' : '1';
+          bright = !bright;
+          setTimeout(breathe, 2200);
+        })();
+
+        showTap();
+      }
+
+      // ── Web Audio ──
+      var ctx = null, playing = false;
+
+      tapBtn.addEventListener('click', function() {
+        if (playing) return;
+        playing = true;
+
+        try {
+          if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+          if (ctx.state === 'suspended') ctx.resume();
+
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          var t = ctx.currentTime;
+          osc.frequency.setValueAtTime(200, t);
+          osc.frequency.linearRampToValueAtTime(900, t + 0.55);
+          gain.gain.setValueAtTime(0.25, t);
+          gain.gain.linearRampToValueAtTime(0.25, t + 0.5);
+          gain.gain.setValueAtTime(0, t + 0.54);
+
+          osc.start(t);
+          osc.stop(t + 0.6);
+
+          tapLabel.textContent = '…and then nothing.';
+          osc.onended = function() {
+            setTimeout(function() {
+              tapLabel.textContent = 'tap the break — hear it';
+              playing = false;
+            }, 700);
+          };
+        } catch(e) {
+          tapLabel.textContent = '…and then nothing.';
+          setTimeout(function() {
+            tapLabel.textContent = 'tap the break — hear it';
+            playing = false;
+          }, 800);
+        }
+      });
+
+      tapBtn.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapBtn.click(); }
+      });
     })();
   </script>
 </BaseLayout>

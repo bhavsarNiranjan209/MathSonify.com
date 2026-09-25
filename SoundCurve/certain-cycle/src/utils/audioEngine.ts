@@ -130,6 +130,92 @@ export class AudioEngine {
   }
 
   /**
+   * Play pre-computed sample points directly (used for custom spline curves).
+   * Same sonification pipeline as play(), but source points come from
+   * the spline rather than equation evaluation.
+   */
+  async playPoints(
+    points: SamplePoint[],
+    minX: number,
+    maxX: number,
+    minFreq: number,
+    maxFreq: number,
+    duration: number,
+    volume: number,
+    instrument: InstrumentType,
+    mode: SonificationMode,
+    loop: boolean,
+    scale: ScaleKey = 'major',
+    onProgress?: PlayProgressCallback,
+    onFinish?: () => void
+  ): Promise<void> {
+    await this.initialize();
+    if (!this.audioContext || !this.masterGain) return;
+
+    if (this.audioContext.state === 'suspended') {
+      await this.audioContext.resume();
+    }
+
+    this.stop();
+    this.playGeneration++;
+
+    const validPoints = points.filter((p) => p.isValid);
+    if (validPoints.length === 0) {
+      throw new Error('No valid sample points to sonify');
+    }
+
+    this.cachedPoints = points;
+    this.progressCallback = onProgress || null;
+    this.onFinishCallback = onFinish || null;
+    this.setVolume(volume);
+
+    this.isPlaying = true;
+    this.loopActive = loop;
+    this.playStartTime = this.audioContext.currentTime;
+    this.playDuration = duration;
+
+    const yVals = validPoints.map((p) => p.y);
+    const minY = Math.min(...yVals);
+    const maxY = Math.max(...yVals);
+
+    const executeSonification = () => {
+      if (!this.isPlaying || !this.audioContext || !this.masterGain) return;
+
+      this.playStartTime = this.audioContext.currentTime;
+
+      switch (mode) {
+        case 'frequency':
+          this.synthesizeFrequencyMode(points, minY, maxY, minFreq, maxFreq, duration, instrument);
+          break;
+        case 'note':
+          this.synthesizeNoteMode(points, minY, maxY, duration, instrument, scale);
+          break;
+        case 'rhythm':
+          this.synthesizeRhythmMode(points, minY, maxY, duration, instrument);
+          break;
+        case 'chord':
+          this.synthesizeChordMode(points, minY, maxY, duration, instrument, scale);
+          break;
+      }
+
+      this.startProgressTracking();
+
+      if (this.loopActive) {
+        const myGen = this.playGeneration;
+        if (this.loopTimeoutId !== null) clearTimeout(this.loopTimeoutId);
+        this.loopTimeoutId = setTimeout(() => {
+          if (myGen !== this.playGeneration) return;
+          if (this.isPlaying && this.loopActive) {
+            executeSonification();
+          }
+        }, duration * 1000);
+      }
+    };
+
+    executeSonification();
+  }
+
+  /**
    * Main play entry point: parses equation, validates points, synthesizes audio & syncs visual playhead.
    */
   async play(
