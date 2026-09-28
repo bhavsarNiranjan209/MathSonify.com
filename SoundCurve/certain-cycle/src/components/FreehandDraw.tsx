@@ -6,6 +6,7 @@ import {
   pushDrawAction, redoDrawAction, saveSession, undoDrawAction,
   type DrawAction, type DrawHistory, type FreehandPoint, type FreehandStroke,
 } from '../utils/freehandDraw';
+import { getThemeMode, onThemeChange } from '../utils/theme';
 import {
   advanceRecordingScan, densifySegment, findStrokesAlongSegment, scanStrokes,
   type ScanReading,
@@ -181,7 +182,11 @@ export default function FreehandDraw() {
   const isErasingRef = useRef(false);
   const toolRef = useRef<'draw' | 'erase'>('draw');
   const snapToScaleRef = useRef(true);
-  const initialTheme = typeof document !== 'undefined' && document.documentElement.dataset.drawTheme === 'light' ? 'light' : 'dark';
+  // Draw follows the single GLOBAL MathSonify theme. It used to keep its own
+  // `mathsonify-draw-theme` / `data-draw-theme` state, which let the page drift
+  // out of sync with the rest of the site. The canvas still needs to know the
+  // mode, so it subscribes to the shared theme event instead of owning one.
+  const initialTheme = getThemeMode();
   const themeRef = useRef<'dark' | 'light'>(initialTheme);
 
   const [strokes, setStrokes] = useState<FreehandStroke[]>([]);
@@ -384,15 +389,18 @@ export default function FreehandDraw() {
     };
   }, [redraw]);
 
+  // Follow the global theme. The theme toggle itself lives in the shared
+  // navigation, so this only mirrors the mode for the canvas palette.
   useEffect(() => {
-    let initialTheme: 'dark' | 'light' = 'dark';
-    try {
-      const stored = window.localStorage.getItem(DRAW_THEME_STORAGE_KEY);
-      if (stored === 'light' || stored === 'dark') initialTheme = stored;
-    } catch { /* storage may be blocked */ }
-    themeRef.current = initialTheme;
-    setTheme(initialTheme);
-    document.documentElement.dataset.drawTheme = initialTheme;
+    // Discard the retired Draw-specific theme value so it can never resurface
+    // and disagree with the global theme.
+    try { window.localStorage.removeItem(DRAW_THEME_STORAGE_KEY); } catch { /* storage may be blocked */ }
+    delete document.documentElement.dataset.drawTheme;
+
+    return onThemeChange((mode) => {
+      themeRef.current = mode;
+      setTheme(mode);
+    });
   }, []);
 
   useEffect(() => {
@@ -562,13 +570,6 @@ export default function FreehandDraw() {
     setSnapToScale(next);
     setNotice(next ? 'Pitch snapped to C minor pentatonic.' : 'Free pitch enabled.');
   };
-  const toggleTheme = () => {
-    const next = themeRef.current === 'dark' ? 'light' : 'dark';
-    themeRef.current = next;
-    setTheme(next);
-    document.documentElement.dataset.drawTheme = next;
-    try { window.localStorage.setItem(DRAW_THEME_STORAGE_KEY, next); } catch { /* storage may be blocked */ }
-  };
 
   const finishStrokeWithoutEvent = () => finishStroke();
   const chooseBrush = (value: number) => { brushRef.current = value; setBrushSize(value); };
@@ -717,11 +718,7 @@ export default function FreehandDraw() {
                 className="grid min-h-[44px] min-w-[44px] place-items-center rounded-md border border-sc-line/30 text-sc-text-soft transition-colors hover:border-sc-accent hover:text-sc-text focus-visible:ring-2 focus-visible:ring-sc-accent disabled:cursor-not-allowed disabled:opacity-35">
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m15 14 5-5-5-5" /><path d="M20 9H10a6 6 0 0 0 0 12h2" /></svg>
               </button>
-              <button type="button" onClick={toggleTheme}
-                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                className="grid min-h-[44px] min-w-[44px] place-items-center rounded-md border border-sc-line/30 text-sc-text-soft transition-colors hover:border-sc-accent hover:text-sc-text focus-visible:ring-2 focus-visible:ring-sc-accent">
-                {theme === 'dark' ? <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></svg> : <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" /></svg>}
-              </button>
+              {/* No theme toggle here on purpose: Draw follows the single global,                  MathSonify theme, toggled in the shared navigation. */}
               <button type="button" onClick={handleReset} disabled={isRecording}
                 className="min-h-[44px] touch-manipulation rounded-md border border-sc-line/30 px-4 text-sm font-semibold text-sc-text-soft transition-colors hover:border-sc-live/60 hover:text-sc-text focus-visible:ring-2 focus-visible:ring-sc-accent disabled:cursor-not-allowed disabled:opacity-40">Reset</button>
               <button type="button" onPointerDown={() => void unlockAudio()} onClick={() => void handleTogglePause()} disabled={isRecording}

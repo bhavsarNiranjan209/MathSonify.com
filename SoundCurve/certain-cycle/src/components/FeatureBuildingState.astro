@@ -1,0 +1,266 @@
+﻿---
+/**
+ * FeatureBuildingState — the "something is being built" experience.
+ *
+ * One component serves SoundLab, Draw and Music Lab. It takes a feature id and
+ * derives the copy and animation from that, so the three routes share a single
+ * implementation instead of drifting into three near-duplicates.
+ *
+ * Deliberately zero JavaScript: the whole thing is CSS keyframes and inline
+ * SVG using the site's existing --sc-* tokens. No canvas, no WebGL, no
+ * requestAnimationFrame, no animation library. That matters because a disabled
+ * feature must cost a visitor essentially nothing — and this page has to render
+ * even when the app around it is unhealthy.
+ *
+ * Every animation is gated behind `prefers-reduced-motion`, which falls back to
+ * a composed static frame rather than an empty box.
+ */
+import type { FeatureId } from '../config/featureFlags';
+
+interface Props {
+  feature: FeatureId;
+  /** Real description of the unreleased product, shown under the headline. */
+  description?: string;
+}
+
+const { feature, description } = Astro.props;
+
+interface Content {
+  eyebrow: string;
+  title: string;
+  lede: string;
+  detail: string;
+  status: string;
+  secondaryCta: { href: string; label: string };
+}
+
+const CONTENT: Record<FeatureId, Content> = {
+  soundLab: {
+    eyebrow: 'SoundLab',
+    title: 'Something is being composed.',
+    lede: 'A quiet laboratory where equations become finished pieces of music — every note traced back to a curve.',
+    detail:
+      'Original multi-track compositions, each one a system of equations rendered through instruments. We are still tuning the mathematics.',
+    status: 'composing',
+    secondaryCta: { href: '/equations', label: 'Explore Equations' },
+  },
+  draw: {
+    eyebrow: 'Draw',
+    title: 'Something is being drawn.',
+    lede: 'A page that listens to lines. Sketch a curve, and the mathematics underneath it starts to sing.',
+    detail:
+      'Draw freely and a scanning line reads the mathematics back to you as a looping performance. Still learning to look closely.',
+    status: 'drawing',
+    secondaryCta: { href: '/create', label: 'Open Create' },
+  },
+  musicLab: {
+    eyebrow: 'Music Lab',
+    title: 'The studio is being built.',
+    lede: 'Instruments defined as equations, arranged on a timeline, played in real time.',
+    detail:
+      'Choose an instrument, give it parameters, and the equation underneath changes with them. We are laying the floor and wiring the desk.',
+    status: 'assembling',
+    secondaryCta: { href: '/create', label: 'Open Create' },
+  },
+};
+
+const content = CONTENT[feature];
+---
+<section
+  class="fb relative min-h-[calc(100vh-4.5rem)] flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8 py-14"
+  data-feature={feature}
+>
+  {/*
+    Per-feature atmosphere. Each one is a slow, low-contrast spectral wash so
+    the three pages read as distinct at a glance without becoming a different
+    product: SoundLab is a drifting spectrum (discovery), Draw is a single
+    travelling stroke (making), Music Lab is a faint studio grid (building).
+    All three are opacity/transform only — no flashing, no rainbow.
+  */}
+  <div class="fb-aura pointer-events-none absolute inset-0" aria-hidden="true"></div>
+
+  <div class="relative z-10 w-full max-w-3xl text-center">
+
+    <p class="inline-flex items-center gap-2 rounded-full border border-sc-line/20 bg-sc-surface px-3 py-1 font-mono text-[11px] text-sc-text-soft">
+      <span class="fb-dot h-1.5 w-1.5 rounded-full bg-sc-accent" aria-hidden="true"></span>
+      <span>{content.eyebrow}</span>
+      <span class="text-sc-text-faint" aria-hidden="true">/</span>
+      <span class="text-sc-text-faint">{content.status}</span>
+    </p>
+
+    <div class="fb-stage relative mx-auto mt-10 w-full max-w-xl" aria-hidden="true">
+      {feature === 'soundLab' && (
+        <svg viewBox="0 0 480 200" class="w-full">
+          <path class="fb-line" d="M0 100 C 40 40, 80 40, 120 100 S 200 160, 240 100 S 320 40, 360 100 S 440 160, 480 100" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <path class="fb-line fb-wave" d="M0 100 Q 15 40 30 100 T 60 100 T 90 100 T 120 100 T 150 100 T 180 100 T 210 100 T 240 100 T 270 100 T 300 100 T 330 100 T 360 100 T 390 100 T 420 100 T 450 100 T 480 100" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          <g class="fb-bars">
+            {[24, 44, 68, 92, 76, 54, 34, 22, 40, 62, 84, 70, 48, 30, 20, 38, 58, 80, 64, 42, 26, 18].map((h, i) => (
+              <rect key={i} x={18 + i * 20} y={132 - h / 2} width="4" height={h} rx="2" fill="currentColor" opacity="0.5" />
+            ))}
+          </g>
+          <line x1="0" y1="132" x2="480" y2="132" stroke="currentColor" stroke-width="0.5" opacity="0.25" />
+        </svg>
+      )}
+
+      {feature === 'draw' && (
+        <svg viewBox="0 0 480 200" class="w-full">
+          <g class="fb-grid-draw" stroke="currentColor" stroke-width="0.5" opacity="0.22">
+            {[60, 120, 180, 240, 300, 360, 420].map((x) => <line key={`v${x}`} x1={x} y1="20" x2={x} y2="180" />)}
+            {[60, 100, 140, 180].map((y) => <line key={`h${y}`} x1="20" y1={y} x2="460" y2={y} />)}
+          </g>
+          <path class="fb-line fb-stroke" d="M30 150 C 90 150, 110 60, 170 60 S 250 150, 310 150 S 390 60, 450 60" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+          <g class="fb-nodes">
+            {[{ x: 170, y: 60 }, { x: 310, y: 150 }, { x: 450, y: 60 }].map((p) => (
+              <circle key={p.x} cx={p.x} cy={p.y} r="3.5" fill="currentColor" />
+            ))}
+          </g>
+          <path class="fb-line fb-draw-wave" d="M30 186 Q 45 168 60 186 T 90 186 T 120 186 T 150 186 T 180 186 T 210 186 T 240 186 T 270 186 T 300 186 T 330 186 T 360 186 T 390 186 T 420 186 T 450 186" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
+      )}
+
+      {feature === 'musicLab' && (
+        <svg viewBox="0 0 480 200" class="w-full">
+          <rect class="fb-track" x="24" y="44" width="432" height="34" rx="4" fill="none" stroke="currentColor" stroke-width="1" opacity="0.35" />
+          <rect class="fb-track fb-track-2" x="24" y="88" width="432" height="34" rx="4" fill="none" stroke="currentColor" stroke-width="1" opacity="0.35" />
+          <g class="fb-notes">
+            {[{ x: 44, y: 50, w: 46 }, { x: 108, y: 50, w: 30 }, { x: 156, y: 50, w: 60 }, { x: 236, y: 50, w: 38 }, { x: 296, y: 50, w: 52 }, { x: 372, y: 50, w: 44 }].map((n) => (
+              <rect key={`a${n.x}`} x={n.x} y={n.y} width={n.w} height="12" rx="2" fill="currentColor" opacity="0.75" />
+            ))}
+            {[{ x: 74, y: 94, w: 40 }, { x: 140, y: 94, w: 56 }, { x: 268, y: 94, w: 34 }, { x: 322, y: 94, w: 64 }].map((n) => (
+              <rect key={`b${n.x}`} x={n.x} y={n.y} width={n.w} height="12" rx="2" fill="currentColor" opacity="0.5" />
+            ))}
+          </g>
+          <g class="fb-roll" opacity="0.28">
+            {[0, 1, 2, 3].map((r) => (
+              <line key={`r${r}`} x1="24" y1={140 + r * 12} x2="456" y2={140 + r * 12} stroke="currentColor" stroke-width="0.5" />
+            ))}
+            {[{ x: 70, y: 140 }, { x: 120, y: 152 }, { x: 200, y: 140 }, { x: 300, y: 164 }, { x: 380, y: 152 }].map((n, i) => (
+              <rect key={`n${i}`} x={n.x} y={n.y} width="18" height="9" rx="1.5" fill="currentColor" />
+            ))}
+          </g>
+        </svg>
+      )}
+    </div>
+
+    <h1 class="mt-9 font-serif text-3xl font-semibold leading-tight text-sc-text sm:text-4xl">{content.title}</h1>
+    <p class="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-sc-text-soft">{content.lede}</p>
+    <p class="mx-auto mt-3 max-w-xl text-xs leading-relaxed text-sc-text-faint">{description ?? content.detail}</p>
+
+    <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <a href="/" class="btn-primary inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-2.5 text-sm">
+        <span aria-hidden="true">←</span> Back to MathSonify
+      </a>
+      <a href={content.secondaryCta.href} class="btn-ghost inline-flex min-h-[44px] items-center justify-center px-6 py-2.5 text-sm">
+        {content.secondaryCta.label}
+      </a>
+    </div>
+
+    <p class="mt-8 font-mono text-[10px] uppercase tracking-[0.18em] text-sc-text-faint">Coming Soon</p>
+  </div>
+</section>
+
+<style is:global>
+  .fb { color: rgb(var(--sc-text)); }
+  .fb-stage { color: rgb(var(--sc-accent)); }
+
+  /* ── Per-feature atmosphere ──────────────────────────────────────────
+     Built from the shared theme tokens, so there is exactly one palette and
+     one theme state. Each aura is two very low-alpha radial washes that drift
+     slowly. They differ in position and drift so the three building pages feel
+     distinct while still reading as one product. Opacity/transform only. */
+  .fb[data-feature='soundLab'] .fb-aura {
+    background:
+      radial-gradient(55% 42% at 20% 25%, rgb(var(--sc-live) / 0.13), transparent 70%),
+      radial-gradient(50% 40% at 78% 70%, rgb(var(--sc-accent) / 0.10), transparent 72%);
+    animation: fb-drift-a 18s ease-in-out infinite alternate;
+  }
+  .fb[data-feature='draw'] .fb-aura {
+    background:
+      radial-gradient(48% 38% at 50% 30%, rgb(var(--sc-accent) / 0.11), transparent 70%),
+      radial-gradient(42% 34% at 30% 78%, rgb(var(--sc-live) / 0.08), transparent 72%);
+    animation: fb-drift-b 16s ease-in-out infinite alternate;
+  }
+  .fb[data-feature='musicLab'] .fb-aura {
+    background:
+      radial-gradient(52% 40% at 74% 22%, rgb(var(--sc-accent) / 0.12), transparent 70%),
+      radial-gradient(46% 36% at 24% 72%, rgb(var(--sc-live) / 0.10), transparent 72%);
+    animation: fb-drift-c 20s ease-in-out infinite alternate;
+  }
+  @keyframes fb-drift-a {
+    from { transform: translate3d(-2%, 1%, 0) scale(1); }
+    to   { transform: translate3d(2%, -1.5%, 0) scale(1.05); }
+  }
+  @keyframes fb-drift-b {
+    from { transform: translate3d(1.5%, -1%, 0) scale(1.03); }
+    to   { transform: translate3d(-1.5%, 1.5%, 0) scale(1); }
+  }
+  @keyframes fb-drift-c {
+    from { transform: translate3d(-1%, -1.5%, 0) scale(1); }
+    to   { transform: translate3d(1.5%, 1.5%, 0) scale(1.04); }
+  }
+
+  .fb-dot { animation: fb-pulse 2.6s ease-in-out infinite; }
+  @keyframes fb-pulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+
+  .fb-line { stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: fb-draw 7s ease-in-out infinite; }
+  @keyframes fb-draw {
+    0% { stroke-dashoffset: 1000; opacity: 0.15; }
+    45% { stroke-dashoffset: 0; opacity: 1; }
+    75% { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0.15; }
+  }
+
+  .fb-wave { animation: fb-draw 7s ease-in-out infinite, fb-breathe 3.5s ease-in-out infinite 1s; }
+  @keyframes fb-breathe { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.85; } }
+
+  .fb-bars rect { animation: fb-bar 2.8s ease-in-out infinite; transform-origin: center; }
+  .fb-bars rect:nth-child(even) { animation-duration: 3.4s; animation-delay: 0.2s; }
+  @keyframes fb-bar {
+    0%, 100% { transform: scaleY(0.35); opacity: 0.35; }
+    50% { transform: scaleY(1); opacity: 0.9; }
+  }
+
+  .fb-grid-draw { animation: fb-fade-in 8s ease-in-out infinite; }
+  .fb-stroke { animation: fb-draw 8s ease-in-out infinite; }
+  .fb-nodes { animation: fb-fade-late 8s ease-in-out infinite; }
+  .fb-draw-wave { animation: fb-fade-late 8s ease-in-out infinite 1.5s; }
+  @keyframes fb-fade-in {
+    0% { opacity: 0; } 25% { opacity: 0.22; } 85% { opacity: 0.22; } 100% { opacity: 0; }
+  }
+  @keyframes fb-fade-late { 0%, 40% { opacity: 0; } 70% { opacity: 0.9; } 100% { opacity: 0; } }
+
+  .fb-track { animation: fb-assemble 9s ease-in-out infinite; transform-origin: left; }
+  .fb-track-2 { animation-delay: 0.4s; }
+  .fb-notes rect { animation: fb-drop 9s ease-in-out infinite; }
+  .fb-notes rect:nth-child(2n) { animation-delay: 0.25s; }
+  .fb-notes rect:nth-child(3n) { animation-delay: 0.5s; }
+  .fb-roll { animation: fb-fade-late 9s ease-in-out infinite 1.2s; }
+  @keyframes fb-assemble {
+    0% { opacity: 0; transform: scaleX(0.4); }
+    30% { opacity: 0.35; transform: scaleX(1); }
+    85% { opacity: 0.35; transform: scaleX(1); }
+    100% { opacity: 0; }
+  }
+  @keyframes fb-drop {
+    0%, 10% { opacity: 0; transform: translateY(-8px); }
+    35%, 85% { opacity: 0.75; transform: translateY(0); }
+    100% { opacity: 0; }
+  }
+
+  /* Reduced motion: hold a composed static frame rather than an empty
+     stage. Curves stay visible and the story still reads. */
+  @media (prefers-reduced-motion: reduce) {
+    .fb-aura, .fb-dot, .fb-line, .fb-wave, .fb-bars rect, .fb-grid-draw,
+    .fb-stroke, .fb-nodes, .fb-draw-wave, .fb-track, .fb-notes rect, .fb-roll {
+      animation: none !important;
+      opacity: 0.7;
+      stroke-dashoffset: 0;
+      transform: none;
+    }
+    .fb-nodes circle, .fb-bars rect { opacity: 0.8; }
+  }
+</style>
+

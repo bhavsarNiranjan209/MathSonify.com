@@ -1,0 +1,206 @@
+---
+/**
+ * 500 — "The equation broke somewhere."
+ *
+ * Sibling of /404: same typography, same theme tokens, same graph language.
+ * The difference is the story. 404 means the page does not exist, so the curve
+ * runs off the edge of the graph and stops. 500 means the page exists but the
+ * system failed while producing it, so the curve destabilises and clips.
+ *
+ * Deliberately dependency-free: no React island, no audio engine, no Music Lab
+ * or SoundLab modules, no animation loop that outlives the page. A 500 must
+ * render even when the app is unhealthy, so it ships as static markup, pure CSS
+ * keyframes, and a few lines of inline script for the retry.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="500 — The Equation Broke Somewhere | MathSonify"
+  description="MathSonify hit an unexpected problem. Give it another moment and try again."
+  noindex
+>
+  <main class="err relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 pb-16 pt-24" data-variant="500">
+
+    <!--
+      Critical styles inlined on purpose. A 500 often means a static asset is
+      the thing that failed, so this page must not depend on an external
+      stylesheet to be readable. Full theme tokens still come from global.css;
+      these rules keep the layout, the graph and the buttons correct even if
+      that stylesheet never arrives.
+    -->
+    <style is:inline>
+      :root {
+        --sc-bg: 8 10 12; --sc-surface: 16 19 22; --sc-text: 242 242 240;
+        --sc-text-soft: 167 171 176; --sc-text-faint: 142 148 154;
+        --sc-line: 41 45 50; --sc-accent: 232 232 230; --sc-live: 74 124 116;
+      }
+      html[data-theme='light'] {
+        --sc-bg: 255 255 255; --sc-surface: 244 244 244; --sc-text: 0 0 0;
+        --sc-text-soft: 64 64 64; --sc-text-faint: 128 128 128;
+        --sc-line: 0 0 0; --sc-accent: 0 0 0; --sc-live: 0 0 0;
+      }
+      body { background: rgb(var(--sc-bg)); color: rgb(var(--sc-text)); }
+      .err { position: relative; display: flex; min-height: 100vh;
+        flex-direction: column; align-items: center; justify-content: center;
+        overflow: hidden; padding: 6rem 1rem 4rem; }
+      .err-grid { background-image:
+          linear-gradient(rgb(var(--sc-line) / 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgb(var(--sc-line) / 0.05) 1px, transparent 1px);
+        background-size: 40px 40px; }
+      .err-stage { width: 100%; max-width: 32rem; margin-top: 2rem; }
+      .code-mat { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+      .err h1 { font-family: Fraunces, Georgia, serif; font-weight: 600;
+        font-size: 1.875rem; line-height: 1.25; margin: 1.5rem 0 0; }
+      .err .btn-primary, .err .btn-ghost { display: inline-flex; min-height: 44px;
+        align-items: center; justify-content: center; padding: 0.625rem 1.5rem;
+        font-size: 0.875rem; text-decoration: none; border-radius: 6px; }
+      .err .btn-primary { background: rgb(var(--sc-accent)); color: rgb(var(--sc-bg)); border: 1px solid rgb(var(--sc-accent)); }
+      .err .btn-ghost { color: rgb(var(--sc-text-soft)); border: 1px solid rgb(var(--sc-line) / 0.25); }
+    </style>
+
+    <!-- Graph paper, from the shared --sc-* tokens so it tracks the theme. -->
+    <div class="err-grid pointer-events-none absolute inset-0" aria-hidden="true"></div>
+    <!-- A slow spectral wash, so 500 reads as "the system is straining". -->
+    <div class="err-aura pointer-events-none absolute inset-0" aria-hidden="true"></div>
+
+    <div class="relative z-10 flex w-full max-w-2xl flex-col items-center text-center">
+
+      <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-sc-text-faint">
+        Error 500 · system fault
+      </p>
+
+      <svg
+        class="err-stage mt-8 w-full max-w-lg"
+        viewBox="0 0 480 180"
+        role="img"
+        aria-label="A sound wave that destabilises and clips into a flat line"
+      >
+        <line x1="0" y1="90" x2="480" y2="90" stroke="rgb(var(--sc-line) / 0.28)" stroke-width="1" />
+
+        <!-- Sample ticks across the fault region: the signal losing its grid -->
+        <g stroke="rgb(var(--sc-line) / 0.28)" stroke-width="1">
+          <line x1="320" y1="20" x2="320" y2="160" />
+          <line x1="368" y1="20" x2="368" y2="160" />
+          <line x1="416" y1="20" x2="416" y2="160" />
+        </g>
+
+        <!-- Healthy signal, then an unstable section, then a dead flat line. -->
+        <path
+          class="err-signal"
+          d="M0 90 C 20 40, 40 40, 60 90 S 100 140, 120 90 S 160 40, 180 90 S 220 140, 240 90 S 280 40, 300 90"
+          fill="none" stroke="rgb(var(--sc-accent))" stroke-width="2" stroke-linecap="round" />
+        <path
+          class="err-fault"
+          d="M300 90 L 316 22 L 324 90 L 336 158 L 344 90 L 360 14 L 372 90 L 388 166 L 396 90 L 480 90"
+          fill="none" stroke="rgb(var(--sc-live))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <!-- The flat tail: everything after the fault is silence. -->
+        <path
+          class="err-flat"
+          d="M396 90 L 480 90"
+          fill="none" stroke="rgb(var(--sc-text-faint))" stroke-width="1.5" stroke-dasharray="4 5" />
+      </svg>
+
+      <p class="code-mat mt-6 px-3 py-1.5 text-[12px] text-sc-text-soft">
+        f(x) → system error
+      </p>
+
+      <h1 class="mt-6 font-serif text-3xl font-semibold leading-tight text-sc-text sm:text-4xl">
+        The equation broke somewhere.
+      </h1>
+
+      <p class="mt-4 max-w-md text-sm leading-relaxed text-sc-text-soft">
+        MathSonify hit an unexpected problem. Give it another moment and try again.
+      </p>
+
+      <div class="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+        <button
+          type="button"
+          id="ms-retry"
+          class="btn-primary inline-flex min-h-[44px] items-center justify-center px-6 py-2.5 text-sm"
+        >
+          Try Again
+        </button>
+        <a
+          href="/"
+          class="btn-ghost inline-flex min-h-[44px] items-center justify-center px-6 py-2.5 text-sm"
+        >
+          Back to MathSonify
+        </a>
+      </div>
+
+      <p class="mt-8 max-w-md text-xs leading-relaxed text-sc-text-faint">
+        If this keeps happening, the problem is on our side rather than yours.
+      </p>
+    </div>
+  </main>
+
+  <script is:inline>
+    (function () {
+      var btn = document.getElementById('ms-retry');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        btn.disabled = true;
+        btn.textContent = 'Retrying…';
+        // Reload so a transient server fault can clear. Fall back to the
+        // home page if the document itself is unreachable.
+        try { window.location.reload(); } catch (e) { window.location.href = '/'; }
+      });
+    })();
+  </script>
+</BaseLayout>
+
+<style is:global>
+  /* ── 500 state ──────────────────────────────────────────────────────
+     Scoped to .err so nothing can leak onto other pages. Colours come
+     from the shared theme tokens, so light and dark both work with no
+     second palette and no separate theme state. */
+  .err-grid {
+    background-image:
+      linear-gradient(rgb(var(--sc-line) / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--sc-line) / 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* A restrained spectral wash — strain, not alarm. Slow and low-contrast. */
+  .err-aura {
+    background:
+      radial-gradient(60% 45% at 22% 18%, rgb(var(--sc-live) / 0.10), transparent 70%),
+      radial-gradient(55% 45% at 80% 78%, rgb(var(--sc-accent) / 0.08), transparent 70%);
+    animation: err-drift 14s ease-in-out infinite alternate;
+  }
+  @keyframes err-drift {
+    from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+    to   { transform: translate3d(1.5%, 1%, 0) scale(1.04); }
+  }
+
+  /* The signal holds, shudders, then dies. */
+  .err-signal { animation: err-signal 4.5s ease-in-out infinite; transform-origin: left center; }
+  @keyframes err-signal {
+    0%, 100% { opacity: 0.9; }
+    40% { opacity: 0.55; }
+    60% { opacity: 0.9; }
+  }
+
+  /* The fault region jitters as it clips. */
+  .err-fault { animation: err-clip 1.9s steps(6, end) infinite; transform-origin: left center; }
+  @keyframes err-clip {
+    0%, 100% { opacity: 0.9; transform: translateX(0); }
+    50% { opacity: 0.7; transform: translateX(1.5px); }
+  }
+
+  .err-flat { animation: err-flat 4.5s ease-in-out infinite; }
+  @keyframes err-flat {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 0.6; }
+  }
+
+  /* Reduced motion: hold a composed frame. The story still reads —
+     healthy signal, clipped fault, dead flat tail. */
+  @media (prefers-reduced-motion: reduce) {
+    .err-aura, .err-signal, .err-fault, .err-flat { animation: none !important; }
+    .err-signal { opacity: 0.9; }
+    .err-fault { opacity: 0.9; }
+    .err-flat { opacity: 0.45; }
+  }
+</style>

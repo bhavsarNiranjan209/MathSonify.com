@@ -10,8 +10,21 @@ import ShareModal from './ShareModal';
 import ExportModal from './ExportModal';
 import { audioEngine } from '../utils/audioEngine';
 import { evaluateCatmullRomSpline } from '../utils/curveSpline';
+import StudioErrorBoundary from './Studio/StudioErrorBoundary';
 
+// The Create page is a `client:only` island, so Astro ships no markup for it.
+// Without a boundary, any throw inside the studio unmounts the entire island
+// and the visitor gets a blank page under a working nav bar. The boundary
+// keeps the failure contained and shows the real message.
 export default function Studio() {
+  return (
+    <StudioErrorBoundary area="MathSonify Studio">
+      <StudioInner />
+    </StudioErrorBoundary>
+  );
+}
+
+function StudioInner() {
   const { t } = useTranslation();
   const isPlaying = useStudioStore((s) => s.isPlaying);
   const setPlaying = useStudioStore((s) => s.setPlaying);
@@ -93,6 +106,18 @@ export default function Studio() {
 
   // One deliberate hero moment on load: the studio shell eases in with a gentle
   // stagger. Motion elsewhere only follows real user actions (Play/Stop, taps).
+  //
+  // These variants start at `opacity: 0` and rely on framer-motion animating
+  // them to `show`. That is a real availability risk: the studio is a
+  // `client:only` island, so if the animation never runs — a reduced-motion
+  // edge case, a framer-motion/React version mismatch, or a tab that mounts
+  // while the document is hidden — the entire page stays at opacity 0 and the
+  // visitor sees nothing but the navbar.
+  //
+  // The fix is to start VISIBLE and only animate upward from a small offset.
+  // A failed or skipped animation now costs a 16px nudge instead of the whole
+  // product. The entrance still reads the same; it just can no longer hide the
+  // content.
   const reduceMotion = !!useReducedMotion();
 
   const entranceContainer = {
@@ -103,7 +128,9 @@ export default function Studio() {
   };
 
   const entranceItem = {
-    hidden: { opacity: 0, y: reduceMotion ? 0 : 16 },
+    // Opacity starts at 1 on purpose — see the note above. `initial={false}`
+    // on the container below also skips the "hidden" state entirely.
+    hidden: { opacity: 1, y: reduceMotion ? 0 : 16 },
     show: {
       opacity: 1,
       y: 0,
@@ -171,7 +198,11 @@ export default function Studio() {
   return (
     <motion.div
       className="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto"
-      initial="hidden"
+      // `initial={false}` mounts straight into the visible state. The entrance
+      // still animates (the y-offset is the only thing that moves), but the
+      // content can never be left stuck at opacity 0 if the animation is
+      // skipped or never starts.
+      initial={false}
       animate="show"
       variants={entranceContainer}
     >

@@ -2,6 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useStudioStore, type VisualizerMode } from '../store/studioStore';
 import { buildVerticalShiftEquation, parseEquation, type SamplePoint } from '../utils/equationParser';
+import {
+  applyParameter,
+  clampParamValue,
+  handlePositions,
+  parseParameters,
+  readParameter,
+  serializeParameters,
+  type EquationParams,
+  type ParamKey,
+} from '../utils/equationParams';
+import ControlPointLayer, { type HandlePixel } from './Studio/ControlPointLayer';
 import { audioEngine } from '../utils/audioEngine';
 import { getCanvasPalette, onThemeChange, type CanvasPalette } from '../utils/theme';
 
@@ -113,10 +124,14 @@ export default function Visualizer() {
     }
   }, [minX, maxX]);
 
-  // Follow the active theme so the curve is re-inked on switch
+  // Follow the active theme so the curve is re-inked on switch.
+  // Bumping a nonce makes the on-demand repaint effect below run, which is
+  // required now that the render loop is no longer running while idle.
+  const [themeNonce, setThemeNonce] = useState(0);
   useEffect(() => {
     return onThemeChange(() => {
       paletteRef.current = getCanvasPalette();
+      setThemeNonce((n) => n + 1);
     });
   }, []);
 
@@ -135,7 +150,16 @@ export default function Visualizer() {
     }
   }, [equation, minX, maxX]);
 
-  // Main Canvas Render Loop (60 FPS) — mounted ONCE, reads live state via refs.
+  // Main Canvas Render Loop — mounted ONCE, reads live state via refs.
+  //
+  // Performance: this only needs to run continuously while something is
+  // actually moving. With a static equation and no audio the graph is
+  // completely still, so a permanent 60fps loop would burn a core and a
+  // battery for an identical frame. `draw()` is exposed so that any state
+  // change (new equation, resize, theme switch, mode change) can request
+  // exactly one repaint instead.
+  const drawRef = useRef<() => void>(() => {});
+
   useEffect(() => {
     let animationFrameId: number;
 
@@ -192,12 +216,39 @@ export default function Visualizer() {
       animationFrameId = requestAnimationFrame(render);
     };
 
-    animationFrameId = requestAnimationFrame(render);
+    drawRef.current = render;
+
+    // Only animate when something is actually moving. With a static equation
+    // and no audio the graph is completely still, so a permanent 60fps loop
+    // would burn a core and a battery redrawing an identical frame.
+    // The playhead and audio-reactive modes still animate during playback.
+    if (isPlayingRef.current || visualizerMode !== '2d-graph') {
+      animationFrameId = requestAnimationFrame(render);
+    } else {
+      render(); // idle: one frame, then stop
+    }
 
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [visualizerMode, minX, maxX, showGrid]);
+    // `isPlaying` is a deliberate dependency: playback is what switches this
+    // graph from a single static frame to an animated playhead. Without it the
+    // playhead would freeze the moment the user pressed play.
+  }, [visualizerMode, minX, maxX, showGrid, isPlaying]);
+
+  // Repaint on demand whenever the static frame could have gone stale.
+  useEffect(() => {
+    drawRef.current();
+  }, [equation, showGrid, minX, maxX, visualizerMode, themeNonce]);
+
+  // Resize / orientation changes must not leave a stretched or blank canvas.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => drawRef.current());
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, []);
 
   // ── Pointer interaction (whole-curve vertical shift + hover) ──
 
@@ -278,6 +329,85 @@ export default function Visualizer() {
   const handlePointerLeave = () => {
     setHoverCoord(null);
   };
+
+  // ── Parameterised equation editing (control points) ──────────────────
+  //
+  // The equation string is the single source of truth. When it parses into a
+  // known family we expose draggable handles for its parameters; dragging a
+  // handle mutates the parameter set, which is then serialised back into the
+  // equation. Because the canvas, the text field and the audio engine all read
+  // that same equation, they can never drift apart.
+  const [params, setParams] = useState<EquationParams | null>(null);
+  // Live during a drag so the graph follows the finger at 60fps without
+  // re-serialising the equation (and re-parsing it) on every pointermove.
+  const paramsRef = useRef<EquationParams | null>(null);
+  const draggingRef = useRef(false);
+
+  // Re-derive handles whenever the equation text changes from anywhere
+  // (typing, presets, scientists) or the view window moves.
+  useEffect(() => {
+    if (draggingRef.current) return; // never fight the user's own drag
+    const next = parseParameters(equation);
+    paramsRef.current = next;
+    setParams(next);
+  }, [equation, minX, maxX]);
+
+  /** Convert a handle's math-space position to overlay pixels. */
+  const toPixels = useCallback((at: { x: number; y: number }): { x: number; y: number } | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const pts = cachedPointsRef.current.filter((p) => p.isValid);
+    if (pts.length === 0) return null;
+    const { paddedMinY, paddedMaxY } = paddedYRange(pts);
+    const x = ((at.x - minX) / (maxX - minX)) * rect.width;
+    const y = rect.height - ((at.y - paddedMinY) / (paddedMaxY - paddedMinY)) * rect.height;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    return { x, y };
+  }, [minX, maxX]);
+
+  /** Pixels-per-unit, so a drag distance in px converts into a parameter delta. */
+  const scales = useCallback((): { scaleX: number; scaleY: number } => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { scaleX: 1, scaleY: 1 };
+    const rect = canvas.getBoundingClientRect();
+    const pts = cachedPointsRef.current.filter((p) => p.isValid);
+    if (pts.length === 0) return { scaleX: 1, scaleY: 1 };
+    const { paddedMinY, paddedMaxY } = paddedYRange(pts);
+    return {
+      scaleX: rect.width / (maxX - minX || 1),
+      scaleY: rect.height / ((paddedMaxY - paddedMinY) || 1),
+    };
+  }, [minX, maxX]);
+
+  const handleParamDrag = useCallback((key: ParamKey, dxPx: number, dyPx: number) => {
+    const current = paramsRef.current;
+    if (!current) return;
+    draggingRef.current = true;
+
+    // Horizontal drags move the x-axis parameters (frequency, phase, the
+    // constant inside a radical); vertical drags move amplitude/offset.
+    const horizontal = key === 'frequency' || key === 'phase'
+      || key === 'rootConstant' || key === 'rate';
+    const delta = horizontal ? dxPx : -dyPx;
+    const currentValue = readParameter(current, key);
+    const next = applyParameter(current, key, clampParamValue(key, currentValue + delta));
+    paramsRef.current = next;
+    setParams(next);
+
+    // Repaint immediately so the curve tracks the finger.
+    drawRef.current();
+  }, []);
+
+  const handleParamCommit = useCallback(() => {
+    const next = paramsRef.current;
+    draggingRef.current = false;
+    if (!next) return;
+    // Publish the parameters back into the equation, which is the source of
+    // truth. This re-runs the existing parse -> graph -> audio path.
+    setEquation(serializeParameters(next));
+    if (isPlayingRef.current) setHasPendingChanges(true);
+  }, [setEquation, setHasPendingChanges]);
 
   const handleReset = useCallback(() => {
     dragRef.current = null;
@@ -414,6 +544,33 @@ export default function Visualizer() {
           onPointerLeave={handlePointerLeave}
           className={`w-full h-full block ${editMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
         />
+
+        {/*
+          Draggable parameter handles. Only rendered for equations we can
+          parameterise exactly; anything else keeps plain text editing rather
+          than showing handles that would lie about the mathematics.
+        */}
+        {params && (
+          <ControlPointLayer
+            handles={handlePositions(params, minX, maxX)
+              .map((handle) => {
+                const pixel = toPixels(handle.at);
+                if (!pixel) return null;
+                return {
+                  key: handle.key,
+                  label: handle.label,
+                  display: handle.display,
+                  x: pixel.x,
+                  y: pixel.y,
+                } satisfies HandlePixel;
+              })
+              .filter((handle): handle is HandlePixel => handle !== null)}
+            onDrag={handleParamDrag}
+            onCommit={handleParamCommit}
+            {...scales()}
+            disabled={visualizerMode !== '2d-graph'}
+          />
+        )}
 
         <AnimatePresence>
           {renderError && (

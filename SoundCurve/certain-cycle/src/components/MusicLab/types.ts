@@ -1,56 +1,46 @@
-import type { MusicLabTrack } from '../../data/musicLabInstruments';
-import type { MusicLabProject } from '../../utils/musicLabProject';
+export type TrackKind = 'notes' | 'drums';
 
-/** One piano-roll note in pixel space (used by PianoRoll + Inspector). */
-export interface RollNoteLayout {
-  block: MusicLabTrack['notes'][number];
-  left: number;
-  width: number;
-  top: number;
-  label: string;
-  pitchName: string;
-}
-
-export interface HoveredNote {
+export interface MusicLabNote {
   id: string;
-  x: number;
-  y: number;
-  label: string;
+  pitch: number;
+  start: number;
+  duration: number;
+  velocity: number;
 }
 
-/** Built-in quick-start templates (rendered by PresetsBar from store data). */
-export interface QuickPreset {
+export interface DrumStep {
+  on: boolean;
+  velocity: number;
+  probability: number;
+}
+
+export interface MusicLabTrack {
+  id: string;
+  instrumentId: string;
+  name: string;
+  kind: TrackKind;
+  notes: MusicLabNote[];
+  steps: DrumStep[][];
+  volume: number;
+  pan: number;
+  muted: boolean;
+  solo: boolean;
+  params: Record<string, number>;
+}
+
+export interface MusicLabProject {
+  name: string;
+  tempo: number;
+  tracks: MusicLabTrack[];
+  masterVolume: number;
+  snap: number;
+}
+
+export interface MusicLabInstrument {
   id: string;
   name: string;
-  blurb: string;
-}
-
-/** Which bottom workspace panel is open — shared by MusicLab + MobileWorkspace. */
-export type PanelId = 'timeline' | 'notes' | 'drums' | 'graph' | 'mixer' | 'inspector';
-
-export interface TransportSnapshotLike {
-  state: string;
-  positionBeats: number;
-}
-
-export interface SharedStudioProps {
-  project: MusicLabProject;
-  selected: MusicLabTrack | null;
-  playing: boolean;
-  loop: boolean;
-  canUndo: boolean;
-  canRedo: boolean;
-  exporting: boolean;
-  audioReady: boolean;
-  onTogglePlay: () => void;
-  onStop: () => void;
-  onRestart: () => void;
-  onToggleLoop: () => void;
-  onExport: () => void;
-  onShare: () => void;
-  onSave: () => void;
-  onAddInstrument: (instrumentId: string) => void;
-  onPreviewInstrument: (instrumentId: string) => void;
-  onApplyPreset: (id: string) => void;
-  onSurprise: () => void;
+  category: string;
+  icon: string;
+  accent: string;
+  defaults: Record<string, number>;
 }

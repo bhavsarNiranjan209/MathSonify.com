@@ -198,6 +198,46 @@ function bodyExpression(recipe: HarmonicRecipe): string {
   return sum || '0';
 }
 
+function noiseTerm(recipe: HarmonicRecipe): string {
+  return recipe.noise > 0.01 ? `${fmt(recipe.noise, 2)}·noise(x)` : '';
+}
+
+function additiveCore(recipe: HarmonicRecipe): string {
+  const partials = bodyExpression(recipe);
+  const noise = noiseTerm(recipe);
+  if (!noise) return partials;
+  return partials === '0' ? noise : `${partials} + ${noise}`;
+}
+
+function fmCore(recipe: HarmonicRecipe): string {
+  const k = fmt(recipe.pitchRatio, 4);
+  if (recipe.fm.index <= 0.05) return `sin(${k}x)`;
+  const { index, ratio } = recipe.fm;
+  return `sin(${k}x + ${fmt(index, 2)}·sin(${fmt(ratio, 2)}·${k}x))`;
+}
+
+function applyEquationModulation(body: string, recipe: HarmonicRecipe): string {
+  let modulated = body;
+  const amDepth = recipe.am.depth;
+  if (amDepth > 0.01) {
+    const k = fmt(recipe.pitchRatio, 4);
+    const carrier = `${fmt(recipe.am.rate, 2)}·${k}x`;
+    const base = fmt(1 - amDepth * 0.5, 2);
+    const sideband = fmt(amDepth * 0.5, 2);
+    modulated = `[${base} + ${sideband}·sin(${carrier})]·(${modulated})`;
+  }
+
+  if (recipe.drive > 1.001) {
+    modulated = `tanh(${fmt(recipe.drive, 1)}·(${modulated}))`;
+  }
+
+  const { depth: tremoloDepth, rate: tremoloRate } = recipe.tremolo;
+  if (tremoloDepth > 0.01) {
+    modulated = `[1 + ${fmt(tremoloDepth, 2)}·sin(${fmt(tremoloRate, 2)}x)]·(${modulated})`;
+  }
+  return modulated;
+}
+
 /**
  * Renders the current mathematical state as a readable equation.
  *
@@ -209,86 +249,114 @@ export function renderEquation(
   params: MusicLabParameters,
   recipe: HarmonicRecipe = harmonicRecipe(instrument, params),
 ): string {
-  const noiseTerm = recipe.noise > 0.01 ? `${fmt(recipe.noise, 2)}·noise(x)` : '';
-  const { index, ratio } = recipe.fm;
-  const hasFm = recipe.model === 'fm' && index > 0.05;
+  let core: string;
 
-  let body: string;
-
-  if (hasFm) {
-    const k = fmt(recipe.pitchRatio, 4);
-    body = `sin(${k}x + ${fmt(index, 2)}·sin(${fmt(ratio, 2)}·${k}x))`;
-    if (noiseTerm) body += ` + ${noiseTerm}`;
-  } else if (recipe.model === 'subtractive' || recipe.model === 'pluck') {
-    let inner = bodyExpression(recipe);
-    if (noiseTerm) inner += ` + ${noiseTerm}`;
-    if (recipe.model === 'pluck') inner = `(${inner})·e^(-t/${fmt(recipe.decay, 2)})`;
-    body = recipe.drive > 1.001 ? `tanh(${fmt(recipe.drive, 1)}·(${inner}))` : inner;
-  } else if (recipe.model === 'noise') {
-    const head = noiseTerm || `${fmt(recipe.noise, 2)}·noise(x)`;
-    const tail = recipe.partials.length > 1 ? bodyExpression(recipe) : '';
-    body = tail
-      ? `${head}·e^(-t/${fmt(recipe.decay, 2)}) + (${tail})`
-      : `${head}·e^(-t/${fmt(recipe.decay, 2)})`;
+  if (recipe.model === 'fm') {
+    const noise = noiseTerm(recipe);
+    core = noise ? `${fmCore(recipe)} + ${noise}` : fmCore(recipe);
   } else if (recipe.model === 'drum') {
     const k = fmt(recipe.partials[0]?.multiple ?? recipe.pitchRatio, 4);
-    // The `(1 + 1.4·e^(-t/0.05))` factor is DRUM_PITCH_SWEEP / DRUM_SWEEP_TIME —
-    // the exact frequency ramp the drum voice applies.
-    body = `e^(-t/${fmt(recipe.decay, 2)})·sin(${k}x·(1 + ${fmt(DRUM_PITCH_SWEEP, 1)}·e^(-t/${fmt(DRUM_SWEEP_TIME, 2)})))`;
-    if (noiseTerm) {
-      const noiseDecay = Math.max(0.03, recipe.decay * DRUM_NOISE_DECAY_RATIO);
-      body += ` + ${noiseTerm}·e^(-t/${fmt(noiseDecay, 2)})`;
-    }
+    const body = `sin(${k}x·(1 + ${fmt(DRUM_PITCH_SWEEP, 1)}·e^(-t/${fmt(DRUM_SWEEP_TIME, 2)})))`;
+    const noise = noiseTerm(recipe);
+    const noiseDecay = Math.max(0.03, recipe.decay * DRUM_NOISE_DECAY_RATIO);
+    core = noise
+      ? `${body} + ${noise}·e^(-t/${fmt(noiseDecay, 2)})`
+      : body;
   } else {
-    body = bodyExpression(recipe);
-    if (noiseTerm) body += ` + ${noiseTerm}`;
-    if (recipe.drive > 1.001) body = `tanh(${fmt(recipe.drive, 1)}·(${body}))`;
+    core = additiveCore(recipe);
   }
 
-  const { depth, rate } = recipe.tremolo;
-  if (depth > 0.01) body = `[1 + ${fmt(depth, 2)}·sin(${fmt(rate, 2)}x)]·(${body})`;
+  let body = applyEquationModulation(core, recipe);
+
+  if (recipe.model === 'pluck' || recipe.model === 'noise') {
+    body = `(${body})·e^(-t/${fmt(recipe.decay, 2)})`;
+  } else if (recipe.model === 'drum') {
+    body = `e^(-t/${fmt(recipe.decay, 2)})·(${body})`;
+  }
 
   return body;
 }
 
-/** The instrument's untouched DNA, with no parameter applied. */
+/** The instrument's default parameter state, matching Reset. */
 export function renderBaseEquation(instrument: MusicLabInstrument): string {
-  const neutral: MusicLabParameters = {
-    ...instrument.defaults,
-    pitch: 0,
-    brightness: 50,
-    warmth: 50,
-    harmonics: 100,
-    distortion: 0,
-    tremolo: 0,
-    fm: 0,
-    am: 0,
-    filter: 50,
-    sub: 0,
-  };
-  return renderEquation(instrument, neutral);
+  return renderEquation(instrument, instrument.defaults);
 }
 
-/**
- * The recipe's shape as a pure function of x — used by the equation graph and
- * the Lissajous mode. Time-dependent terms (envelopes) are deliberately
- * excluded: the live waveform comes from the analyser instead.
- */
-export function evaluateRecipe(recipe: HarmonicRecipe, x: number): number {
+function partialSum(recipe: HarmonicRecipe, x: number): number {
   let sum = 0;
   for (const partial of recipe.partials) {
     sum += partial.gain * Math.sin(partial.multiple * x);
   }
-  if (recipe.fm.index > 0.05) {
-    sum += 0.6 * Math.sin(
-      recipe.pitchRatio * x + recipe.fm.index * Math.sin(recipe.fm.ratio * recipe.pitchRatio * x),
-    );
-  }
-  if (recipe.drive > 1.001) sum = Math.tanh(recipe.drive * sum);
-  if (recipe.tremolo.depth > 0.01) {
-    sum *= 1 + recipe.tremolo.depth * Math.sin(recipe.tremolo.rate * x);
-  }
   return sum;
+}
+
+const NOISE_STEP = Math.PI / 32;
+
+function noiseSample(x: number): number {
+  const position = x / NOISE_STEP;
+  const cell = Math.floor(position);
+  const fraction = position - cell;
+  const smooth = fraction * fraction * (3 - 2 * fraction);
+  const hash = (index: number): number => {
+    const value = Math.sin(index * 127.1 + 311.7) * 43758.5453;
+    return value - Math.floor(value);
+  };
+  return (hash(cell) * (1 - smooth) + hash(cell + 1) * smooth) * 2 - 1;
+}
+
+function noiseValue(recipe: HarmonicRecipe, x: number): number {
+  return recipe.noise > 0.01 ? recipe.noise * noiseSample(x) : 0;
+}
+
+function decayFactor(recipe: HarmonicRecipe, time: number): number {
+  return Math.exp(-Math.max(0, time) / recipe.decay);
+}
+
+function drumNoiseDecay(recipe: HarmonicRecipe): number {
+  return Math.max(0.03, recipe.decay * DRUM_NOISE_DECAY_RATIO);
+}
+
+/**
+ * The recipe's shape as a function of phase `x`. `time` is optional so the
+ * existing equation graph callers can keep using the phase-only signature;
+ * percussive models use it to apply the same decay shown in their equation.
+ */
+export function evaluateRecipe(recipe: HarmonicRecipe, x: number, time = 0): number {
+  let core: number;
+
+  if (recipe.model === 'fm') {
+    const carrier = recipe.pitchRatio * x;
+    core = Math.sin(carrier + recipe.fm.index * Math.sin(recipe.fm.ratio * carrier))
+      + noiseValue(recipe, x);
+  } else if (recipe.model === 'drum') {
+    const multiple = recipe.partials[0]?.multiple ?? recipe.pitchRatio;
+    const sweep = 1 + DRUM_PITCH_SWEEP * Math.exp(-Math.max(0, time) / DRUM_SWEEP_TIME);
+    const body = Math.sin(multiple * x * sweep);
+    const noiseDecay = drumNoiseDecay(recipe);
+    const noise = recipe.noise > 0.01
+      ? recipe.noise * noiseSample(x) * Math.exp(-Math.max(0, time) / noiseDecay)
+      : 0;
+    core = body + noise;
+  } else {
+    core = partialSum(recipe, x) + noiseValue(recipe, x);
+  }
+
+  let value = core;
+  if (recipe.am.depth > 0.01) {
+    value *= 1 - recipe.am.depth * 0.5
+      + recipe.am.depth * 0.5 * Math.sin(recipe.am.rate * recipe.pitchRatio * x);
+  }
+  if (recipe.drive > 1.001) {
+    value = Math.tanh(recipe.drive * value);
+  }
+  if (recipe.tremolo.depth > 0.01) {
+    value *= 1 + recipe.tremolo.depth * Math.sin(recipe.tremolo.rate * x);
+  }
+
+  if (recipe.model === 'pluck' || recipe.model === 'noise' || recipe.model === 'drum') {
+    value *= decayFactor(recipe, time);
+  }
+  return value;
 }
 
 /** Peak |y| of the recipe over one period — used to normalise the graph. */

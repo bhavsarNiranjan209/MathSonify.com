@@ -10,6 +10,7 @@ import type { ScaleKey } from '../utils/equationParser';
 
 export interface SoundLabState {
   selectedId: string | null;
+  selectedTrackId: string | null;
   isPlaying: boolean;
   progress: number; // 0..1
   volume: number; // 0..1
@@ -24,6 +25,7 @@ export interface SoundLabState {
 
 export interface SoundLabActions {
   select: (id: string | null) => void;
+  setSelectedTrack: (id: string | null) => void;
   setPlaying: (playing: boolean) => void;
   setProgress: (progress: number) => void;
   setVolume: (volume: number) => void;
@@ -38,6 +40,7 @@ export interface SoundLabActions {
 
 const initialState: SoundLabState = {
   selectedId: null,
+  selectedTrackId: null,
   isPlaying: false,
   progress: 0,
   volume: 0.7,
@@ -52,7 +55,8 @@ const initialState: SoundLabState = {
 export const useSoundLabStore = create<SoundLabState & SoundLabActions>((set) => ({
   ...initialState,
 
-  select: (id) => set({ selectedId: id, isPlaying: false, progress: 0 }),
+  select: (id) => set({ selectedId: id, selectedTrackId: null, isPlaying: false, progress: 0 }),
+  setSelectedTrack: (selectedTrackId) => set({ selectedTrackId }),
   setPlaying: (playing) => set((s) => ({ isPlaying: playing, progress: playing ? s.progress : s.progress })),
   setProgress: (progress) => set({ progress }),
   setVolume: (volume) => set({ volume }),
@@ -63,6 +67,7 @@ export const useSoundLabStore = create<SoundLabState & SoundLabActions>((set) =>
   setSolo: (soloTrackId) => set({ soloTrackId }),
   setLoop: (loop) => set({ loop }),
   resetForComposition: (trackIds) => set({
+    selectedTrackId: trackIds[0] ?? null,
     isPlaying: false,
     progress: 0,
     trackMix: {},

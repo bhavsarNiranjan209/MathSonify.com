@@ -24,7 +24,7 @@ import {
   type MusicLabNote,
   type MusicLabTrack,
 } from '../data/musicLabInstruments';
-import { parameterDescription } from '../utils/musicLabEquation';
+import { parameterDescription, renderEquation } from '../utils/musicLabEquation';
 import {
   createEmptyProject,
   createStarterProject,
@@ -72,6 +72,13 @@ function scheduleAutosave(project: MusicLabProject): void {
     writeAutosave(project);
     autosaveTimer = null;
   }, 900);
+}
+
+function patchParamsDescription(patch: Partial<MusicLabParameters>): string {
+  const entries = Object.entries(patch) as [keyof MusicLabParameters, number][];
+  if (entries.length === 0) return '';
+  if (entries.length === 1) return parameterDescription(entries[0][0], entries[0][1]);
+  return entries.map(([k, v]) => parameterDescription(k, v)).join('; ');
 }
 
 export interface MusicLabState {
@@ -124,10 +131,13 @@ export interface MusicLabState {
 
   updateParams: (trackId: string, key: keyof MusicLabParameters, value: number) => void;
   patchParams: (trackId: string, patch: Partial<MusicLabParameters>) => void;
+  patchParamsBatched: (trackId: string, patch: Partial<MusicLabParameters>, commit?: boolean) => void;
   resetParams: (trackId: string) => void;
   randomiseTrack: (trackId: string) => void;
 
   addNote: (trackId: string, note: Partial<MusicLabNote>) => MusicLabNote | null;
+  addInstrumentWithClip: (instrumentId: string, positionBeats?: number) => { track: MusicLabTrack; note: MusicLabNote } | null;
+  addClipAtPosition: (trackId: string, instrumentId: string, positionBeats: number) => MusicLabNote | null;
   updateNotes: (trackId: string, ids: string[], patch: Partial<MusicLabNote>) => void;
   deleteNotes: (trackId: string, ids: string[]) => void;
   duplicateNotes: (trackId: string, ids: string[]) => void;
@@ -369,6 +379,26 @@ export const useMusicLabStore = create<MusicLabState>((set, get) => ({
     return withHistory(state, next);
   }),
 
+  patchParamsBatched: (trackId, patch, commit = false) => set((state) => {
+    if (!state.project.tracks.some((track) => track.id === trackId)) return {};
+    const next = {
+      ...state.project,
+      tracks: state.project.tracks.map((track) => (
+        track.id === trackId
+          ? { ...track, params: { ...track.params, ...patch } }
+          : track
+      )),
+    };
+    scheduleAutosave(next);
+    if (!commit) return { project: next };
+    const track = next.tracks.find((t) => t.id === trackId);
+    const instrument = track ? getMusicLabInstrument(track.instrumentId) : null;
+    const equation = instrument && track
+      ? renderEquation(instrument, track.params)
+      : '';
+    return withHistory(state, next, commit ? `XY pad: ${patchParamsDescription(patch)}` : undefined, equation);
+  }),
+
   resetParams: (trackId) => set((state) => {
     const track = state.project.tracks.find((candidate) => candidate.id === trackId);
     if (!track) return {};
@@ -433,6 +463,75 @@ export const useMusicLabStore = create<MusicLabState>((set, get) => ({
       )),
     };
     set({ ...withHistory(state, next), selectedNoteIds: [created.id] });
+    scheduleAutosave(next);
+    return created;
+  },
+
+  addInstrumentWithClip: (instrumentId, positionBeats = 0) => {
+    const state = get();
+    const track = createTrackForInstrument(instrumentId, state.project.tracks.length);
+    // Add a default note at the given position
+    const snap = state.project.snap;
+    const snapEnabled = state.snapEnabled;
+    let start = Math.max(0, positionBeats);
+    if (snapEnabled && snap > 0) {
+      start = Math.round(start / snap) * snap;
+    }
+    const note: MusicLabNote = {
+      id: musicLabId('note'),
+      pitch: 60,
+      start,
+      duration: 1,
+      velocity: 0.8,
+    };
+    track.notes = [note];
+    const next = {
+      ...state.project,
+      tracks: [...state.project.tracks, track],
+    };
+    set({
+      ...withHistory(state, next, `Add ${track.name} with clip`),
+      selectedTrackId: track.id,
+      selectedNoteIds: [note.id],
+      message: `${track.name} added.`,
+    });
+    scheduleAutosave(next);
+    return { track, note };
+  },
+
+  addClipAtPosition: (trackId, instrumentId, positionBeats) => {
+    const state = get();
+    const track = state.project.tracks.find((t) => t.id === trackId);
+    if (!track) return null;
+
+    // Snap to grid if enabled
+    const snap = state.project.snap;
+    const snapEnabled = state.snapEnabled;
+    let start = Math.max(0, positionBeats);
+    if (snapEnabled && snap > 0) {
+      start = Math.round(start / snap) * snap;
+    }
+
+    // Use the track's instrument for pitch (since clip belongs to that track)
+    const trackInstrument = getMusicLabInstrument(track.instrumentId);
+    const pitch = trackInstrument.defaults.pitch + 60; // Default to C4 + pitch offset
+
+    const created: MusicLabNote = {
+      id: musicLabId('note'),
+      pitch,
+      start,
+      duration: 1,
+      velocity: 0.8,
+    };
+
+    const next = {
+      ...state.project,
+      tracks: state.project.tracks.map((t) =>
+        t.id === trackId ? { ...t, notes: [...t.notes, created] } : t
+      ),
+    };
+
+    set({ ...withHistory(state, next, `Add clip to ${track.name}`), selectedNoteIds: [created.id] });
     scheduleAutosave(next);
     return created;
   },
@@ -624,10 +723,12 @@ export const useMusicLabStore = create<MusicLabState>((set, get) => ({
   undo: () => set((state) => {
     const previous = state.past[state.past.length - 1];
     if (!previous) return {};
+    const history = state.history.slice(0, -1);
     return {
       project: previous,
       past: state.past.slice(0, -1),
       future: [state.project, ...state.future].slice(0, 40),
+      history,
       message: 'Undo.',
     };
   }),
@@ -635,6 +736,9 @@ export const useMusicLabStore = create<MusicLabState>((set, get) => ({
   redo: () => set((state) => {
     const next = state.future[0];
     if (!next) return {};
+    // History entries are added by withHistory, so we need to restore the history
+    // The future doesn't store history, so we keep current history on redo
+    // (withHistory would have added the entry when the action was originally done)
     return {
       project: next,
       past: [...state.past, state.project].slice(-40),

@@ -73,27 +73,29 @@ function appendWavCopyright(wavBuffer: ArrayBuffer, comment: string, artist = 'M
   const outView = new Uint8Array(out);
   // Copy original RIFF header (12 bytes) but patch size
   outView.set(orig.subarray(0, 4), 0);
-  new DataView(out.buffer).setUint32(4, newRiffSize, true);
+  new DataView(out).setUint32(4, newRiffSize, true);
   outView.set(orig.subarray(8, 12), 8);
   // LIST chunk immediately after RIFF header
   outView.set(listChunk, 12);
   // Rest of original WAV (skip original RIFF header 12 bytes)
   outView.set(orig.subarray(12), 12 + listChunk.length);
 
-  return out.buffer;
+  return out;
 }
 
 // ── Main component ──────────────────────────────────────────────────────
 
 interface Props {
   initialId?: string | null;
-  /** When false the transport is replaced with a launch-phase access gate. */
   playable?: boolean;
-  /** SoundLab launch phase — drives gate copy and CTA routing. */
   phase?: string;
+  onPrevious: () => void;
+  onNext: () => void;
+  canPrevious: boolean;
+  canNext: boolean;
 }
 
-export default function CompositionPlayer({ initialId, playable = true, phase = 'full-release' }: Props) {
+export default function CompositionPlayer({ initialId, playable = true, phase = 'full-release', onPrevious, onNext, canPrevious, canNext }: Props) {
   const reduceMotion = !!useReducedMotion();
 
   // ── Store selectors ─────────────────────────────────────────────────
@@ -106,6 +108,8 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
   const trackMix       = useSoundLabStore((s) => s.trackMix);
   const mutedTracks    = useSoundLabStore((s) => s.mutedTracks);
   const soloTrackId    = useSoundLabStore((s) => s.soloTrackId);
+  const selectedTrackId = useSoundLabStore((s) => s.selectedTrackId);
+  const setSelectedTrack  = useSoundLabStore((s) => s.setSelectedTrack);
   const loop           = useSoundLabStore((s) => s.loop);
   const select         = useSoundLabStore((s) => s.select);
   const setPlaying     = useSoundLabStore((s) => s.setPlaying);
@@ -124,7 +128,7 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
   const genre = GENRES.find((g) => g.id === composition.genre);
 
   // ── Refs ────────────────────────────────────────────────────────────
-  const progressRef = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<HTMLElement>(null);
   const canvasRef   = useRef<HTMLCanvasElement>(null);
   const progressVal = useRef(0);
   const paletteRef  = useRef<CanvasPalette>(getCanvasPalette());
@@ -280,11 +284,9 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
 
   // ── Transport helpers ──────────────────────────────────────────────
 
-  const effectiveGain = useCallback((trackId: string, defaultMix: number): number => {
-    const muted = mutedTracks[trackId];
-    const isSoloed = soloTrackId !== null;
-    if (muted) return 0;
-    if (isSoloed && soloTrackId !== trackId) return 0;
+  const effectiveGain = useCallback((trackId: string, defaultMix: number, nextMuted = mutedTracks, nextSolo = soloTrackId): number => {
+    if (nextMuted[trackId]) return 0;
+    if (nextSolo !== null && nextSolo !== trackId) return 0;
     return trackMix[trackId] ?? defaultMix;
   }, [mutedTracks, soloTrackId, trackMix]);
 
@@ -296,13 +298,14 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
     return overrides;
   }, [composition, effectiveGain]);
 
-  const restartPlayback = useCallback(async () => {
+  const restartPlayback = useCallback(async (startProgress = 0) => {
     const opts = {
       volume,
       tempoScale,
       scaleOverride,
       trackMixOverrides: buildTrackMixOverrides(),
       loop,
+      startProgress,
     };
     await compositionEngine.play(composition, opts, throttledProgress, () => setPlaying(false));
     setPlaying(true);
@@ -310,17 +313,26 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
 
   const togglePlay = useCallback(async () => {
     if (isPlayingRef.current) {
-      compositionEngine.stop();
+      compositionEngine.stop(false);
       setPlaying(false);
+      setProgress(progressRef.current ? progressVal.current : 0);
     } else {
-      await restartPlayback();
+      await restartPlayback(progressVal.current);
     }
-  }, [restartPlayback, setPlaying]);
+  }, [restartPlayback, setPlaying, setProgress]);
 
   const stopPlayback = useCallback(() => {
     compositionEngine.stop();
     setPlaying(false);
-  }, [setPlaying]);
+    setProgress(0);
+  }, [setPlaying, setProgress]);
+
+  const seekTo = useCallback(async (value: number) => {
+    const next = Math.min(0.999, Math.max(0, value));
+    progressVal.current = next;
+    setProgress(next);
+    if (isPlayingRef.current) await restartPlayback(next);
+  }, [restartPlayback, setPlaying, setProgress]);
 
   // ── Tweaks (apply immediately if playing) ──────────────────────────
 
@@ -331,12 +343,12 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
 
   const handleTempoChange = useCallback((val: number) => {
     setTempoScale(val);
-    if (isPlayingRef.current) restartPlayback();
+    if (isPlayingRef.current) restartPlayback(progressVal.current);
   }, [setTempoScale, restartPlayback]);
 
   const handleScaleChange = useCallback((val: ScaleKey | null) => {
     setScaleOverride(val);
-    if (isPlayingRef.current) restartPlayback();
+    if (isPlayingRef.current) restartPlayback(progressVal.current);
   }, [setScaleOverride, restartPlayback]);
 
   const handleTrackMixChange = useCallback((trackId: string, val: number) => {
@@ -345,27 +357,26 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
   }, [setTrackMix]);
 
   const handleMuteToggle = useCallback((trackId: string) => {
-    const next = !mutedTracks[trackId];
-    setTrackMuted(trackId, next);
-    // Update engine gain for all tracks (solo/mute logic)
+    const nextMuted = { ...mutedTracks, [trackId]: !mutedTracks[trackId] };
+    setTrackMuted(trackId, !mutedTracks[trackId]);
     for (const t of composition.tracks) {
-      compositionEngine.setTrackMix(t.id, effectiveGain(t.id, t.mix));
+      compositionEngine.setTrackMix(t.id, effectiveGain(t.id, t.mix, nextMuted, soloTrackId));
     }
   }, [mutedTracks, setTrackMuted, composition, effectiveGain]);
 
   const handleSoloToggle = useCallback((trackId: string) => {
-    const next = soloTrackId === trackId ? null : trackId;
-    setSolo(next);
+    const nextSolo = soloTrackId === trackId ? null : trackId;
+    setSolo(nextSolo);
     for (const t of composition.tracks) {
-      compositionEngine.setTrackMix(t.id, effectiveGain(t.id, t.mix));
+      compositionEngine.setTrackMix(t.id, effectiveGain(t.id, t.mix, mutedTracks, nextSolo));
     }
-  }, [soloTrackId, setSolo, composition, effectiveGain]);
+  }, [soloTrackId, setSolo, composition, effectiveGain, mutedTracks]);
 
   // ── Loop toggle ────────────────────────────────────────────────────
   const handleLoopToggle = useCallback(() => {
     const next = !loop;
     setLoop(next);
-    if (isPlayingRef.current) restartPlayback();
+    if (isPlayingRef.current) restartPlayback(progressVal.current);
   }, [loop, setLoop, restartPlayback]);
 
   // ── Export WAV ─────────────────────────────────────────────────────
@@ -400,20 +411,28 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
   // ── Share (copy deep-link) ─────────────────────────────────────────
   const [copied, setCopied] = useState(false);
   const handleShare = useCallback(async () => {
-    const url = `${window.location.origin}/soundlab#${composition.id}`;
+    const url = `${window.location.origin}/soundlab?composition=${composition.id}`;
     try {
-      await navigator.clipboard.writeText(url);
+      if (navigator.share) {
+        await navigator.share({ title: composition.title, text: `Listen to ${composition.title} in MathSonify SoundLab.`, url });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const input = document.createElement('textarea');
+        input.value = url;
+        input.setAttribute('readonly', '');
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        input.remove();
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback: create temp input
-      const inp = document.createElement('input');
-      inp.value = url;
-      document.body.appendChild(inp);
-      inp.select();
-      document.execCommand('copy');
-      document.body.removeChild(inp);
+      // User cancelled the native share sheet.
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }, [composition.id]);
 
   // ── Elapsed time display ───────────────────────────────────────────
@@ -483,7 +502,7 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
   // ── Render ──
   return (
     <div
-      className="soundlab-player panel overflow-hidden"
+      className="soundlab-player panel relative overflow-hidden"
       style={{ borderTop: `2px solid ${tint(composition.accent, 0.55)}` }}
     >
       {/* Header */}
@@ -509,8 +528,10 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
       </div>
 
       {/* Transport */}
-      <div className="px-5 py-3 flex items-center gap-3 border-t border-sc-line/10">
-        {/* Play / Pause */}
+      <div className="px-5 py-3 flex flex-wrap items-center gap-2 sm:gap-3 border-t border-sc-line/10">
+        <button type="button" onClick={onPrevious} disabled={!canPrevious} aria-label="Previous composition" className="btn-ghost h-11 w-11 shrink-0 disabled:cursor-not-allowed disabled:opacity-30">
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 5v14"/><path d="m18 6-8 6 8 6z"/></svg>
+        </button>
         <button
           type="button"
           onClick={togglePlay}
@@ -524,22 +545,49 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
           )}
         </button>
 
-        {/* Progress bar */}
+        <button type="button" onClick={onNext} disabled={!canNext} aria-label="Next composition" className="btn-ghost h-11 w-11 shrink-0 disabled:cursor-not-allowed disabled:opacity-30">
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 5v14"/><path d="m6 6 8 6-8 6z"/></svg>
+        </button>
+
+        {/* Progress bar — playhead is clipped inside this player-only track */}
         <div className="flex-1 min-w-0">
-          <div className="w-full h-1.5 rounded-full bg-sc-line/15 overflow-hidden relative">
-            <div ref={progressRef} className="h-full rounded-full bg-sc-live transition-none" style={{ width: 0 }} />
-          </div>
-          <div className="flex items-center justify-between font-mono text-[10px] text-sc-text-faint mt-1">
+          <button
+            type="button"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              void seekTo((e.clientX - rect.left) / rect.width);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowRight') { e.preventDefault(); void seekTo(progressVal.current + 0.05); }
+              if (e.key === 'ArrowLeft') { e.preventDefault(); void seekTo(progressVal.current - 0.05); }
+              if (e.key === 'Home') { e.preventDefault(); void seekTo(0); }
+              if (e.key === 'End') { e.preventDefault(); void seekTo(0.999); }
+            }}
+            className="relative block w-full h-8 cursor-pointer focus-visible:ring-2 focus-visible:ring-sc-accent"
+            aria-label={`Seek composition, currently ${Math.round(progress * 100)} percent`}
+          >
+            <span className="absolute inset-x-0 top-3 h-1.5 rounded-full bg-sc-line/15" aria-hidden="true" />
+            <span ref={progressRef} className="absolute left-0 top-3 h-1.5 rounded-full bg-sc-live" style={{ width: 0 }} aria-hidden="true" />
+            <span className="absolute top-1/2 h-3.5 w-px -translate-y-1/2 bg-sc-live shadow-[0_0_6px_rgb(var(--sc-live)/0.7)] transition-[left] duration-100" style={{ left: `calc(${progress * 100}% - 1px)` }} aria-hidden="true" />
+          </button>
+          <div className="flex items-center justify-between font-mono text-[10px] text-sc-text-faint mt-1 tabular-nums">
             <span>{fmtTime(elapsed)}</span>
             <span>{fmtTime(effectiveDuration)}</span>
           </div>
         </div>
 
+        <button type="button" onClick={() => void restartPlayback(0)} aria-label="Restart" title="Restart" className="h-11 w-11 rounded-md border border-sc-line/20 text-sc-text-faint hover:text-sc-text hover:border-sc-accent transition-colors flex items-center justify-center shrink-0">
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></svg>
+        </button>
+        <button type="button" onClick={stopPlayback} aria-label="Stop" title="Stop" className="h-11 w-11 rounded-md border border-sc-line/20 text-sc-text-faint hover:text-sc-text hover:border-sc-accent transition-colors flex items-center justify-center shrink-0">
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+        </button>
+
         {/* Loop */}
         <button
           type="button"
           onClick={handleLoopToggle}
-          className={`w-8 h-8 rounded-md border flex items-center justify-center transition text-xs ${loop ? 'bg-sc-live/15 border-sc-live/40 text-sc-live' : 'border-sc-line/20 text-sc-text-faint hover:text-sc-text hover:border-sc-accent'}`}
+          className={`h-11 w-11 rounded-md border flex items-center justify-center transition-colors ${loop ? 'bg-sc-live/15 border-sc-live/40 text-sc-live' : 'border-sc-line/20 text-sc-text-faint hover:text-sc-text hover:border-sc-accent'}`}
           aria-label={`Loop ${loop ? 'on' : 'off'}`}
           title={`Loop ${loop ? 'on' : 'off'}`}
         >
@@ -573,9 +621,11 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Tempo */}
           <div className="flex-1 min-w-0">
-            <label className="block text-[11px] font-mono text-sc-text-faint mb-1">Tempo</label>
+            <label htmlFor="soundlab-tempo" className="block text-[11px] font-mono text-sc-text-faint mb-1">Tempo</label>
             <div className="flex items-center gap-2">
               <input
+                id="soundlab-tempo"
+                name="soundlab-tempo"
                 type="range"
                 min={0.5}
                 max={1.5}
@@ -590,10 +640,12 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
 
           {/* Scale override */}
           <div className="w-full sm:w-40">
-            <label className="block text-[11px] font-mono text-sc-text-faint mb-1">Scale</label>
+            <label htmlFor="soundlab-scale" className="block text-[11px] font-mono text-sc-text-faint mb-1">Scale</label>
             <select
+              id="soundlab-scale"
+              name="soundlab-scale"
               value={scaleOverride ?? ''}
-              onChange={(e) => handleScaleOverride(e.target.value ? (e.target.value as ScaleKey) : null)}
+              onChange={(e) => handleScaleChange(e.target.value ? (e.target.value as ScaleKey) : null)}
               className="w-full h-8 rounded-md border border-sc-line/20 bg-sc-surface text-xs text-sc-text px-2"
             >
               <option value="">Original</option>
@@ -633,7 +685,14 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
                 key={track.id}
                 className={`flex items-center gap-2 py-1.5 px-2 rounded-md transition-colors ${isMuted ? 'bg-sc-surface/50' : 'bg-transparent'}`}
               >
-                <span className="shrink-0 w-24 truncate text-[11px] font-mono text-sc-text-soft">{track.label}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTrack(track.id)}
+                  className={`shrink-0 w-24 truncate text-left text-[11px] font-mono focus-visible:ring-2 focus-visible:ring-sc-accent ${selectedTrackId === track.id ? 'text-sc-text underline decoration-sc-accent underline-offset-4' : 'text-sc-text-soft'}`}
+                  aria-pressed={selectedTrackId === track.id}
+                >
+                  {track.label}
+                </button>
                 <input
                   type="range"
                   min={0}
@@ -643,6 +702,7 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
                   onChange={(e) => handleTrackMixChange(track.id, parseFloat(e.target.value))}
                   className="flex-1 h-1.5"
                   disabled={isMuted}
+                  aria-label={`${track.label} volume`}
                 />
                 <span className="w-8 text-right font-mono text-[10px] text-sc-text-faint">
                   {Math.round((trackMix[track.id] ?? track.mix) * 100)}
@@ -651,8 +711,9 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
                 <button
                   type="button"
                   onClick={() => handleMuteToggle(track.id)}
-                  className={`w-6 h-6 rounded text-[10px] font-bold border transition flex items-center justify-center ${isMuted ? 'bg-red-500/15 text-red-400 border-red-500/40' : 'border-sc-line/20 text-sc-text-faint hover:text-sc-text hover:border-sc-accent'}`}
+                  className={`h-11 w-11 shrink-0 rounded text-[10px] font-bold border transition-colors flex items-center justify-center ${isMuted ? 'bg-red-500/15 text-red-400 border-red-500/40' : 'border-sc-line/20 text-sc-text-faint hover:text-sc-text hover:border-sc-accent'}`}
                   aria-label={`Mute ${track.label}`}
+                  aria-pressed={Boolean(isMuted)}
                 >
                   M
                 </button>
@@ -660,8 +721,9 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
                 <button
                   type="button"
                   onClick={() => handleSoloToggle(track.id)}
-                  className={`w-6 h-6 rounded text-[10px] font-bold border transition flex items-center justify-center ${isSoloed ? 'bg-sc-live/15 text-sc-live border-sc-live/40' : 'border-sc-line/20 text-sc-text-faint hover:text-sc-text hover:border-sc-accent'}`}
+                  className={`h-11 w-11 shrink-0 rounded text-[10px] font-bold border transition-colors flex items-center justify-center ${isSoloed ? 'bg-sc-live/15 text-sc-live border-sc-live/40' : 'border-sc-line/20 text-sc-text-faint hover:text-sc-text hover:border-sc-accent'}`}
                   aria-label={`Solo ${track.label}`}
+                  aria-pressed={isSoloed}
                 >
                   S
                 </button>

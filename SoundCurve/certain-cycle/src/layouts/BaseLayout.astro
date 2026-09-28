@@ -1,12 +1,22 @@
----
+﻿---
 interface Props {
   title: string;
   description?: string;
+  /**
+   * Set while a feature is unreleased. Emits `noindex, nofollow` so search
+   * engines do not index a "being built" page as a launched product.
+   * Defaults to false, so public pages stay indexable.
+   */
+  noindex?: boolean;
 }
 
 import '../styles/global.css';
 
-const { title, description = "Turn Math Into Music - Type an equation, watch it come alive, and hear what mathematics sounds like." } = Astro.props;
+const {
+  title,
+  description = "Turn Math Into Music - Type an equation, watch it come alive, and hear what mathematics sounds like.",
+  noindex = false,
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -17,6 +27,7 @@ const { title, description = "Turn Math Into Music - Type an equation, watch it 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/jpeg" href="/favicon.jpeg" />
     <meta name="generator" content={Astro.generator} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
 
     <!-- SEO -->
     <title>{title}</title>
@@ -74,16 +85,16 @@ const { title, description = "Turn Math Into Music - Type an equation, watch it 
     </style>
   </head>
   <body>
-    <!-- ── Sound-flowing preloader ─────────────────────────────── -->
+    <!-- ΓöÇΓöÇ Sound-flowing preloader ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ -->
     <div
       id="sc-preloader"
       aria-hidden="true"
       style="position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgb(var(--sc-bg));transition:opacity .45s ease,transform .45s ease;overflow:hidden"
     >
-      <!-- Ambient glow behind the wave — pulses like a bass note -->
+      <!-- Ambient glow behind the wave ΓÇö pulses like a bass note -->
       <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:520px;height:220px;background:radial-gradient(ellipse at center, rgb(var(--sc-accent) / 0.08) 0%, transparent 70%);border-radius:50%;pointer-events:none;animation:sc-load-glow 2s ease-in-out infinite"></div>
 
-      <!-- MathSonify.com — big & bold -->
+      <!-- MathSonify.com ΓÇö big & bold -->
       <div style="display:flex;align-items:baseline;gap:0;opacity:0;transform:translateY(12px);animation:sc-load-wordmark .7s .1s cubic-bezier(0.22,1,0.36,1) forwards">
         <span style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700;color:rgb(var(--sc-text));letter-spacing:-0.03em;line-height:1">MathSonify</span>
         <span style="font-family:'Space Grotesk',sans-serif;font-size:1rem;font-weight:500;color:rgb(var(--sc-accent));letter-spacing:0.02em;margin-left:2px;opacity:0;transform:translateY(4px);animation:sc-load-domain .5s .55s cubic-bezier(0.22,1,0.36,1) forwards">.com</span>
@@ -93,25 +104,25 @@ const { title, description = "Turn Math Into Music - Type an equation, watch it 
         where math becomes music
       </div>
 
-      <!-- Flowing waveform bars — music is travelling through them -->
+      <!-- Flowing waveform bars ΓÇö music is travelling through them -->
       <div
         id="sc-wave"
         style="position:relative;display:flex;align-items:center;gap:3px;margin-top:1.75rem;height:52px;overflow:hidden;padding:0 4px"
         aria-hidden="true"
       >
-        <!-- shimmer that sweeps left→right across the bars like a playhead -->
+        <!-- shimmer that sweeps leftΓåÆright across the bars like a playhead -->
         <div id="sc-wave-shimmer" style="position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgb(var(--sc-accent) / 0.18) 50%,transparent 100%);transform:translateX(-100%);animation:sc-load-travel 2s 0.8s ease-in-out infinite;pointer-events:none;z-index:1"></div>
         <!-- bars injected by inline script below -->
       </div>
 
-      <!-- Bouncing dots — like a beat indicator -->
+      <!-- Bouncing dots ΓÇö like a beat indicator -->
       <div id="sc-dots" style="display:flex;align-items:center;gap:5px;margin-top:1.25rem" aria-hidden="true">
         <!-- dots injected by inline script below -->
       </div>
 
       <!-- Loading text -->
       <div style="margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:rgb(var(--sc-text-faint));letter-spacing:0.14em;text-transform:uppercase;animation:sc-load-pulse 1.4s ease-in-out infinite">
-        loading your sound…
+        loading your soundΓÇª
       </div>
     </div>
 
@@ -120,7 +131,7 @@ const { title, description = "Turn Math Into Music - Type an equation, watch it 
 
     <slot />
 
-    <!-- Scroll progress + button ripple (no reveal observer — pages render immediately) -->
+    <!-- Scroll progress + button ripple (no reveal observer ΓÇö pages render immediately) -->
     <script is:inline>
       (function () {
         var bar = document.getElementById('scroll-progress');
@@ -144,15 +155,15 @@ const { title, description = "Turn Math Into Music - Type an equation, watch it 
       })();
     </script>
 
-    <!-- Preloader logic — runs immediately, zero deps -->
+    <!-- Preloader logic ΓÇö runs immediately, zero deps -->
     <script is:inline>
       (function () {
         var wave = document.getElementById('sc-wave');
         var dotsEl = document.getElementById('sc-dots');
         if (!wave) return;
 
-        // ── Waveform bars: 32 bars, sine envelope + staggered wave animation
-        //    so the crest travels left→right like a real sound wave
+        // ΓöÇΓöÇ Waveform bars: 32 bars, sine envelope + staggered wave animation
+        //    so the crest travels leftΓåÆright like a real sound wave
         var BAR_COUNT = 32;
         for (var i = 0; i < BAR_COUNT; i++) {
           var bar = document.createElement('span');
@@ -174,7 +185,7 @@ const { title, description = "Turn Math Into Music - Type an equation, watch it 
           wave.appendChild(bar);
         }
 
-        // ── Bouncing dots (beat dots)
+        // ΓöÇΓöÇ Bouncing dots (beat dots)
         if (dotsEl) {
           for (var d = 0; d < 3; d++) {
             var dot = document.createElement('span');

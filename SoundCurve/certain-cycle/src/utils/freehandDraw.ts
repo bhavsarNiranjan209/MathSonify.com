@@ -107,6 +107,11 @@ export const DRAW_PALETTE: ReadonlyArray<{
 ];
 
 export const DRAW_STORAGE_KEY = 'mathsonify-freehand-session-v2';
+/**
+ * @deprecated Draw no longer has its own theme. It follows the global
+ * `mathsonify-theme` key like every other page. Kept only so any older local
+ * storage entry can be identified and discarded; do not write to it.
+ */
 export const DRAW_THEME_STORAGE_KEY = 'mathsonify-draw-theme';
 export const DRAW_STORAGE_VERSION = 2;
 export const DEFAULT_BRUSH_SIZE = 5;

@@ -27,6 +27,8 @@ export interface CompositionPlayOptions {
   scaleOverride?: ScaleKey | null;
   trackMixOverrides?: Record<string, number>;
   loop?: boolean;
+  /** Fractional composition position from which playback should begin (0..1). */
+  startProgress?: number;
 }
 
 export interface CompositionProgressCallback {
@@ -41,6 +43,7 @@ export class CompositionEngine {
   private loopTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private playGeneration = 0;
   private playStartTime = 0;
+  private playOffset = 0;
   private playDuration = 0;
   private progressCallback: CompositionProgressCallback | null = null;
   private onFinishCallback: (() => void) | null = null;
@@ -63,7 +66,9 @@ export class CompositionEngine {
 
     if (ctx.state === 'suspended') await ctx.resume();
 
-    this.stop();
+    // Preserve the current position when a seek/resume reschedules playback.
+    // Composition changes already reset progress in the SoundLab store.
+    this.stop(false);
     this.playGeneration++;
 
     this.currentComposition = composition;
@@ -72,21 +77,22 @@ export class CompositionEngine {
     this.onFinishCallback = onFinish || null;
     this.loopActive = options.loop ?? false;
     this.playDuration = composition.durationSec / clamp(options.tempoScale, 0.5, 2.0);
+    this.playOffset = this.playDuration * clamp(options.startProgress ?? 0, 0, 0.9999);
 
     // Set volume
     const targetVol = clamp(options.volume, 0, 1) * 0.8;
     masterGain.gain.setTargetAtTime(targetVol, ctx.currentTime, 0.02);
 
-    audioEngine['isPlaying' as unknown as string]; // keep engines in sync
-
     this.isPlaying = true;
 
-    const execute = () => {
+    const execute = (startProgress = 0) => {
       const nowCtx = audioEngine.getAudioContext();
       const nowGain = audioEngine.getMasterGain();
       if (!this.isPlaying || !nowCtx || !nowGain) return;
 
       this.playStartTime = nowCtx.currentTime;
+      this.playOffset = this.playDuration * clamp(startProgress, 0, 0.9999);
+      const remainingDuration = Math.max(0.01, this.playDuration - this.playOffset);
       // Clear previous track gains
       this.perTrackGains.clear();
 
@@ -97,7 +103,8 @@ export class CompositionEngine {
           track,
           composition,
           options,
-          this.playDuration
+          remainingDuration,
+          startProgress
         );
       }
 
@@ -113,14 +120,14 @@ export class CompositionEngine {
             this.clearActiveNodes();
             execute();
           }
-        }, this.playDuration * 1000);
+        }, (this.playDuration - this.playOffset) * 1000);
       }
     };
 
-    execute();
+    execute(options.startProgress ?? 0);
   }
 
-  stop(): void {
+  stop(resetProgress = true): void {
     this.isPlaying = false;
     this.loopActive = false;
     this.onFinishCallback = null;
@@ -138,7 +145,7 @@ export class CompositionEngine {
     this.clearActiveNodes();
     this.perTrackGains.clear();
 
-    if (this.progressCallback) this.progressCallback(0);
+    if (resetProgress && this.progressCallback) this.progressCallback(0);
   }
 
   setVolume(val: number): void {
@@ -182,12 +189,14 @@ export class CompositionEngine {
     track: CompositionTrack,
     composition: Composition,
     options: CompositionPlayOptions,
-    effectiveDuration: number
+    effectiveDuration: number,
+    startProgress: number
   ): void {
     const parseResult = parseEquation(track.equation);
     if (!parseResult.success || !parseResult.sample) return;
 
-    // Domain scaled by BPM so equation "time" maps to musical time
+    // Domain scaled by BPM so equation "time" maps to musical time.
+    // Always sample the full curve so pitch normalization stays identical after a seek.
     const domainSpan = (4 * Math.PI * (composition.bpm / 60)) * (composition.durationSec / 4);
     const minX = 0;
     const maxX = domainSpan * options.tempoScale;
@@ -199,6 +208,9 @@ export class CompositionEngine {
     const yVals = validPoints.map((p) => p.y);
     const minY = Math.min(...yVals);
     const maxY = Math.max(...yVals);
+    const startIndex = Math.min(points.length - 1, Math.floor(clamp(startProgress, 0, 0.9999) * (points.length - 1)));
+    const scheduledPoints = points.slice(startIndex);
+    if (scheduledPoints.length === 0) return;
 
     // Per-track gain (with pan) feeding into masterGain
     const trackGain = ctx.createGain();
@@ -225,19 +237,19 @@ export class CompositionEngine {
 
     switch (track.voice) {
       case 'frequency':
-        this.monoFrequencyTrack(ctx, dest, now, points, minY, maxY, effectiveDuration, track);
+        this.monoFrequencyTrack(ctx, dest, now, scheduledPoints, minY, maxY, effectiveDuration, track);
         break;
       case 'note':
-        this.monoNoteTrack(ctx, dest, now, points, minY, maxY, effectiveDuration, track, scale);
+        this.monoNoteTrack(ctx, dest, now, scheduledPoints, minY, maxY, effectiveDuration, track, scale);
         break;
       case 'chord':
-        this.chordTrack(ctx, dest, now, points, minY, maxY, effectiveDuration, track, scale);
+        this.chordTrack(ctx, dest, now, scheduledPoints, minY, maxY, effectiveDuration, track, scale);
         break;
       case 'rhythm':
-        this.rhythmTrack(ctx, dest, now, points, minY, maxY, effectiveDuration, track);
+        this.rhythmTrack(ctx, dest, now, scheduledPoints, minY, maxY, effectiveDuration, track);
         break;
       case 'drums':
-        this.drumsTrack(ctx, dest, now, points, minY, maxY, effectiveDuration, track);
+        this.drumsTrack(ctx, dest, now, scheduledPoints, minY, maxY, effectiveDuration, track);
         break;
     }
   }
@@ -457,7 +469,7 @@ export class CompositionEngine {
       if (!this.isPlaying || !ctx) return;
 
       const elapsed = ctx.currentTime - this.playStartTime;
-      const progress = clamp(elapsed / this.playDuration, 0, 1);
+      const progress = clamp((this.playOffset + elapsed) / this.playDuration, 0, 1);
 
       if (this.progressCallback) this.progressCallback(progress);
 

@@ -1,13 +1,53 @@
-import { projectLengthBeats, type MusicLabProject } from '../../utils/musicLabProject';
-import { useMusicLabStore } from '../../store/musicLabStore';
-import { TrackLane } from './TrackLane';
+import { useRef, useState } from 'react';
+import { useMusicLab } from './store';
+import { projectLengthBeats } from '../../utils/musicLabProject';
+import TrackLane from './TrackLane';
 
-export default function Timeline({ project }: { project: MusicLabProject }) {
+export default function Timeline({ project }: { project: any }) {
+  const { state, addTrack, getInstrument } = useMusicLab();
   const loopLength = Math.max(4, projectLengthBeats(project));
-  const duplicateTrack = useMusicLabStore((s) => s.duplicateTrack);
-  const removeTrack = useMusicLabStore((s) => s.removeTrack);
-  const selectedTrackId = useMusicLabStore((s) => s.selectedTrackId);
-  const selected = project.tracks.find((t) => t.id === selectedTrackId) ?? null;
+  const tracksRef = useRef<HTMLDivElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    if (!isDragOver) setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    if (!tracksRef.current?.contains(event.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+
+    const instrumentId = event.dataTransfer.getData('application/x-musiclab-instrument');
+    if (!instrumentId) return;
+
+    const tracksContainer = tracksRef.current;
+    if (!tracksContainer) return;
+
+    let laneRect: DOMRect | null = null;
+    if (project.tracks.length > 0) {
+      const firstLane = tracksContainer.querySelector('.ml-lane');
+      if (firstLane) laneRect = firstLane.getBoundingClientRect();
+    } else {
+      const emptyZone = tracksContainer.querySelector('.ml-empty-drop-zone');
+      if (emptyZone) laneRect = emptyZone.getBoundingClientRect();
+    }
+    if (!laneRect) return;
+
+    const clickX = event.clientX - laneRect.left;
+    const percentage = Math.max(0, Math.min(1, clickX / laneRect.width));
+    const positionBeats = percentage * loopLength;
+
+    const instrument = getInstrument(instrumentId);
+    addTrack(instrument);
+  };
 
   return (
     <section className="ml-timeline" aria-label="Arrangement timeline">
@@ -19,24 +59,28 @@ export default function Timeline({ project }: { project: MusicLabProject }) {
         <span className="ml-count">{project.tracks.length} tracks · {loopLength} beats</span>
       </div>
       {project.tracks.length === 0 && (
-        <p className="ml-empty-note">No tracks yet. Add an instrument from the library.</p>
+        <div
+          className="ml-empty-drop-zone"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <p className="ml-empty-note">No tracks yet. Drag an instrument here to start.</p>
+        </div>
       )}
-      <div className="ml-tracks" role="table" aria-label="Tracks">
-        {project.tracks.map((track) => (
+      <div
+        className={`ml-tracks ${isDragOver ? 'is-drag-over' : ''}`}
+        ref={tracksRef}
+        role="table"
+        aria-label="Tracks"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {project.tracks.map((track: any) => (
           <TrackLane key={track.id} track={track} loopLength={loopLength} />
         ))}
       </div>
-      {selected && (
-        <div className="ml-track-actions">
-          <button type="button" className="ml-mini-button" onClick={() => duplicateTrack(selected.id)}>
-            Duplicate {selected.name}
-          </button>
-          <button type="button" className="ml-mini-button ml-mini-button--danger"
-            onClick={() => { if (window.confirm(`Remove “${selected.name}”?`)) removeTrack(selected.id); }}>
-            Remove track
-          </button>
-        </div>
-      )}
     </section>
   );
 }

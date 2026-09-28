@@ -1,13 +1,23 @@
 ---
-const navLinks = [
-  { name: 'SoundLab', href: '/soundlab', i18nKey: 'nav.soundlab' },
-  { name: 'How It Works', href: '/how-it-works', i18nKey: 'nav.howItWorks' },
-  { name: 'Create', href: '/create', i18nKey: 'nav.create' },
-  { name: 'Draw', href: '/draw', i18nKey: 'nav.draw' },
-  { name: 'Scientists', href: '/scientists', i18nKey: 'nav.scientists' },
-  { name: 'Equations', href: '/equations', i18nKey: 'nav.equations' },
-  { name: 'About', href: '/about', i18nKey: 'nav.about' },
+import { getVisibleNavLinks, isFeatureEnabled, type FeatureId } from '../config/featureFlags';
+
+// Every public nav item, with the feature that controls it. `feature: null`
+// means the link is always public. The three unreleased experiences are listed
+// here and filtered out in one place, so no gap or placeholder is left behind.
+const allNavLinks: { name: string; href: string; feature: FeatureId | null; i18nKey: string }[] = [
+  { name: 'SoundLab', href: '/soundlab', feature: 'soundLab', i18nKey: 'nav.soundlab' },
+  { name: 'How It Works', href: '/how-it-works', feature: null, i18nKey: 'nav.howItWorks' },
+  { name: 'Create', href: '/create', feature: null, i18nKey: 'nav.create' },
+  { name: 'Draw', href: '/draw', feature: 'draw', i18nKey: 'nav.draw' },
+  { name: 'Scientists', href: '/scientists', feature: null, i18nKey: 'nav.scientists' },
+  { name: 'Equations', href: '/equations', feature: null, i18nKey: 'nav.equations' },
+  { name: 'Music Lab', href: '/music-lab', feature: 'musicLab', i18nKey: 'nav.musicLab' },
+  { name: 'About', href: '/about', feature: null, i18nKey: 'nav.about' },
 ];
+
+// Release-controlled links are removed from the array entirely, so an
+// unreleased feature leaves no empty space and no hidden DOM.
+const navLinks = getVisibleNavLinks(allNavLinks);
 
 const currentPath = Astro.url.pathname.replace(/\/$/, '') || '/';
 
@@ -37,9 +47,22 @@ function isCurrent(href: string) {
               { 'nav-current': isCurrent(link.href) },
             ]}
             aria-current={isCurrent(link.href) ? 'page' : undefined}
-            data-i18n={link.i18nKey}
+            data-i18n="nav.soundlab"
           >
             <span class="nav-soundlab-text">{link.name}</span>
+          </a>
+        ) : link.name === 'Music Lab' ? (
+          <a
+            href={link.href}
+            class:list={[
+              'nav-musiclab relative text-sm font-semibold transition-opacity',
+              { 'nav-current': isCurrent(link.href) },
+            ]}
+            aria-current={isCurrent(link.href) ? 'page' : undefined}
+            data-i18n="nav.musicLab"
+          >
+            <span class="nav-musiclab-text">{link.name}</span>
+            <span class="nav-musiclab-glow" aria-hidden="true"></span>
           </a>
         ) : (
           <a
@@ -111,7 +134,7 @@ function isCurrent(href: string) {
           </div>
         </div>
 
-                <!-- Mobile Menu Toggle -->
+        <!-- Mobile Menu Toggle -->
         <button
           id="mobile-menu-toggle"
           type="button"
@@ -145,6 +168,18 @@ function isCurrent(href: string) {
           data-i18n={link.i18nKey}
         >
           <span class="nav-soundlab-text">{link.name}</span>
+        </a>
+      ) : link.name === 'Music Lab' ? (
+        <a
+          href={link.href}
+          class:list={[
+            'block nav-musiclab relative text-sm font-semibold',
+            { 'nav-current': isCurrent(link.href) },
+          ]}
+          aria-current={isCurrent(link.href) ? 'page' : undefined}
+          data-i18n="nav.musicLab"
+        >
+          <span class="nav-musiclab-text">{link.name}</span>
         </a>
       ) : (
         <a
@@ -219,7 +254,7 @@ function isCurrent(href: string) {
       btn.classList.toggle('bg-sc-accent', isActive);
       btn.classList.toggle('text-sc-on-accent', isActive);
       btn.classList.toggle('border-sc-accent', isActive);
-      btn.classList.toggle('text-sc-text-soft', !isActive);
+      btn.classList.toggle('text-sc-text_soft', !isActive);
     });
   }
 
@@ -231,14 +266,14 @@ function isCurrent(href: string) {
   // Paint the current state
   applyTheme(currentTheme());
 
-    // Mobile menu toggle
+  // Mobile menu toggle
   const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
   const mobileMenu = document.getElementById('mobile-menu');
   const mobileMenuIconOpen = document.getElementById('mobile-menu-icon-open');
   const mobileMenuIconClose = document.getElementById('mobile-menu-icon-close');
 
   /** Drive open/close from a single source of truth so scroll lock, icons and
-   *  aria state can never drift apart. */
+   * aria state can never drift apart. */
   function setMobileMenu(open: boolean) {
     if (!mobileMenu || !mobileMenuToggle) return;
     mobileMenu.classList.toggle('hidden', !open);
@@ -307,7 +342,7 @@ function isCurrent(href: string) {
         const item = document.createElement('button');
         item.type = 'button';
         item.role = 'menuitem';
-        item.className = 'w-full flex items-center justify-between gap-3 px-3.5 py-1.5 text-xs text-left hover:bg-sc-surface/80 transition-colors ' + (isActive ? 'text-sc-accent font-semibold' : 'text-sc-text-soft');
+        item.className = 'w-full flex items-center justify-between gap-3 px-3.5 py-1.5 text-xs text-left hover:bg-sc-surface/80 transition-colors ' + (isActive ? 'text-sc-accent font-semibold' : 'text-sc-text-faint');
         const label = document.createElement('span');
         label.textContent = lang.native;
         item.appendChild(label);
@@ -367,7 +402,7 @@ function isCurrent(href: string) {
 </script>
 
 <style is:global>
-  .nav-current:not(.nav-soundlab)::after {
+  .nav-current:not(.nav-soundlab):not(.nav-musiclab)::after {
     content: '';
     position: absolute;
     left: 0;
@@ -379,7 +414,7 @@ function isCurrent(href: string) {
   }
 
   @media (max-width: 767px) {
-    .nav-current:not(.nav-soundlab)::after {
+    .nav-current:not(.nav-soundlab):not(.nav-musiclab)::after {
       left: -0.5rem;
       right: auto;
       bottom: 50%;
@@ -408,13 +443,11 @@ function isCurrent(href: string) {
     color: transparent;
     -webkit-text-fill-color: transparent;
     animation: nav-soundlab-flow 5.6s linear infinite;
-    /* legibility boost without destroying text-clip: inner shadow glow */
     filter: drop-shadow(0 0 14px rgba(142, 124, 243, 0.52))
       drop-shadow(0 0 3px rgba(102, 210, 255, 0.4));
   }
 
   .nav-soundlab::after {
-    /* faint flowing underline */
     content: '';
     position: absolute;
     left: -2%;
@@ -438,11 +471,58 @@ function isCurrent(href: string) {
     pointer-events: none;
   }
 
+  /* Music Lab navbar - musical glow (cyan/blue/violet) */
+  .nav-musiclab-text {
+    display: inline;
+    background-image: linear-gradient(
+      120deg,
+      #66d2ff 0%,
+      #8e7cf3 30%,
+      #a66bff 60%,
+      #66d2ff 100%
+    );
+    background-size: 220% 100%;
+    background-position: 0 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: nav-musiclab-glow 4s ease-in-out infinite;
+    filter: drop-shadow(0 0 10px rgba(102, 210, 255, 0.4))
+      drop-shadow(0 0 2px rgba(166, 106, 255, 0.3));
+  }
+
+  .nav-musiclab-glow {
+    position: absolute;
+    left: -2%;
+    right: -2%;
+    top: calc(100% + 0.25rem);
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(102, 210, 255, 0.7) 25%,
+      rgba(136, 128, 229, 0.8) 50%,
+      rgba(166, 106, 255, 0.6) 75%,
+      transparent 100%
+    );
+    background-size: 220% 100%;
+    opacity: 0.9;
+    animation: nav-musiclab-glow 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
   @keyframes nav-soundlab-flow {
     to { background-position: 220% 0; }
   }
 
+  @keyframes nav-musiclab-glow {
+    0%, 100% { background-position: 0 0; filter: drop-shadow(0 0 8px rgba(102, 210, 255, 0.3)); }
+    50% { background-position: 220% 0; filter: drop-shadow(0 0 14px rgba(102, 210, 255, 0.6)) drop-shadow(0 0 4px rgba(166, 106, 255, 0.4)); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .nav-soundlab-text, .nav-soundlab::after { animation: none; }
+    .nav-soundlab-text, .nav-soundlab::after, .nav-musiclab-text, .nav-musiclab-glow { animation: none; }
   }
 </style>

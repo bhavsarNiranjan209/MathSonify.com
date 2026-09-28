@@ -725,7 +725,6 @@ export function findMusicLabInstrument(id: string): MusicLabInstrument | undefin
 export function getMusicLabInstrument(id: string): MusicLabInstrument {
   return INSTRUMENT_INDEX[id] ?? FALLBACK_INSTRUMENT;
 }
-
 export function instrumentsInCategory(category: MusicLabCategory): MusicLabInstrument[] {
   return MUSIC_LAB_INSTRUMENTS.filter((instrument) => instrument.category === category);
 }

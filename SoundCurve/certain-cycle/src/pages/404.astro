@@ -66,11 +66,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             <line x1="200" y1="0" x2="200" y2="300" stroke="rgb(var(--sc-line)/0.4)" stroke-width="1"/>
 
             <!-- Axis labels -->
-            <text x="388" y="268" fill="#8E949A" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="end">x</text>
-            <text x="14" y="16" fill="#8E949A" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="start">y</text>
+            <text x="388" y="268" fill="rgb(var(--sc-text-faint))" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="end">x</text>
+            <text x="14" y="16" fill="rgb(var(--sc-text-faint))" font-family="JetBrains Mono,monospace" font-size="9" text-anchor="start">y</text>
 
             <!-- Ticks -->
-            <g stroke="rgb(var(--sc-line)/0.2)" stroke-width="0.5" font-family="JetBrains Mono,monospace" font-size="7" fill="#8E949A">
+            <g stroke="rgb(var(--sc-line)/0.2)" stroke-width="0.5" font-family="JetBrains Mono,monospace" font-size="7" fill="rgb(var(--sc-text-faint))">
               <line x1="100" y1="247" x2="100" y2="253"/><text x="100" y="264" text-anchor="middle">−10</text>
               <line x1="300" y1="247" x2="300" y2="253"/><text x="300" y="264" text-anchor="middle">10</text>
               <line x1="197" y1="5" x2="203" y2="5"/><text x="208" y="8">10</text>
@@ -78,19 +78,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
             </g>
 
             <!-- Asymptote label + dashed line -->
-            <text x="200" y="12" fill="#8E949A" font-family="JetBrains Mono,monospace" font-size="8" text-anchor="middle" opacity="0.6">x = 404</text>
-            <line x1="200" y1="0" x2="200" y2="300" stroke="#8E949A" stroke-width="1" stroke-dasharray="6 4" opacity="0.5"/>
+            <text x="200" y="12" fill="rgb(var(--sc-text-faint))" font-family="JetBrains Mono,monospace" font-size="8" text-anchor="middle" opacity="0.6">x = 404</text>
+            <line x1="200" y1="0" x2="200" y2="300" stroke="rgb(var(--sc-text-faint))" stroke-width="1" stroke-dasharray="6 4" opacity="0.5"/>
 
-            <!-- Curve branches -->
+            <!-- Curve branches. These use the theme token, not a literal white:
+                 a hardcoded #FFFFFF stroke disappears completely in light mode. -->
             <g clip-path="url(#pc)">
-              <path id="c-left" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
-              <path id="c-right" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+              <path id="c-left" fill="none" stroke="rgb(var(--sc-ink))" stroke-width="2" stroke-linecap="round"/>
+              <path id="c-right" fill="none" stroke="rgb(var(--sc-ink))" stroke-width="2" stroke-linecap="round"/>
             </g>
 
             <!-- Playhead -->
             <g id="ph" opacity="0">
-              <circle id="ph-dot" r="5" fill="#FFFFFF"/>
-              <circle id="ph-ring" r="5" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0"/>
+              <circle id="ph-dot" r="5" fill="rgb(var(--sc-ink))"/>
+              <circle id="ph-ring" r="5" fill="none" stroke="rgb(var(--sc-ink))" stroke-width="1.5" opacity="0"/>
             </g>
           </svg>
         </div>
@@ -98,8 +99,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       <!-- Equation -->
       <div class="code-mat px-5 py-3 mb-8 text-center" role="note" aria-label="Equation">
-        <p class="font-mono text-sm sm:text-base" style="color:rgb(255 255 255);">y = <span style="opacity:0.6;">1</span> / (x − 404)</p>
-        <p class="font-mono text-xs mt-1.5" style="color:#8E949A;">undefined at x = 404</p>
+        <p class="font-mono text-sm sm:text-base text-sc-text">y = <span style="opacity:0.6;">1</span> / (x − 404)</p>
+        <p class="font-mono text-xs mt-1.5 text-sc-text-faint">undefined at x = 404</p>
       </div>
 
       <!-- Headline -->
@@ -114,7 +115,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
       <!-- Actions -->
       <div class="flex flex-col sm:flex-row items-center gap-3 mb-10">
-        <a href="/" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-primary text-center">Back to the Lab</a>
+        <a href="/" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-primary text-center">Back to MathSonify</a>
+        <a href="/create" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-ghost text-center">Open Create</a>
         <a href="/equations" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-ghost text-center">Explore equations</a>
       </div>
 
