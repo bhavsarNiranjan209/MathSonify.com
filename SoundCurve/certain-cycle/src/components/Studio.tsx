@@ -1,16 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useStudioStore, type InstrumentType, type SonificationMode } from '../store/studioStore';
 import { useTranslation } from '../i18n/index';
 import EquationInput from './EquationInput';
 import Visualizer from './Visualizer';
+import GraphPanel from './GraphPanel';
 import AudioControls from './AudioControls';
 import PresetDrawer from './PresetDrawer';
 import ShareModal from './ShareModal';
 import ExportModal from './ExportModal';
 import { audioEngine } from '../utils/audioEngine';
-import { evaluateCatmullRomSpline } from '../utils/curveSpline';
+import { resolveActiveCurve } from '../utils/activeCurve';
 import StudioErrorBoundary from './Studio/StudioErrorBoundary';
+
+// The 3D viewer is no longer dev-only: it is a mode of the shared GraphPanel and
+// ships to real users. The old `Curve3DDevPanel` harness has been retired — the
+// panel itself is the single reusable implementation.
 
 // The Create page is a `client:only` island, so Astro ships no markup for it.
 // Without a boundary, any throw inside the studio unmounts the entire island
@@ -155,38 +160,45 @@ function StudioInner() {
           setHasPendingChanges(false);
         } else {
           setHasPendingChanges(false);
-          const playPromise = isCustomCurve && splineControlPoints.length > 0
-            ? audioEngine.playPoints(
-                evaluateCatmullRomSpline(splineControlPoints, 800),
-                minX,
-                maxX,
-                minFreq,
-                maxFreq,
-                duration / speed,
-                volume,
-                instrument,
-                sonificationMode,
-                loop,
-                scale,
-                (prog, cx, cy) => { setProgress(prog, cx, cy); },
-                () => { setPlaying(false); setProgress(0, 0, 0); }
-              )
-            : audioEngine.play(
-                equation,
-                minX,
-                maxX,
-                minFreq,
-                maxFreq,
-                duration / speed,
-                volume,
-                instrument,
-                sonificationMode,
-                loop,
-                scale,
-                (prog, cx, cy) => { setProgress(prog, cx, cy); },
-                () => { setPlaying(false); setProgress(0, 0, 0); }
-              );
-          playPromise.then(() => setPlaying(true)).catch((err) => console.error(err));
+          // Same resolver the exporter uses, so what you hear on Play is the
+          // exact curve the export will capture.
+          //
+          // resolveActiveCurve THROWS on an unparseable equation (it used to be
+          // a rejected promise from audioEngine.play, which the .catch() below
+          // absorbed). It has to be inside the async boundary or the throw
+          // escapes this event listener and tears down the handler.
+          const playPromise = (async () => {
+            const s = useStudioStore.getState();
+            const curve = resolveActiveCurve({
+              equation: s.equation,
+              minX: s.minX,
+              maxX: s.maxX,
+              isCustomCurve: s.isCustomCurve,
+              splineControlPoints: s.splineControlPoints,
+            });
+            await audioEngine.playPoints(
+              curve.points,
+              s.minX,
+              s.maxX,
+              s.minFreq,
+              s.maxFreq,
+              s.duration / s.speed,
+              s.volume,
+              s.instrument,
+              s.sonificationMode,
+              s.loop,
+              s.scale,
+              (prog, cx, cy, readout) => { setProgress(prog, cx, cy, readout); },
+              () => { setPlaying(false); setProgress(0, 0, 0); }
+            );
+          })();
+          playPromise.then(() => setPlaying(true)).catch((err) => {
+            // Surface it the same way the export modal would, and make sure a
+            // failed start never leaves the UI stuck in a "playing" state.
+            console.error(err);
+            setPlaying(false);
+            setProgress(0, 0, 0);
+          });
         }
       }
     };
@@ -242,9 +254,14 @@ function StudioInner() {
           </div>
         </div>
 
-        {/* Right Column: Visualizer (7 cols) */}
+        {/* Right Column: the shared GraphPanel (2 cols of 12 on lg) */}
         <div id="graph-area" ref={graphSectionRef} className="lg:col-span-7 space-y-6 w-full min-w-0">
-          <Visualizer />
+          {/* ONE shared panel owns the 2D/3D toggle. The Studio's own toolbar
+              (waveform, spectrum, Lissajous, mandala) lives inside the 2D branch;
+              3D is a MODE of this panel, not a separate card or page. */}
+          <GraphPanel label={equation || 'curve'}>
+            <Visualizer />
+          </GraphPanel>
 
           <div className="p-4 rounded-sc-md bg-sc-surface/60 border border-sc-line/15 text-xs text-sc-text-soft flex items-start gap-3">
             <span className="text-base">💡</span>

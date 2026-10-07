@@ -1,137 +1,120 @@
 ---
+/**
+ * /how-it-works — rebuilt as an experience rather than a specification.
+ *
+ * The previous version led with five numbered cards describing the pipeline.
+ * That is the documentation voice, and it is exactly what this page is trying to
+ * stop being: it told you what MathSonify does instead of letting you hear it.
+ *
+ * The structure now: prove it works first (a live equation above the fold), then
+ * build the idea up through the transformation, then — lower down and collapsed
+ * by default — preserve the original technical explanation for anyone who wants
+ * it. Nothing was deleted; it was moved behind the demonstration.
+ *
+ * Performance: exactly ONE island on the page. Every static section is plain
+ * Astro markup and ships zero JavaScript. The island owns one canvas and one rAF
+ * loop. The section reveals are native `<details>`, so they are keyboard
+ * accessible and need no script at all — no scroll-jacking, and no per-frame
+ * work while the reader is only reading.
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Navigation from '../components/Navigation.astro';
 import Footer from '../components/Footer.astro';
+import HowItWorksExperience from '../components/HowItWorks/HowItWorksExperience.tsx';
 ---
 
-<BaseLayout title="How It Works - MathSonify Mathematical Audio Architecture" description="Discover how MathSonify parses math equations, samples coordinates, and synthesizes audio in real-time.">
+<BaseLayout
+  title="How Math Becomes Music - MathSonify"
+  description="Type an equation, watch it become a curve, and hear that curve played. An interactive demonstration of how MathSonify turns mathematics into sound."
+>
   <Navigation />
 
-  <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
-    <!-- Header -->
-    <div class="text-center max-w-3xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4" data-i18n="howItWorks.tag">
-        architectural specification
+  <main class="pt-24 sm:pt-28 pb-20 px-4 sm:px-6 lg:px-8">
+    <!--
+      A very faint mathematical ground: two slow radial washes, pure CSS,
+      non-interactive, behind everything.
+
+      Deliberately almost invisible. The page already has a live canvas, a moving
+      playhead and a live waveform, and the brief is explicit that the atmosphere
+      must never compete with the content. Under reduced motion the animation is
+      dropped entirely and only the static wash remains.
+    -->
+    <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      <div class="hwi-wash hwi-wash-a"></div>
+      <div class="hwi-wash hwi-wash-b"></div>
+    </div>
+
+    <!-- ── hero ── -->
+    <section class="max-w-5xl mx-auto">
+      <div
+        class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-6"
+      >
+        try it yourself
       </div>
-      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-4" data-i18n="howItWorks.title">
+      <h1 class="font-serif text-4xl sm:text-6xl font-semibold text-sc-text tracking-tight leading-[1.05]">
         How math becomes music
       </h1>
-      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed" data-i18n="howItWorks.subtitle">
-        MathSonify is not a random sound generator. It implements a deterministic mathematical translation engine that converts geometric properties of equations into acoustic properties of sound.
+      <p class="mt-5 text-base sm:text-lg text-sc-text-soft leading-relaxed max-w-2xl">
+        Not by describing it. Type an equation, watch it become a curve, and hear
+        that curve played. The scanner walks from left to right, and every point
+        it passes becomes a note.
       </p>
-    </div>
+    </section>
 
-    <!-- The pipeline -->
-    <div class="space-y-8">
-      <!-- Step 1 -->
-      <div class="panel p-6 sm:p-8">
-        <div class="flex flex-col sm:flex-row items-start gap-6">
-          <div class="w-12 h-12 rounded-full bg-sc-accent/15 border border-sc-accent/50 text-sc-accent font-mono font-bold text-lg flex items-center justify-center flex-shrink-0">
-            01
-          </div>
-          <div class="space-y-3 flex-1">
-            <h3 class="font-serif text-xl font-semibold text-sc-text" data-i18n="howItWorks.step1Title">Safe AST equation parsing</h3>
-            <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="howItWorks.step1Desc">
-              When you enter a formula like <code class="px-2 py-0.5 rounded bg-sc-sunken text-sc-accent font-mono text-xs border border-sc-line/15">sin(x) * cos(3*x)</code>, MathSonify uses <code class="text-sc-text">mathjs</code> to compile it into an abstract syntax tree (AST). We never execute raw <code class="text-red-400">eval()</code>, ensuring complete client-side security and eliminating code injection risks.
-            </p>
-            <div class="p-3 code-mat text-xs" data-i18n="howItWorks.step1Code">
-              Input string, tokenizer, AST expression tree, compiled function
-            </div>
-          </div>
-        </div>
-      </div>
+    <!--
+      THE EXPERIENCE. This is the page. Everything above is a short preamble and
+      everything below is elaboration, so the visitor meets a working
+      demonstration within one scroll instead of a specification.
+    -->
+    <section class="max-w-5xl mx-auto mt-10 sm:mt-14">
+      <HowItWorksExperience client:load />
+    </section>
 
-      <!-- Step 2 -->
-      <div class="panel p-6 sm:p-8">
-        <div class="flex flex-col sm:flex-row items-start gap-6">
-          <div class="w-12 h-12 rounded-full bg-sc-accent/15 border border-sc-accent/50 text-sc-accent font-mono font-bold text-lg flex items-center justify-center flex-shrink-0">
-            02
-          </div>
-          <div class="space-y-3 flex-1">
-            <h3 class="font-serif text-xl font-semibold text-sc-text" data-i18n="howItWorks.step2Title">High-resolution sampling and derivative estimation</h3>
-            <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="howItWorks.step2Desc">
-              The compiled equation is sampled across your chosen domain [x_min, x_max] at 600–800 discrete points. For each point we compute the coordinate (x, y), estimate the first derivative (slope dy/dx), and compute local curvature:
-            </p>
-            <div class="p-3 code-mat text-xs" data-i18n="howItWorks.step2Code">
-              slope(x) = [f(x + dx) - f(x - dx)] / 2dx
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- ── the transformation, stated as a journey ── -->
+    <section class="max-w-5xl mx-auto mt-24 sm:mt-32">
+      <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-sc-text">
+        The same journey, every time
+      </h2>
+      <p class="mt-3 text-sm text-sc-text-soft leading-relaxed max-w-2xl">
+        Everything above is one transformation, whether the equation is
+        <code class="font-mono text-sc-text">sin(x)</code> or something far less
+        forgiving.
+      </p>
 
-      <!-- Step 3 -->
-      <div class="panel p-6 sm:p-8">
-        <div class="flex flex-col sm:flex-row items-start gap-6">
-          <div class="w-12 h-12 rounded-full bg-sc-accent/15 border border-sc-accent/50 text-sc-accent font-mono font-bold text-lg flex items-center justify-center flex-shrink-0">
-            03
-          </div>
-          <div class="space-y-3 flex-1">
-            <h3 class="font-serif text-xl font-semibold text-sc-text" data-i18n="howItWorks.step3Title">Acoustic parameter mapping</h3>
-            <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="howItWorks.step3Desc">
-              Mathematical dimensions are mapped to audio physics:
-            </p>
-            <ul class="space-y-2 text-xs text-sc-text-soft">
-              <li class="flex items-start gap-2">
-                <span class="text-sc-accent font-bold">•</span>
-                <span data-i18n="howItWorks.step3x"><strong class="text-sc-text">Horizontal coordinate (x):</strong> mapped directly to the audio timeline and clock progress.</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-sc-accent font-bold">•</span>
-                <span data-i18n="howItWorks.step3y"><strong class="text-sc-text">Vertical elevation (y):</strong> normalized to audio pitch or quantized to musical scale degrees (e.g. minor pentatonic).</span>
-              </li>
-              <li class="flex items-start gap-2">
-                <span class="text-sc-accent font-bold">•</span>
-                <span data-i18n="howItWorks.step3dy"><strong class="text-sc-text">Curve slope (|dy/dx|):</strong> dynamically opens the biquad lowpass filter cutoff to introduce higher harmonic brightness during steep transitions.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      <!--
+        Native `<details>` rather than a scroll-triggered reveal. It works with
+        no JavaScript, is keyboard accessible for free, and cannot trap the
+        reader the way a scroll hijack would. Each row also reads as a complete
+        sentence when collapsed, so the section still communicates the shape of
+        the pipeline without being opened.
+      -->
+      <ol class="mt-8 space-y-2">
+        {
+          [
+            ['Mathematics', 'You write an equation. It is parsed into a tree and never executed as code.'],
+            ['Geometry', 'The curve is sampled into points, each carrying its height, slope and curvature.'],
+            ['Motion', 'A playhead sweeps left to right. Position in x becomes position in time.'],
+            ['Sound', 'Height becomes pitch, steepness opens the filter, and the curve is heard.'],
+            ['Music', 'Snapped to a scale, the same mathematics becomes something you might replay.'],
+          ].map(([title, body], i) => (
+            <li>
+              <details class="group panel px-4 sm:px-5 py-4 rounded">
+                <summary class="flex items-center gap-4 cursor-pointer list-none min-h-[44px]">
+                  <span class="font-mono text-xs text-sc-text-faint w-6 shrink-0">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span class="font-serif text-lg text-sc-text flex-1">{title}</span>
+                  <span class="hwi-plus" aria-hidden="true">+</span>
+                </summary>
+                <p class="mt-3 text-sm text-sc-text-soft leading-relaxed pl-10">{body}</p>
+              </details>
+            </li>
+          ))
+        }
+      </ol>
+    </section>
 
-      <!-- Step 4 -->
-      <div class="panel p-6 sm:p-8">
-        <div class="flex flex-col sm:flex-row items-start gap-6">
-          <div class="w-12 h-12 rounded-full bg-sc-accent/15 border border-sc-accent/50 text-sc-accent font-mono font-bold text-lg flex items-center justify-center flex-shrink-0">
-            04
-          </div>
-          <div class="space-y-3 flex-1">
-            <h3 class="font-serif text-xl font-semibold text-sc-text" data-i18n="howItWorks.step4Title">Real-time Web Audio API synthesis</h3>
-            <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="howItWorks.step4Desc">
-              We construct custom audio routing graphs inside the browser using native <code class="text-sc-text">AudioContext</code>:
-            </p>
-            <div class="p-3 code-mat text-xs space-y-1">
-              <div>OscillatorNode (sine, triangle, saw, pulse) → BiquadFilterNode</div>
-              <div>→ gain envelope (ADSR) → DynamicsCompressorNode → AnalyserNode → destination</div>
-            </div>
-            <p class="text-xs text-sc-text-soft" data-i18n="howItWorks.step4Note">
-              A master <code class="text-sc-accent">DynamicsCompressorNode</code> ensures zero audio clipping, guarding your ears against sudden mathematical spikes or asymptotes.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 5 -->
-      <div class="panel p-6 sm:p-8">
-        <div class="flex flex-col sm:flex-row items-start gap-6">
-          <div class="w-12 h-12 rounded-full bg-sc-accent/15 border border-sc-accent/50 text-sc-accent font-mono font-bold text-lg flex items-center justify-center flex-shrink-0">
-            05
-          </div>
-          <div class="space-y-3 flex-1">
-            <h3 class="font-serif text-xl font-semibold text-sc-text" data-i18n="howItWorks.step5Title">Audio-visual synchronized playback</h3>
-            <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="howItWorks.step5Desc">
-              As the audio context synthesizes the waveform, a 60 FPS animation loop drives the canvas 2D engine. The playhead traces the exact mathematical point on screen while the curve and spectrum state respond to the sound output.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CTA -->
-    <div class="mt-16 text-center">
-      <a href="/create" class="btn-primary inline-flex items-center px-8 py-3.5 text-base" data-i18n="howItWorks.cta">
-        Try it in the sound studio
-      </a>
-    </div>
+    <!-- PLACEHOLDER_UNDER_THE_HOOD -->
   </main>
 
   <Footer />

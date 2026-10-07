@@ -1,10 +1,47 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import Navigation from '../components/Navigation.astro';
-import Studio from '../components/Studio';
+/**
+ * Permanent redirect: /create -> /studio
+ *
+ * The studio was renamed, but the old path is not simply dead: ShareModal has
+ * been generating `mathsonify.com/create?eq=...` links and "Open in studio"
+ * buttons have pointed here, so those URLs are already in the wild. Dropping
+ * the route outright would 404 every shared equation link.
+ *
+ * The site is a static build, so this cannot be a real 301 — it is the standard
+ * static-host equivalent:
+ *   1. an inline script does `location.replace('/studio' + search)` immediately,
+ *      which preserves the query string (the whole point: the equation lives
+ *      in the query, so dropping it would land the visitor on a blank studio);
+ *   2. a <meta http-equiv="refresh"> is the no-JS fallback (query-less);
+ *   3. canonical + noindex keep the duplicate out of search results.
+ *
+ * Deliberately standalone — no BaseLayout, no island — so it stays a few
+ * hundred bytes and can never itself be the thing that is slow or broken.
+ */
+const target = '/studio';
 ---
 
-<BaseLayout title="Create - MathSonify">
-  <Navigation />
-  <Studio client:only="react" />
-</BaseLayout>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Studio — MathSonify</title>
+    <meta name="robots" content="noindex, follow" />
+    <link rel="canonical" href={target} />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <script is:inline>
+      // Preserve the equation/params rather than dropping the visitor on an
+      // empty studio. `replace` so the old URL does not sit in history.
+      (function () {
+        try {
+          window.location.replace('/studio' + window.location.search + window.location.hash);
+        } catch (e) {
+          window.location.href = '/studio';
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <p>This page has moved to <a href={target}>the MathSonify Studio</a>.</p>
+  </body>
+</html>

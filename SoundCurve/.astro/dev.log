@@ -1,0 +1,7 @@
+{"message":"Missing pages directory: src/pages","label":null,"level":"warn"}
+{"message":"connected.","label":"vite","level":"info"}
+{"message":"Generated 1ms","label":"types","level":"info"}
+{"message":"connected.","label":"vite","level":"info"}
+{"message":" astro  v7.3.4 ready in 3112 ms\n┃ Local    http://localhost:4321/\n┃ Network  use --host to expose","label":"SKIP_FORMAT","level":"info"}
+{"message":"watching for file changes...","label":null,"level":"info"}
+{"message":"[404] / 20ms","label":null,"level":"info"}

@@ -1,9 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStudioStore } from '../store/studioStore';
 import { useTranslation } from '../i18n/index';
 import { renderEquationToWavBlob } from '../utils/audioExporter';
 import { exportGraphAsImage } from '../utils/graphExporter';
-import { exportEquationVideo } from '../utils/videoExporter';
+import {
+  exportEquationVideo,
+  detectVideoMimeType,
+  videoExtensionForMimeType,
+  UNSUPPORTED_RECORDING_MESSAGE,
+  type VideoExportResult,
+} from '../utils/videoExporter';
+import { performSave, type SaveOutcome } from '../utils/fileSave';
 
 export default function ExportModal() {
   const { t } = useTranslation();
@@ -28,6 +35,34 @@ export default function ExportModal() {
   const [downloadReady, setDownloadReady] = useState(false);
   const [exportError, setExportError] = useState('');
   const [imageFormat, setImageFormat] = useState<'png' | 'jpeg'>('png');
+
+  // ── Video results ────────────────────────────────────────────────
+  // The recorded clip is shown inline and saved explicitly, because a bare
+  // `<a download>` is unreliable on mobile (iOS often just opens the blob).
+  const [video, setVideo] = useState<VideoExportResult | null>(null);
+  const [saveOutcome, setSaveOutcome] = useState<SaveOutcome | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Which container this browser can actually record. `null` means video export
+  // is impossible here (e.g. Safari on iOS, which cannot record at all).
+  const [videoMime] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : detectVideoMimeType(),
+  );
+  const videoBlocked = videoMime === null;
+
+  // Release the previous clip's object URL whenever it is replaced or the modal
+  // closes, so a long editing session does not leak a blob per export.
+  useEffect(() => {
+    if (!video) return;
+    return () => URL.revokeObjectURL(video.url);
+  }, [video]);
+
+  // Closing the modal drops the clip too.
+  useEffect(() => {
+    if (exportModalOpen) return;
+    setVideo(null);
+    setSaveOutcome(null);
+  }, [exportModalOpen]);
 
   if (!exportModalOpen) return null;
 
@@ -80,10 +115,31 @@ export default function ExportModal() {
     try {
       setIsExporting(true);
       setExportError('');
-      await exportEquationVideo({
-        equation, equationName: activeEquationName, founderName: activeScientist?.name ?? null,
-        minX, maxX, minFreq, maxFreq, duration, volume, instrument, sonificationMode, scale,
+      setSaveOutcome(null);
+      // Read the live session at the moment Export is pressed. Zustand's
+      // getState() avoids a stale render closure, so changing equation or
+      // instrument and exporting immediately captures the new values.
+      const s = useStudioStore.getState();
+
+      const result = await exportEquationVideo({
+        equation: s.equation,
+        equationName: s.activeEquationName,
+        scientist: s.activeScientist,
+        minX: s.minX,
+        maxX: s.maxX,
+        minFreq: s.minFreq,
+        maxFreq: s.maxFreq,
+        duration: s.duration,
+        volume: s.volume,
+        instrument: s.instrument,
+        sonificationMode: s.sonificationMode,
+        scale: s.scale,
+        isCustomCurve: s.isCustomCurve,
+        splineControlPoints: s.splineControlPoints,
+        speed: s.speed,
       });
+      // Show the clip; saving is a separate, explicit action.
+      setVideo(result);
       setDownloadReady(true);
       setIsExporting(false);
     } catch (err) {
@@ -92,15 +148,55 @@ export default function ExportModal() {
     }
   };
 
+  /**
+   * The single Save action. Uses the Web Share API where the device can share
+   * files (giving the native Save-to-Photos / Reels sheet) and an anchor
+   * download otherwise.
+   */
+  const handleSaveVideo = async () => {
+    if (!video) return;
+    try {
+      setIsSaving(true);
+      setExportError('');
+      const file = new File([video.blob], video.filename, { type: video.mimeType });
+      setSaveOutcome(await performSave(file, video.filename));
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Could not save the video');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const audioSizeMB = ((duration * 44100 * 4) / 1024 / 1024).toFixed(2);
   const imageSizeLabel = imageFormat === 'png' ? '~180–350 KB' : '~90–160 KB';
   const videoSizeLabel = `~${(duration * 0.31).toFixed(1)} MB`;
+  /** Human label for the container this browser will really record. */
+  const videoFormatLabel = videoMime
+    ? `${videoExtensionForMimeType(videoMime).toUpperCase()} · ${videoMime.includes('mp4') ? 'H.264' : 'VP9'} · 720p60`
+    : 'unavailable';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(var(--sc-bg) / 0.72)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+      style={{
+        background: 'rgba(var(--sc-bg) / 0.72)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        // Landscape notches: keep the sheet clear of the safe area. Inline
+        // rather than a `.sc-safe-*` utility, because such a class would
+        // collide with Tailwind's own padding utilities (same specificity,
+        // later in the cascade) and silently win.
+        paddingLeft: 'max(0px, env(safe-area-inset-left))',
+        paddingRight: 'max(0px, env(safe-area-inset-right))',
+      }}
+    >
       <div
-        className="relative w-full max-w-md p-6 space-y-5 rounded-2xl overflow-hidden"
+        className="relative w-full sm:max-w-md p-5 sm:p-6 space-y-5 rounded-t-2xl sm:rounded-2xl overflow-y-auto"
         style={{
+          // On a phone this is a bottom sheet: cap the height and let it scroll,
+          // and keep its actions clear of the home indicator.
+          maxHeight: 'min(92dvh, 100%)',
+          paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))',
           background: 'color-mix(in srgb, var(--sc-bg) 88%, transparent)',
           backdropFilter: 'blur(24px) saturate(1.35)',
           WebkitBackdropFilter: 'blur(24px) saturate(1.35)',
@@ -123,7 +219,7 @@ export default function ExportModal() {
           </h3>
           <button
             onClick={() => setExportModalOpen(false)}
-            className="flex items-center justify-center w-7 h-7 rounded-full text-sc-text-faint hover:text-sc-text transition-colors min-w-[28px] min-h-[28px]"
+            className="flex items-center justify-center w-11 h-11 rounded-full text-sc-text-faint hover:text-sc-text transition-colors"
             style={{ background: 'color-mix(in srgb, var(--sc-line) 14%, transparent)' }}
             aria-label="Close export dialog"
           >
@@ -132,7 +228,7 @@ export default function ExportModal() {
         </div>
 
         {/* Tab bar — glass pill */}
-        <div className="relative flex rounded-full p-1 gap-1" style={{ background: 'color-mix(in srgb, var(--sc-surface) 86%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)', backdropFilter: 'blur(8px)' }}>
+        <div className="relative flex flex-wrap sm:flex-nowrap rounded-2xl sm:rounded-full p-1 gap-1" style={{ background: 'color-mix(in srgb, var(--sc-surface) 86%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)', backdropFilter: 'blur(8px)' }}>
           {([
             { id: 'audio' as const, label: t('export.audioTab'), icon: '♪' },
             { id: 'image' as const, label: t('export.imageTab'), icon: '🖼' },
@@ -143,8 +239,9 @@ export default function ExportModal() {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => { setExportType(tab.id); setDownloadReady(false); setExportError(''); }}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-all duration-200 min-h-[44px]"
+                onClick={() => { setExportType(tab.id); setDownloadReady(false); setExportError(''); setSaveOutcome(null); }}
+                // Full-width stacked targets on a phone; equal thirds from sm up.
+                className="w-full sm:w-auto sm:flex-1 flex items-center justify-center gap-1.5 rounded-2xl sm:rounded-full text-xs font-semibold transition-all duration-200 min-h-[44px]"
                 style={{
                   background: active ? 'var(--sc-accent)' : 'transparent',
                   color: active ? 'var(--sc-on-accent)' : 'var(--sc-text-soft)',
@@ -212,10 +309,10 @@ export default function ExportModal() {
                 ✓
               </span>
               <span className="text-xs font-semibold text-emerald-400">
-                {exportType === 'image' ? t('export.imageDownloaded') : exportType === 'video' ? t('export.videoDownloaded') : t('export.downloaded')}
+                {exportType === 'video' ? t('export.videoReady') : exportType === 'image' ? t('export.imageDownloaded') : t('export.downloaded')}
               </span>
               <span className="text-[11px] font-mono px-2.5 py-1 rounded-full" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', color: 'var(--sc-text-faint)', border: '1px solid color-mix(in srgb, var(--sc-line) 12%, transparent)' }}>
-                mathsonify.com-{sanitizeFilename(exportType === 'video' && activeEquationName ? activeEquationName : equation)}.{exportType === 'video' ? 'webm' : exportType === 'image' ? imageFormat : 'wav'}
+                {video?.filename ?? `mathsonify.com-${sanitizeFilename(exportType === 'video' && activeEquationName ? activeEquationName : equation)}.${exportType === 'video' ? videoExtensionForMimeType(videoMime) : exportType === 'image' ? imageFormat : 'wav'}`}
               </span>
             </div>
           ) : (
@@ -248,7 +345,7 @@ export default function ExportModal() {
             </>
           ) : exportType === 'video' ? (
             <>
-              <div className="flex justify-between"><span className="text-sc-text-faint">Format</span><span className="font-mono text-sc-text">WebM (VP9, 720p)</span></div>
+              <div className="flex justify-between"><span className="text-sc-text-faint">Format</span><span className="font-mono text-sc-text">{videoFormatLabel}</span></div>
               <div className="flex justify-between"><span className="text-sc-text-faint">{t('export.duration')}</span><span className="font-mono text-sc-text">{duration} {t('export.seconds')}</span></div>
               {activeEquationName && (
                 <div className="flex justify-between"><span className="text-sc-text-faint">Equation</span><span className="font-mono text-sc-text">{activeEquationName}</span></div>
@@ -256,7 +353,7 @@ export default function ExportModal() {
               {activeScientist && (
                 <div className="flex justify-between"><span className="text-sc-text-faint">Scientist</span><span className="font-mono text-sc-text">{activeScientist.name}</span></div>
               )}
-              <div className="flex justify-between"><span className="text-sc-text-faint">Resolution</span><span className="font-mono text-sc-text">1280 × 720 @ 30fps</span></div>
+              <div className="flex justify-between"><span className="text-sc-text-faint">Resolution</span><span className="font-mono text-sc-text">1280 × 720 @ 60fps</span></div>
             </>
           ) : (
             <>
@@ -282,7 +379,7 @@ export default function ExportModal() {
                     key={fmt}
                     type="button"
                     onClick={() => setImageFormat(fmt)}
-                    className="px-3 rounded-full text-xs font-semibold transition-all min-h-[32px]"
+                    className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px]"
                     style={{
                       background: imageFormat === fmt ? 'var(--sc-accent)' : 'transparent',
                       color: imageFormat === fmt ? 'var(--sc-on-accent)' : 'var(--sc-text-faint)',
@@ -299,7 +396,50 @@ export default function ExportModal() {
         )}
 
         {exportType === 'video' && (
-          <p className="relative text-[11px] text-sc-text-faint">Est. file size: <span className="font-mono text-sc-text-soft">{videoSizeLabel}</span> · VP9 + Opus</p>
+          <div className="relative space-y-3">
+            <p className="text-[11px] text-sc-text-faint">
+              Est. file size: <span className="font-mono text-sc-text-soft">{videoSizeLabel}</span> · {videoFormatLabel}
+            </p>
+            {videoBlocked && (
+              <p className="p-3 rounded-xl text-xs" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', color: '#F87171' }}>
+                {UNSUPPORTED_RECORDING_MESSAGE}
+              </p>
+            )}
+            {/* Inline review of the recorded clip, plus the one Save action. */}
+            {video && (
+              <div className="space-y-2">
+                <video
+                  src={video.url}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full rounded-lg border border-sc-line/20 bg-black"
+                  style={{ aspectRatio: '16 / 9' }}
+                />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveVideo}
+                    disabled={isSaving}
+                    className="flex-1 rounded-full text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 min-h-[44px] disabled:opacity-60"
+                    style={{
+                      background: 'linear-gradient(135deg, var(--sc-accent) 0%, color-mix(in srgb, var(--sc-accent) 82%, white 10%) 100%)',
+                      color: 'var(--sc-on-accent)',
+                      border: '1px solid color-mix(in srgb, var(--sc-accent) 30%, transparent)',
+                    }}
+                  >
+                    {isSaving ? '…' : '⬇ Save video'}
+                  </button>
+                </div>
+                <p className="text-[11px] font-mono break-all text-sc-text-faint">
+                  {video.filename}
+                  {saveOutcome === 'shared' && ' · saved via share sheet'}
+                  {saveOutcome === 'downloaded' && ' · downloaded'}
+                  {saveOutcome === 'cancelled' && ' · share sheet dismissed — tap Save to try again'}
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {exportType === 'audio' && (
@@ -334,9 +474,9 @@ export default function ExportModal() {
           ) : exportType === 'video' ? (
             <button
               type="button"
-              disabled={isExporting}
+              disabled={isExporting || videoBlocked}
               onClick={handleExportVideo}
-              className="w-full rounded-full text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 min-h-[44px] disabled:cursor-not-allowed"
+              className="w-full rounded-full text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 min-h-[44px] disabled:cursor-not-allowed disabled:opacity-60"
               style={{
                 background: isExporting ? 'color-mix(in srgb, var(--sc-accent) 42%, transparent)' : 'linear-gradient(135deg, var(--sc-accent) 0%, color-mix(in srgb, var(--sc-accent) 82%, white 10%) 100%)',
                 color: 'var(--sc-on-accent)',
@@ -384,7 +524,7 @@ export default function ExportModal() {
 
         <div className="relative pt-2 flex items-center justify-between text-[11px] text-sc-text-faint" style={{ borderTop: '1px solid color-mix(in srgb, var(--sc-line) 10%, transparent)' }}>
           <span>{t('export.clientSide')}</span>
-          <button onClick={() => setExportModalOpen(false)} className="text-sc-text-soft hover:text-sc-text min-h-[28px] px-2">
+          <button onClick={() => setExportModalOpen(false)} className="text-sc-text-soft hover:text-sc-text min-h-[44px] px-3">
             {t('export.close')}
           </button>
         </div>

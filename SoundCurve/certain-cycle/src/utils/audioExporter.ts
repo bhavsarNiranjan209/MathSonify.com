@@ -115,6 +115,16 @@ export interface ExportAudioOptions {
   instrument: InstrumentType;
   sonificationMode: SonificationMode;
   scale?: ScaleKey;
+  /**
+   * Pre-resolved curve from `resolveActiveCurve`. Supply this to sonify exactly
+   * the shape on screen — including a sculpted/freehand curve, which the
+   * equation string alone cannot describe. When omitted the equation is parsed.
+   */
+  points?: SamplePoint[];
+  /** Seconds of silence prepended (used for the intro card). */
+  leadIn?: number;
+  /** Seconds of silence appended (used for the outro card). */
+  leadOut?: number;
 }
 
 /**
@@ -132,21 +142,33 @@ export async function renderEquationToWavBlob(options: ExportAudioOptions): Prom
     instrument,
     sonificationMode,
     scale = 'major',
+    points,
+    leadIn = 0,
+    leadOut = 0,
   } = options;
 
-  const parseResult = parseEquation(equation);
-  if (!parseResult.success || !parseResult.sample) {
-    throw new Error(parseResult.error || 'Cannot export audio: invalid equation');
+  // Prefer the caller's already-resolved points so the exported audio is
+  // derived from the very curve being displayed. Only fall back to parsing.
+  let samplePoints: SamplePoint[];
+  if (points && points.length > 0) {
+    samplePoints = points;
+  } else {
+    const parseResult = parseEquation(equation);
+    if (!parseResult.success || !parseResult.sample) {
+      throw new Error(parseResult.error || 'Cannot export audio: invalid equation');
+    }
+    samplePoints = parseResult.sample(minX, maxX, 800);
   }
 
-  const samplePoints: SamplePoint[] = parseResult.sample(minX, maxX, 800);
   const validPoints = samplePoints.filter((p) => p.isValid);
   if (validPoints.length === 0) {
     throw new Error('Cannot export audio: equation produced no valid numeric values');
   }
 
   const sampleRate = 44100;
-  const totalSamples = Math.ceil(sampleRate * duration);
+  const leadInSec = Math.max(0, leadIn);
+  const leadOutSec = Math.max(0, leadOut);
+  const totalSamples = Math.ceil(sampleRate * (leadInSec + duration + leadOutSec));
   const offlineCtx = new OfflineAudioContext(2, totalSamples, sampleRate);
 
   // Master Gain & Compressor for zero clipping
@@ -167,15 +189,19 @@ export async function renderEquationToWavBlob(options: ExportAudioOptions): Prom
   const minY = Math.min(...yVals);
   const maxY = Math.max(...yVals);
 
-  // Build audio graph inside offline context based on mode
+  // Build audio graph inside offline context based on mode. Every mode writes
+  // at absolute context time, so `leadInSec` shifts the whole sonification to
+  // start after the intro card — that is what keeps audio locked to the curve.
+  const off = leadInSec;
+
   if (sonificationMode === 'frequency') {
-    renderFrequencyMode(offlineCtx, masterGain, validPoints, minY, maxY, minFreq, maxFreq, duration, instrument);
+    renderFrequencyMode(offlineCtx, masterGain, validPoints, minY, maxY, minFreq, maxFreq, duration, instrument, off);
   } else if (sonificationMode === 'note') {
-    renderNoteMode(offlineCtx, masterGain, validPoints, minY, maxY, duration, instrument, scale);
+    renderNoteMode(offlineCtx, masterGain, validPoints, minY, maxY, duration, instrument, scale, off);
   } else if (sonificationMode === 'rhythm') {
-    renderRhythmMode(offlineCtx, masterGain, validPoints, minY, maxY, duration, instrument);
+    renderRhythmMode(offlineCtx, masterGain, validPoints, minY, maxY, duration, instrument, off);
   } else if (sonificationMode === 'chord') {
-    renderChordMode(offlineCtx, masterGain, validPoints, minY, maxY, duration, instrument, scale);
+    renderChordMode(offlineCtx, masterGain, validPoints, minY, maxY, duration, instrument, scale, off);
   }
 
   const renderedBuffer = await offlineCtx.startRendering();
@@ -192,7 +218,8 @@ function renderFrequencyMode(
   minFreq: number,
   maxFreq: number,
   duration: number,
-  instrument: InstrumentType
+  instrument: InstrumentType,
+  off: number
 ) {
   const osc = ctx.createOscillator();
   const filter = ctx.createBiquadFilter();
@@ -207,14 +234,14 @@ function renderFrequencyMode(
   env.connect(dest);
 
   // Smooth attack & release
-  env.gain.setValueAtTime(0.0001, 0);
-  env.gain.exponentialRampToValueAtTime(0.7, 0.05);
-  env.gain.setValueAtTime(0.7, Math.max(0.06, duration - 0.08));
-  env.gain.exponentialRampToValueAtTime(0.0001, duration);
+  env.gain.setValueAtTime(0.0001, off);
+  env.gain.exponentialRampToValueAtTime(0.7, off + 0.05);
+  env.gain.setValueAtTime(0.7, off + Math.max(0.06, duration - 0.08));
+  env.gain.exponentialRampToValueAtTime(0.0001, off + duration);
 
   const dt = duration / points.length;
   points.forEach((pt, i) => {
-    const t = i * dt;
+    const t = off + i * dt;
     const freq = normalize(pt.y, minY, maxY, minFreq, maxFreq);
     const clampedFreq = clamp(freq, 20, 8000);
     osc.frequency.setValueAtTime(clampedFreq, t);
@@ -224,8 +251,8 @@ function renderFrequencyMode(
     filter.frequency.setValueAtTime(slopeBrightness, t);
   });
 
-  osc.start(0);
-  osc.stop(duration);
+  osc.start(off);
+  osc.stop(off + duration);
 }
 
 function renderNoteMode(
@@ -236,7 +263,8 @@ function renderNoteMode(
   maxY: number,
   duration: number,
   instrument: InstrumentType,
-  scale: ScaleKey
+  scale: ScaleKey,
+  off: number
 ) {
   const stepCount = Math.min(points.length, Math.max(16, Math.floor(duration * 8)));
   const dt = duration / stepCount;
@@ -247,7 +275,7 @@ function renderNoteMode(
     const pt = points[ptIdx];
     const norm = normalize(pt.y, minY, maxY, 0, 1);
     const pitch = quantizeToScale(norm, scale);
-    const startTime = step * dt;
+    const startTime = off + step * dt;
     const noteDur = dt * 0.9;
 
     playSingleNoteOffline(ctx, dest, pitch, startTime, noteDur, instrument);
@@ -261,7 +289,8 @@ function renderRhythmMode(
   minY: number,
   maxY: number,
   duration: number,
-  instrument: InstrumentType
+  instrument: InstrumentType,
+  off: number
 ) {
   const threshold = minY + (maxY - minY) * 0.65;
   const peaks: number[] = [];
@@ -283,7 +312,7 @@ function renderRhythmMode(
   }
 
   peaks.forEach((peakIdx) => {
-    const time = (peakIdx / points.length) * duration;
+    const time = off + (peakIdx / points.length) * duration;
     const pt = points[peakIdx];
     const pitch = normalize(pt.y, minY, maxY, 220, 880);
     playSingleNoteOffline(ctx, dest, pitch, time, 0.18, instrument);
@@ -298,7 +327,8 @@ function renderChordMode(
   maxY: number,
   duration: number,
   instrument: InstrumentType,
-  scale: ScaleKey
+  scale: ScaleKey,
+  off: number
 ) {
   const stepCount = Math.min(points.length, Math.max(8, Math.floor(duration * 3)));
   const dt = duration / stepCount;
@@ -311,7 +341,7 @@ function renderChordMode(
     const third = quantizeToScale(norm + 0.12, scale);
     const fifth = quantizeToScale(norm + 0.22, scale);
 
-    const t = step * dt;
+    const t = off + step * dt;
     const chordDur = dt * 0.95;
 
     playSingleNoteOffline(ctx, dest, root, t, chordDur, instrument, 0.4);

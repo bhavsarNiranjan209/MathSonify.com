@@ -45,7 +45,7 @@ export default function ScientistModal() {
   const setActiveScientist = useStudioStore((s) => s.setActiveScientist);
 
   const studioUrl = (eq: Scientist['equations'][0]) =>
-    `/create?eq=${encodeURIComponent(eq.equation)}&inst=${eq.instrument}&mode=${eq.sonificationMode}&minX=${eq.minX}&maxX=${eq.maxX}&dur=${eq.duration}`;
+    `/studio?eq=${encodeURIComponent(eq.equation)}&inst=${eq.instrument}&mode=${eq.sonificationMode}&minX=${eq.minX}&maxX=${eq.maxX}&dur=${eq.duration}`;
 
   return (
     <AnimatePresence>

@@ -1,4 +1,4 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   FEATURE_FLAGS,
@@ -57,7 +57,7 @@ test('the route guard agrees with the flags, whatever they are set to', () => {
 });
 
 test('unguarded public routes are never treated as disabled', () => {
-  for (const path of ['/', '/create', '/equations', '/about', '/scientists']) {
+  for (const path of ['/', '/studio', '/equations', '/about', '/scientists']) {
     assert.equal(isRouteDisabled(path), false, `${path} must stay public`);
   }
 });
@@ -66,14 +66,14 @@ test('featureForRoute resolves paths including a trailing slash', () => {
   assert.equal(featureForRoute('/soundlab'), 'soundLab');
   assert.equal(featureForRoute('/music-lab/'), 'musicLab');
   assert.equal(featureForRoute('/draw'), 'draw');
-  assert.equal(featureForRoute('/create'), null);
+  assert.equal(featureForRoute('/studio'), null);
 });
 
 test('the navbar drops unreleased features and leaves no gaps', () => {
   const all = [
     { name: 'SoundLab', feature: 'soundLab' as FeatureId | null },
     { name: 'How It Works', feature: null },
-    { name: 'Create', feature: null },
+    { name: 'Studio', feature: null },
     { name: 'Draw', feature: 'draw' as FeatureId | null },
     { name: 'Equations', feature: null },
     { name: 'Music Lab', feature: 'musicLab' as FeatureId | null },
@@ -88,7 +88,7 @@ test('the navbar drops unreleased features and leaves no gaps', () => {
   assert.deepEqual(visible, expected);
 
   // Public links are never dropped, and nothing is left as a placeholder.
-  for (const always of ['How It Works', 'Create', 'Equations', 'About']) {
+  for (const always of ['How It Works', 'Studio', 'Equations', 'About']) {
     assert.ok(visible.includes(always), `${always} must always be in the navbar`);
   }
 });

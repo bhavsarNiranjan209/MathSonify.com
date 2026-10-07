@@ -19,7 +19,7 @@ Look at the badge at the very top that says "MATHEMATICAL ACOUSTIC EXPERIMENT"
 **If it's NOT moving:** Your browser might have "Reduce Motion" enabled
 
 ## Step 3: Check Studio page
-Go to http://localhost:4321/create
+Go to http://localhost:4321/studio
 
 **Expected:** You should see:
 - A dark interface with controls on the left
@@ -59,7 +59,7 @@ npm run dev
 
 Please tell me:
 1. [ ] Homepage loads but nothing animates
-2. [ ] Studio page (/create) has invisible/transparent elements
+2. [ ] Studio page (/studio) has invisible/transparent elements
 3. [ ] Everything works but animations are instant (no smooth transitions)
 4. [ ] Browser console shows errors
 5. [ ] Something else (describe):

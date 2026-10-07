@@ -130,8 +130,8 @@ test('every error-page CTA is a real, non-empty destination', () => {
     assert.doesNotMatch(source, /href="#"/, `${p} has a dead link`);
     assert.match(source, /href="\/"/, `${p} must offer a way home`);
   }
-  // The 404 offers Create as a second route into the product.
-  assert.match(read(PAGES.notFound), /href="\/create"/);
+  // The 404 offers the Studio as a second route into the product.
+  assert.match(read(PAGES.notFound), /href="\/studio"/);
 });
 
 test('the 404 states that the path does not exist, in the brand voice', () => {

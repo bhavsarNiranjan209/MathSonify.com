@@ -2,10 +2,11 @@ const en = {
   // Navigation
   'nav.scientists': 'Scientists',
   'nav.explore': 'Explore',
-  'nav.create': 'Create',
+  'nav.studio': 'Studio',
   'nav.soundlab': 'SoundLab',
   'nav.musicLab': 'Music Lab',
   'nav.draw': 'Draw',
+  'nav.guess': 'Guess',
   'nav.howItWorks': 'How It Works',
   'nav.equations': 'Equations',
   'nav.about': 'About',
@@ -21,10 +22,10 @@ const en = {
   'hero.titleAccent': 'living',
   'hero.titleLine2': 'sound',
   'hero.subtitle': 'Type an equation. Read its geometry from the paper, press play, and hear its harmonics synthesized through the Web Audio API in real time.',
-  'hero.ctaStudio': 'Open the Sound Studio',
+  'hero.ctaStudio': 'Open Studio',
   'hero.ctaLibrary': 'Browse the library',
   'hero.curveLabel': 'sampled at 800 points',
-  'hero.quickExperiments': 'quick experiments — click to open in the studio',
+  'hero.quickExperiments': 'quick experiments — click to open in the Studio',
 
   // Home — Showcase
   'home.showcaseTag': 'curated sonifications',
@@ -48,15 +49,68 @@ const en = {
   // Home — Callout
   'home.calloutQuote': '"Wait... you can actually hear the geometry of mathematics?"',
   'home.calloutDesc': 'MathSonify turns abstract equations into an intuitive sensory experience for students, musicians, educators, and creative coders.',
-  'home.calloutCta': 'Start creating in the studio',
+  'home.calloutCta': 'Start creating in the Studio',
 
   // Studio
   'studio.subtitle': 'Type any mathematical expression, read its geometry from the paper, and press play to synthesize its acoustic resonance.',
   'studio.interactiveLabel': 'interactive audio synthesizer',
-  'studio.version': 'studio v1.0',
+  'studio.version': 'Studio v1.0',
   'studio.spaceHint': 'play or stop',
   'studio.howMathTitle': 'How math creates sound:',
   'studio.howMathDesc': 'as the playhead scans along x, the vertical elevation y(x) controls oscillator frequency while the slope dy/dx modulates filter brightness and timbre.',
+
+  // Guess — the listening game
+  'guess.round': 'Round',
+  'guess.score': 'Score',
+  'guess.streak': 'Streak',
+  'guess.listenTitle': 'Listen to the curve.',
+  'guess.listenHint': 'One of these four equations was played. Pick the one you heard.',
+  'guess.wasIt': 'Here is what it sounded like.',
+  'guess.revealHint': 'The curve is drawn now, and the options are locked.',
+  'guess.play': 'Play the equation',
+  'guess.playing': 'Playing…',
+  'guess.played': 'Played',
+  'guess.correct': 'correct',
+  'guess.yourAnswer': 'your answer',
+  'guess.feedbackCorrect': 'That is exactly what you heard.',
+  'guess.feedbackWrong': 'Not this time — this is the one you heard.',
+  'guess.next': 'Next round',
+  'guess.seeResults': 'See results',
+  'guess.finalLabel': 'Final score',
+  'guess.finalPerfect': 'A perfect score. You are listening to mathematics.',
+  'guess.finalGood': 'Well heard. The curves are getting familiar.',
+  'guess.finalKeepGoing': 'Good first pass. Play again and start recognising the families.',
+  'guess.progressLabel': 'Round progress',
+  'guess.stop': 'Stop',
+  'guess.fb.correct1': 'Exactly right. That is the sound of this curve.',
+  'guess.fb.correct2': 'You caught it — the shape was right in your ear.',
+  'guess.fb.correct3': 'Clean call. This family is becoming familiar.',
+  'guess.fb.correct4': 'Yes. You heard the structure, not just the notes.',
+  'guess.fb.correct5': 'Spot on. That one was yours.',
+  'guess.fb.near1': 'So close — that was a sibling curve. Almost the same sound.',
+  'guess.fb.near2': 'A near miss. These two live in the same family, so the difference is subtle.',
+  'guess.fb.near3': 'Right neighbourhood, wrong door. Listen for how the two differ.',
+  'guess.fb.near4': 'Nearly. You were in the right family — the detail is where it turned.',
+  'guess.fb.near5': 'So close that it is worth replaying. Compare the two curves below.',
+  'guess.fb.miss1': 'Not this time. The curve is revealed — see where your guess diverged.',
+  'guess.fb.miss2': 'That one evaded you. Have a look at its shape now.',
+  'guess.fb.miss3': 'A genuine miss. This family sounds quite different from your guess.',
+  'guess.fb.miss4': 'Not that one. Now you can see why they sounded unrelated.',
+  'guess.fb.miss5': 'Missed. The revealed curve shows the family you were looking for.',
+  'guess.grade.legend': 'Legend. Ten out of ten — you are hearing mathematics.',
+  'guess.grade.great': 'Great run. The families are becoming second nature.',
+  'guess.grade.learning': 'Good progress. The near-miss rounds are where the learning is.',
+  'guess.grade.beginning': 'A solid start. Play again and let the families separate in your ear.',
+  'guess.playAgain': 'Play again',
+  // End-game tiers. Grade and message per band, ported from the reference.
+  // The low band is deliberately encouraging — it must never read as punishment.
+  'guess.tier.perfect.grade': 'Perfect pitch?! 🏆',
+  'guess.tier.perfect.msg': 'Every single one, right on the first try.',
+  'guess.tier.mid.grade': 'Good ear. 🎧',
+  'guess.tier.mid.msg': 'You caught the clear ones — the close pairs take practice.',
+  'guess.tier.low.grade': 'Keep training.',
+  'guess.tier.low.msg':
+    'The hard pairs are hard on purpose — try again, your ear adjusts fast.',
 
   // AudioControls
   'audio.play': 'Play audio',
@@ -153,7 +207,18 @@ const en = {
   'eq.mathEquation': 'Mathematical equation',
   'eq.surpriseMe': 'Surprise me',
   'eq.library': 'Library',
-  'eq.placeholder': 'e.g. sin(x) * cos(3*x)',
+  'eq.placeholder': 'Type or paste any equation — e.g. sin(x) * cos(3*x)',
+  /*
+   * Replaces the old "View all 12+" control. That opened the preset library,
+   * which was redundant with the separate Library button already doing exactly
+   * that. This now opens the math symbol keyboard instead — the control is
+   * beside "Popular presets", where a "more symbols" affordance belongs.
+   *
+   * English only for now: the other locales fall back to this string until they
+   * are translated. Translating 19 languages by guesswork would be worse than an
+   * honest English fallback.
+   */
+  'eq.moreSymbols': 'More symbols',
   'eq.validExpression': 'Valid mathematical expression',
   'eq.insertFunction': 'Insert function',
   'eq.popularPresets': 'Popular presets',
@@ -170,7 +235,7 @@ const en = {
   'explore.subtitle': 'Discover how different mathematical functions, from harmonic trig waves to chaotic damped oscillators, translate into distinct musical timbres.',
   'explore.sonicProfile': 'Sonic profile:',
   'explore.domain': 'Domain:',
-  'explore.playInStudio': 'Play in studio',
+  'explore.playInStudio': 'Play in Studio',
 
   // How It Works page
   'howItWorks.tag': 'architectural specification',
@@ -192,30 +257,33 @@ const en = {
   'howItWorks.step4Note': 'A master DynamicsCompressorNode ensures zero audio clipping, guarding your ears against sudden mathematical spikes or asymptotes.',
   'howItWorks.step5Title': 'Audio-visual synchronized playback',
   'howItWorks.step5Desc': 'As the audio context synthesizes the waveform, a 60 FPS animation loop drives the canvas 2D engine. The playhead traces the exact mathematical point on screen while the curve and spectrum state respond to the sound output.',
-  'howItWorks.cta': 'Try it in the sound studio',
+  'howItWorks.cta': 'Try it in the Studio',
 
   // Equations page
   'equations.tag': 'mathematical catalog',
   'equations.title': 'Equation acoustic reference',
   'equations.subtitle': 'A reference guide explaining the mathematical properties and sonic characteristics of supported functions.',
-  'equations.openInStudio': 'Open in studio',
+  'equations.openInStudio': 'Open in Studio',
 
   // About page
-  'about.tag': 'project manifesto',
+  'about.tag': 'about this project',
   'about.title': 'About MathSonify',
   'about.subtitle': 'Building intuitive, creative, and musical bridges into the abstract beauty of mathematics.',
   'about.missionTitle': 'Our mission',
   'about.missionDesc1': 'Mathematics is often taught as static equations on chalkboard grids. But physical sound itself is mathematics in motion: periodic waveforms, harmonic overtone series, differential equations of resonance, and Fourier decompositions.',
   'about.missionDesc2': 'MathSonify was created to make mathematics tangible, emotional, and creative. Whether you are a student learning trigonometry, a music producer designing unique timbre palettes, or a creative coder exploring algorithmic beauty, MathSonify lets you hear what numbers look like.',
+  'about.builderTitle': 'Who builds MathSonify',
+  'about.builderDesc': 'MathSonify is designed, built, and maintained by a small, dedicated team. It began with a simple question — what does an equation actually sound like? — and it is still shaped by the people who use it.',
+  'about.underHood': 'Under the hood',
   'about.techTitle': 'Technical architecture',
   'about.techDesc': 'MathSonify is architected to be 100% serverless, private, and zero-cost to maintain:',
-  'about.techAstro': 'Astro + React hybrid: fast static delivery for marketing and educational pages, with an isolated, reactive Zustand-driven React island for the studio.',
+  'about.techAstro': 'Astro + React hybrid: fast static delivery for marketing and educational pages, with an isolated, reactive Zustand-driven React island for the Studio.',
   'about.techParser': 'Secure math parser: powered by mathjs AST parsing. No insecure JavaScript eval() is ever executed.',
   'about.techAudio': 'Native Web Audio API: 100% browser-native real-time polyphonic and microtonal synthesis with custom DSP envelopes, biquad filters, and anti-clipping compressors.',
   'about.techExport': 'Client-side WAV exporter: real-time and offline audio buffer rendering converting formulas into standard 16-bit 44.1kHz audio files.',
   'about.privacyTitle': 'Privacy and open access',
   'about.privacyDesc': 'MathSonify requires no user account, no login, and no subscription for its core functionality. Your equations are processed directly on your device\'s CPU and never transmitted to external analytics or database servers.',
-  'about.cta': 'Open the sound studio',
+  'about.cta': 'Open Studio',
 
   // Footer
   // Scientists page
@@ -235,7 +303,7 @@ const en = {
   'footer.brandDesc': 'An interactive mathematical audio experiment and creative sonification platform — turn math into music.',
   'footer.zeroBackend': 'zero backend · 100% Web Audio API',
   'footer.product': 'Product',
-  'footer.creationStudio': 'Creation Studio',
+  'footer.creationStudio': 'Studio',
   'footer.equationLibrary': 'Equation Library',
   'footer.howItWorks': 'How It Works',
   'footer.equationGuide': 'Equation Guide',
@@ -244,7 +312,7 @@ const en = {
   'footer.aboutMathSonify': 'About MathSonify',
   'footer.freeAccess': 'Free and open access',
   'footer.copyright': '© 2026 MathSonify. All mathematical expressions sonified deterministically.',
-  'footer.openStudio': 'Open the studio',
+  'footer.openStudio': 'Open Studio',
 
   // Export Modal
   'export.title': 'Export audio file',
@@ -271,6 +339,7 @@ const en = {
   'export.imageDownloaded': 'Downloaded! Click to render again',
   'export.resolution2x': '2× retina',
   'export.videoRendering': 'Rendering video…',
+  'export.videoReady': 'Video ready — review and save',
   'export.videoDownloaded': 'Downloaded! Click to render again',
   'export.videoDownload': 'Render and download video',
 
@@ -280,7 +349,7 @@ const en = {
   'preset.searchPlaceholder': 'Search equations, formulas, sounds...',
   'preset.load': 'Load',
   'preset.emptyState': 'No equations found matching',
-  'preset.clickToLoad': 'Click any equation to load it into your studio',
+  'preset.clickToLoad': 'Click any equation to load it into the Studio',
   'preset.close': 'Close',
 
   // Coming Soon pages

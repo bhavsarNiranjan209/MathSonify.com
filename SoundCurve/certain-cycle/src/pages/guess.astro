@@ -1,0 +1,26 @@
+---
+/**
+ * Guess — a listening game.
+ *
+ * Hear an equation, pick which one it was, and the curve is revealed. Unlike
+ * SoundLab / Draw / Music Lab this route is NOT release-flagged: the game is
+ * self-contained (its own 30-equation library in `src/data/guessLibrary.ts`,
+ * its own round builder, its own component) and shares only the site's audio
+ * engine, curve sampler and canvas palette with the rest of the app.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+import GuessGame from '../components/GuessGame';
+
+const description =
+  'Hear an equation, name it from four options, and watch the curve appear. A ten-round listening game built from thirty curves.';
+---
+
+<BaseLayout title="Guess the Equation | MathSonify" description={description}>
+  <Navigation />
+  <main class="pt-14">
+    <GuessGame client:only="react" />
+  </main>
+  <Footer />
+</BaseLayout>

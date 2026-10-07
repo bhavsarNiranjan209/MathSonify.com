@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Navigation from '../components/Navigation.astro';
 import Footer from '../components/Footer.astro';
-import { PRESETS, PRESET_CATEGORIES } from '../data/presets';
+import { PRESET_CATEGORIES, sortPresets } from '../data/presets';
 ---
 
 <BaseLayout title="Equations Reference - MathSonify" description="Mathematical and acoustic catalog of functions supported in MathSonify.">
@@ -34,14 +34,70 @@ import { PRESETS, PRESET_CATEGORIES } from '../data/presets';
       </div>
     </div>
 
+    <!-- Liquid-ripple filter for the "Funny Questions" chip.
+         feTurbulence generates the wobble, feDisplacementMap bends the border
+         along it. The two <animate> elements are driven by JS via
+         beginElement() so the ripple can be replayed on every click, and they
+         `fill="freeze"` on a small non-zero scale so the outline rests on a
+         subtly wavy state instead of snapping back to a straight line.
+         Kept in the render tree (0x0, clipped) rather than display:none —
+         display:none can break filter references in some engines. -->
+    <div aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none">
+      <svg width="0" height="0" focusable="false">
+        <filter id="sc-ripple" x="-30%" y="-120%" width="160%" height="340%" color-interpolation-filters="sRGB">
+          <feTurbulence
+            id="sc-ripple-noise"
+            type="fractalNoise"
+            baseFrequency="0.018 0.055"
+            numOctaves="2"
+            seed="11"
+            result="noise"
+          >
+            <animate
+              id="sc-ripple-noise-anim"
+              attributeName="baseFrequency"
+              values="0.018 0.055;0.03 0.085;0.018 0.055"
+              dur="2s"
+              fill="freeze"
+            />
+          </feTurbulence>
+          <feDisplacementMap
+            id="sc-ripple-map"
+            in="SourceGraphic"
+            in2="noise"
+            scale="2"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          >
+            <!-- Plays out to a strong wobble, then settles at scale 2: visibly
+                 liquid, but not a straight border. One-shot, not looping. -->
+            <animate
+              id="sc-ripple-map-anim"
+              attributeName="scale"
+              values="2;10;2;6;2"
+              keyTimes="0;0.22;0.5;0.75;1"
+              dur="2s"
+              calcMode="spline"
+              keySplines="0.34 0 0.2 1;0.34 0 0.2 1;0.34 0 0.2 1;0.34 0 0.2 1"
+              fill="freeze"
+            />
+          </feDisplacementMap>
+        </filter>
+      </svg>
+    </div>
+
     <!-- Category filter bar -->
     <div class="flex items-center justify-center gap-2 flex-wrap mb-10">
       {PRESET_CATEGORIES.map((cat) => (
         <button
-          class="category-filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-sc-surface hover:bg-sc-accent/15 text-sc-text-soft hover:text-sc-text border border-sc-line/20 hover:border-sc-accent transition-colors"
+          class={`category-filter-btn px-4 py-1.5 rounded-full text-xs font-medium bg-sc-surface hover:bg-sc-accent/15 text-sc-text-soft hover:text-sc-text border border-sc-line/20 hover:border-sc-accent transition-colors${cat.id === 'rare' ? ' chip--wavy' : ''}`}
           data-category={cat.id}
         >
-          {cat.name}
+          {/* Only the Funny Questions chip carries the ripple outline. The
+              filter is applied to this layer alone, so the chip's own label
+              text is never displaced. */}
+          {cat.id === 'rare' && <span class="chip-ripple" aria-hidden="true" />}
+          <span class="chip-label">{cat.name}</span>
         </button>
       ))}
     </div>
@@ -53,10 +109,16 @@ import { PRESETS, PRESET_CATEGORIES } from '../data/presets';
 
     <!-- Equation grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="equations-grid">
-      {PRESETS.map((preset) => (
+      {sortPresets().map((preset) => (
         <div
-          class="equation-card panel p-5 flex flex-col justify-between hover:border-sc-accent/50 transition-colors"
+          class={`equation-card panel p-5 flex flex-col justify-between hover:border-sc-accent/50 transition-colors${preset.accentColor ? ' equation-card--glow' : ''}`}
           data-category={preset.category}
+          // The accent arrives as a custom property rather than a ready-made
+          // `box-shadow`, because `box-shadow` cannot be animated — the glow
+          // has to be composed in CSS (see `.equation-card--glow` in
+          // global.css) for it to breathe. Cards without an accent get neither
+          // the class nor the property, so they are byte-for-byte unchanged.
+          style={preset.accentColor ? `--card-accent: ${preset.accentColor};` : undefined}
         >
           <div>
             <div class="flex items-center justify-between mb-3">
@@ -84,10 +146,10 @@ import { PRESETS, PRESET_CATEGORIES } from '../data/presets';
               Domain: [{preset.recommendedSettings.minX}, {preset.recommendedSettings.maxX}]
             </span>
             <a
-              href={`/create?eq=${encodeURIComponent(preset.equation)}&inst=${preset.recommendedSettings.instrument}&mode=${preset.recommendedSettings.sonificationMode}&dur=${preset.recommendedSettings.duration}&minX=${preset.recommendedSettings.minX}&maxX=${preset.recommendedSettings.maxX}`}
+              href={`/studio?eq=${encodeURIComponent(preset.equation)}&inst=${preset.recommendedSettings.instrument}&mode=${preset.recommendedSettings.sonificationMode}&dur=${preset.recommendedSettings.duration}&minX=${preset.recommendedSettings.minX}&maxX=${preset.recommendedSettings.maxX}`}
               class="px-4 py-1.5 rounded-md btn-primary text-xs"
             >
-              Open in studio
+              Open in Studio
             </a>
           </div>
         </div>
@@ -133,13 +195,31 @@ import { PRESETS, PRESET_CATEGORIES } from '../data/presets';
           if (noResults) noResults.classList.toggle('hidden', visible > 0);
         }
 
+        /* Replay the "Funny Questions" ripple.
+           The filter's two <animate> elements end with fill="freeze" on a
+           slightly wavy scale, so the outline keeps a subtle organic edge at
+           rest. beginElement() restarts them from 0 for the 2s play, which is
+           what makes repeat clicks ripple again rather than doing nothing. */
+        function playRipple() {
+          ['sc-ripple-map-anim', 'sc-ripple-noise-anim'].forEach(function(id) {
+            var node = document.getElementById(id);
+            if (!node || typeof node.beginElement !== 'function') return;
+            try { node.beginElement(); } catch (e) { /* SMIL unsupported */ }
+          });
+        }
+
+        // Only replay for the chip that actually has the ripple.
         filterBtns.forEach(function(btn) {
           btn.addEventListener('click', function() {
             activeCategory = btn.getAttribute('data-category');
             setActive(btn);
             applyFilters();
+            if (activeCategory === 'rare') playRipple();
           });
         });
+
+        // If this chip is already the selected filter on load, ripple once.
+        if (activeCategory === 'rare') playRipple();
 
         searchInput.addEventListener('input', applyFilters);
       })();

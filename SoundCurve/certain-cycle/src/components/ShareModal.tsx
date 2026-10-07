@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useStudioStore } from '../store/studioStore';
+
+// The QR encoder is only fetched when the QR panel is actually opened, so
+// copying a plain text link never downloads it.
+const ShareQrPanel = lazy(() => import('./ShareQrPanel'));
 
 export default function ShareModal() {
   const shareModalOpen = useStudioStore((s) => s.shareModalOpen);
@@ -14,6 +18,7 @@ export default function ShareModal() {
   const maxX = useStudioStore((s) => s.maxX);
 
   const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   const reduceMotion = !!useReducedMotion();
 
@@ -29,7 +34,7 @@ export default function ShareModal() {
   });
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://mathsonify.com';
-  const shareUrl = `${baseUrl}/create?${params.toString()}`;
+  const shareUrl = `${baseUrl}/studio?${params.toString()}`;
   const shareText = `Created with MathSonify.com — listen to what the equation "${equation}" sounds like!`;
 
   const handleCopy = async () => {
@@ -154,8 +159,25 @@ export default function ShareModal() {
                 >
                   {copied ? 'Copied!' : 'Copy'}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowQr((v) => !v)}
+                  aria-expanded={showQr}
+                  className="px-4 py-2 rounded-md text-xs font-semibold transition-colors bg-sc-surface border border-sc-line/25 text-sc-text-soft hover:border-sc-accent hover:text-sc-text"
+                >
+                  {showQr ? 'Hide QR' : 'QR code'}
+                </button>
               </div>
             </div>
+
+            {/* Same share URL, as a scannable symbol. */}
+            {showQr && (
+              <div className="pt-1">
+                <Suspense fallback={<p className="text-[11px] text-sc-text-faint">Loading QR…</p>}>
+                  <ShareQrPanel url={shareUrl} />
+                </Suspense>
+              </div>
+            )}
 
             {/* Social */}
             <div>

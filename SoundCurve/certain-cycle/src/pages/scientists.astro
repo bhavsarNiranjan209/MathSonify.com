@@ -53,12 +53,17 @@ import { SCIENTISTS, SCIENTIST_CATEGORIES } from '../data/scientists';
       <p class="text-sc-text-soft text-sm">No scientists found matching your search.</p>
     </div>
 
-    <!-- Scientist card grid -->
+    <!-- Scientist card grid
+      All 100 cards are server-rendered (SEO + no-JS access), but rendering
+      them costs layout/paint on throttled mobile. content-visibility lets the
+      browser skip off-screen cards entirely; contain-intrinsic-size reserves
+      an estimated height so the scrollbar does not jump as cards are painted.
+    -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="scientists-grid">
       {SCIENTISTS.map((scientist) => (
         <button
           type="button"
-          class="scientist-card panel p-5 hover:border-sc-accent/50 transition-colors duration-300 text-left cursor-pointer w-full flex flex-col gap-3"
+          class="scientist-card panel p-5 hover:border-sc-accent/50 transition-colors duration-300 text-left cursor-pointer w-full flex flex-col gap-3 [content-visibility:auto] [contain-intrinsic-size:auto_260px]"
           data-category={scientist.category}
           data-scientist-id={scientist.id}
           data-name={scientist.name.toLowerCase()}
@@ -152,14 +157,17 @@ import { SCIENTISTS, SCIENTIST_CATEGORIES } from '../data/scientists';
     });
   }
 
-  // Card click → open modal via custom event
-  cards.forEach((card) => {
-    card.addEventListener('click', () => {
-      const id = card.getAttribute('data-scientist-id');
+  // Card click → open modal via custom event.
+  // One delegated listener on the grid instead of 100 per-card listeners:
+  // cheaper at init and it keeps working for any card filtered in later.
+  const grid = document.getElementById('scientists-grid');
+  if (grid) {
+    grid.addEventListener('click', (e) => {
+      const card = (e.target as Element).closest('.scientist-card');
+      const id = card?.getAttribute('data-scientist-id');
       if (id) {
         window.dispatchEvent(new CustomEvent('mathsonify:open-scientist', { detail: id }));
       }
     });
-  });
+  }
 </script>
-</BaseLayout>

@@ -7,7 +7,8 @@ import { getVisibleNavLinks, isFeatureEnabled, type FeatureId } from '../config/
 const allNavLinks: { name: string; href: string; feature: FeatureId | null; i18nKey: string }[] = [
   { name: 'SoundLab', href: '/soundlab', feature: 'soundLab', i18nKey: 'nav.soundlab' },
   { name: 'How It Works', href: '/how-it-works', feature: null, i18nKey: 'nav.howItWorks' },
-  { name: 'Create', href: '/create', feature: null, i18nKey: 'nav.create' },
+  { name: 'Studio', href: '/studio', feature: null, i18nKey: 'nav.studio' },
+  { name: 'Guess', href: '/guess', feature: null, i18nKey: 'nav.guess' },
   { name: 'Draw', href: '/draw', feature: 'draw', i18nKey: 'nav.draw' },
   { name: 'Scientists', href: '/scientists', feature: null, i18nKey: 'nav.scientists' },
   { name: 'Equations', href: '/equations', feature: null, i18nKey: 'nav.equations' },
@@ -63,6 +64,20 @@ function isCurrent(href: string) {
           >
             <span class="nav-musiclab-text">{link.name}</span>
             <span class="nav-musiclab-glow" aria-hidden="true"></span>
+          </a>
+        ) : link.name === 'Studio' ? (
+          // `data-i18n` sits on the inner span, not the <a>: applyStaticTranslations
+          // assigns `textContent`, which would otherwise replace the anchor's
+          // children and destroy the glow span on the first language switch.
+          <a
+            href={link.href}
+            class:list={[
+              'nav-studio relative text-sm font-semibold transition-opacity',
+              { 'nav-current': isCurrent(link.href) },
+            ]}
+            aria-current={isCurrent(link.href) ? 'page' : undefined}
+          >
+            <span class="nav-studio-text" data-i18n={link.i18nKey}>{link.name}</span>
           </a>
         ) : (
           <a
@@ -180,6 +195,17 @@ function isCurrent(href: string) {
           data-i18n="nav.musicLab"
         >
           <span class="nav-musiclab-text">{link.name}</span>
+        </a>
+      ) : link.name === 'Studio' ? (
+        <a
+          href={link.href}
+          class:list={[
+            'block nav-studio relative text-sm font-semibold',
+            { 'nav-current': isCurrent(link.href) },
+          ]}
+          aria-current={isCurrent(link.href) ? 'page' : undefined}
+        >
+          <span class="nav-studio-text" data-i18n={link.i18nKey}>{link.name}</span>
         </a>
       ) : (
         <a
@@ -515,6 +541,27 @@ function isCurrent(href: string) {
 
   @keyframes nav-soundlab-flow {
     to { background-position: 220% 0; }
+  }
+
+  /* Studio nav link — a slow, soft white breath.
+     The glow is white only (unlike the coloured SoundLab / Music Lab glows).
+     Deliberately gentle: a long 3.2s cycle and a small dim->bright delta, so it
+     reads as a glow rather than a blink or a strobe. The text colour itself is
+     left alone so the link stays legible in the light theme, where a white glow
+     is subtle by nature. */
+  .nav-studio-text {
+    display: inline-block;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.22);
+    animation: nav-studio-glow 3.2s ease-in-out infinite;
+  }
+
+  @keyframes nav-studio-glow {
+    0%, 100% { text-shadow: 0 0 5px rgba(255, 255, 255, 0.22); }
+    50%      { text-shadow: 0 0 14px rgba(255, 255, 255, 0.5), 0 0 26px rgba(255, 255, 255, 0.16); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-studio-text { animation: none; }
   }
 
   @keyframes nav-musiclab-glow {

@@ -21,7 +21,7 @@
    - ✅ Fade + slide up when scrolling into view
    - ✅ Staggered delays (0s, 0.1s, 0.2s, 0.3s)
 
-### Studio Page (http://localhost:4321/create)
+### Studio Page (http://localhost:4321/studio)
 
 1. **Visualizer Component**
    - ✅ Container fades in and slides up on load
@@ -56,7 +56,7 @@
    - Look for "framer-motion" errors
 
 2. **Check if React is hydrating**
-   - Open http://localhost:4321/create
+   - Open http://localhost:4321/studio
    - Open DevTools → Console
    - You should NOT see errors about hydration
 

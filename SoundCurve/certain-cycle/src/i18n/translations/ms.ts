@@ -2,7 +2,7 @@ const ms = {
   // Navigation
   'nav.scientists': 'Saintis',
   'nav.explore': 'Terokai',
-  'nav.create': 'Cipta',
+  'nav.studio': 'Studio',
   'nav.howItWorks': 'Cara Ia Berfungsi',
   'nav.equations': 'Persamaan',
   'nav.about': 'Tentang',
@@ -18,7 +18,7 @@ const ms = {
   'hero.titleAccent': 'hidup',
   'hero.titleLine2': 'bunyi',
   'hero.subtitle': 'Taip persamaan. Baca geometrinya daripada kertas, tekan main, dan dengar harmoniknya disintesis melalui Web Audio API dalam masa nyata.',
-  'hero.ctaStudio': 'Buka Studio Bunyi',
+  'hero.ctaStudio': 'Buka Studio',
   'hero.ctaLibrary': 'Layari perpustakaan',
   'hero.curveLabel': 'disampel pada 800 titik',
   'hero.quickExperiments': 'eksperimen pantas — klik untuk buka di studio',
@@ -148,7 +148,7 @@ const ms = {
   'howItWorks.step4Note': 'DynamicsCompressorNode induk memastikan tiada pemotongan audio, melindungi telinga anda daripada lonjakan matematik yang mendadak atau asimptot.',
   'howItWorks.step5Title': 'Main balik terselaras audio-visual',
   'howItWorks.step5Desc': 'Semasa konteks audio mensintesis bentuk gelombang, gelung animasi 60 FPS memacu enjin kanvas 2D. Kepala main menjejaki titik matematik yang tepat pada skrin manakala keadaan lengkung dan spektrum bertindak balas terhadap output bunyi.',
-  'howItWorks.cta': 'Cubanya di studio bunyi',
+  'howItWorks.cta': 'Cubanya di Studio',
 
   // Equations page
   'equations.tag': 'katalog matematik',
@@ -157,12 +157,15 @@ const ms = {
   'equations.openInStudio': 'Buka di studio',
 
   // About page
-  'about.tag': 'manifesto projek',
+  'about.tag': 'tentang projek ini',
   'about.title': 'Tentang MathSonify',
   'about.subtitle': 'Membina jambatan yang intuitif, kreatif, dan muzikal ke dalam keindahan abstrak matematik.',
   'about.missionTitle': 'Misi kami',
   'about.missionDesc1': 'Matematik sering diajar sebagai persamaan statik pada grid papan hitam. Tetapi bunyi fizikal itu sendiri ialah matematik yang bergerak: bentuk gelombang berkala, siri nada harmonik, persamaan pembezaan resonans, dan penguraian Fourier.',
   'about.missionDesc2': 'MathSonify dicipta untuk menjadikan matematik ketara, emosional, dan kreatif. Sama ada anda seorang pelajar yang belajar trigonometri, penerbit muzik yang mereka bentuk palet timbre unik, atau pengekod kreatif yang meneroka keindahan algoritma, MathSonify membolehkan anda mendengar rupa nombor.',
+  'about.builderTitle': 'Siapa yang membina MathSonify',
+  'about.builderDesc': 'MathSonify direka, dibina dan diselenggara oleh sebuah pasukan kecil yang dedikasi. Ia bermula dengan satu soalan mudah — bunyi sebenarnya bagaimanakah sebuah persamaan? — dan masih dibentuk oleh orang yang menggunakannya.',
+  'about.underHood': 'di sebalik tabir',
   'about.techTitle': 'Seni bina teknikal',
   'about.techDesc': 'MathSonify direka untuk menjadi 100% tanpa pelayan, peribadi, dan sifar kos penyelenggaraan:',
   'about.techAstro': 'Hibrid Astro + React: penghantaran statik pantas untuk halaman pemasaran dan pendidikan, dengan pulau React reaktif terpencil untuk studio.',
@@ -171,7 +174,7 @@ const ms = {
   'about.techExport': 'Pengeksport WAV sisi klien: pemaparan penimbal audio masa nyata dan luar talian menukar formula menjadi fail audio standard 16-bit 44.1kHz.',
   'about.privacyTitle': 'Privasi dan akses terbuka',
   'about.privacyDesc': 'MathSonify tidak memerlukan akaun pengguna, log masuk, atau langganan untuk fungsi terasnya. Persamaan anda diproses terus pada CPU peranti anda dan tidak pernah dihantar ke pelayan analitik atau pangkalan data luaran.',
-  'about.cta': 'Buka studio bunyi',
+  'about.cta': 'Buka Studio',
 
   // Scientists page
   'scientists.tag': 'dengar para sarjana',
@@ -190,7 +193,7 @@ const ms = {
   'footer.brandDesc': 'Eksperimen audio matematik interaktif dan platform sonifikasi kreatif — ubah matematik menjadi muzik.',
   'footer.zeroBackend': 'sifar bahagian belakang · 100% Web Audio API',
   'footer.product': 'Produk',
-  'footer.creationStudio': 'Studio Penciptaan',
+  'footer.creationStudio': 'Studio',
   'footer.equationLibrary': 'Perpustakaan Persamaan',
   'footer.howItWorks': 'Cara Ia Berfungsi',
   'footer.equationGuide': 'Panduan Persamaan',

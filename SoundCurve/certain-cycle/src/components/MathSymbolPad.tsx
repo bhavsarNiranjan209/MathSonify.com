@@ -323,10 +323,28 @@ export default function MathSymbolPad({ onInsert, open, onClose }: MathSymbolPad
               max-h-[55vh] sm:max-h-[440px]
             "
             style={{
-              background: 'color-mix(in srgb, var(--sc-bg) 88%, transparent)',
-              backdropFilter: 'blur(24px) saturate(1.4)',
-              WebkitBackdropFilter: 'blur(24px) saturate(1.4)',
-              border: '1px solid color-mix(in srgb, var(--sc-accent) 18%, transparent)',
+              /*
+               * SOLID, NOT A GLASS SHEET.
+               *
+               * Two bugs lived here.
+               *
+               * 1. This was `color-mix(bg 88%, transparent)` + `blur(24px)` — a
+               *    translucent panel, so the blurred page bled through and muddied
+               *    the tabs and keys drawn on it.
+               *
+               * 2. Replacing it with `var(--sc-bg)` did NOT make it opaque.
+               *    `--sc-bg` is a raw triplet — `27 36 48` — not a colour. Fed
+               *    straight to `background` that is invalid CSS, so the browser
+               *    discarded the declaration and rendered the panel transparent on
+               *    both mobile and desktop. It has to be wrapped: `rgb(var(--sc-bg))`,
+               *    which is the form the rest of the codebase uses.
+               *
+               * The blur still exists one level down, on the backdrop itself, where
+               * it belongs: it separates the page from the sheet without degrading
+               * any control drawn on top of it.
+               */
+              background: 'rgb(var(--sc-bg))',
+              border: '1px solid rgb(var(--sc-accent) / 0.18)',
               boxShadow:
                 '0 -8px 40px -8px rgba(var(--sc-accent) / 0.09), 0 2px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.05)',
             }}

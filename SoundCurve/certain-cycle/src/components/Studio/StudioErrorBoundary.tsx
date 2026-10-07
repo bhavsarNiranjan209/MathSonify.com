@@ -68,7 +68,7 @@ export default class StudioErrorBoundary extends Component<Props, State> {
               Reload
             </button>
             <a
-              href="/create"
+              href="/studio"
               className="btn-ghost inline-flex min-h-[44px] items-center justify-center px-5 py-2.5 text-sm"
             >
               Try again

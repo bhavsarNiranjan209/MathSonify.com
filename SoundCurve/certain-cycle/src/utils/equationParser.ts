@@ -1,4 +1,5 @@
 import { parse, type MathNode } from 'mathjs';
+import { correctionCandidates, correctionReason } from './typoCorrection';
 
 export interface SamplePoint {
   x: number;
@@ -11,8 +12,24 @@ export interface SamplePoint {
 export interface ParseResult {
   success: boolean;
   error?: string;
+  /**
+   * A validated one-step fix for the input, present ONLY when parsing failed.
+   *
+   * This is a proposal, never an applied change: `parseEquation` never rewrites
+   * what the user typed. The UI shows "Did you mean X? [Use this]" and the user
+   * decides, because silently changing someone's equation is worse than
+   * telling them they made a typo.
+   */
+  suggestion?: EquationSuggestion;
   evaluate?: (x: number) => number;
   sample?: (minX: number, maxX: number, sampleCount?: number) => SamplePoint[];
+}
+
+export interface EquationSuggestion {
+  /** The proposed equation. Confirmed to parse successfully. */
+  equation: string;
+  /** Why it was proposed, in plain words. */
+  reason: string;
 }
 
 // Predefined musical scale frequencies (A4 = 440Hz standard)
@@ -132,6 +149,32 @@ export function buildVerticalShiftEquation(baseEquation: string, offset: number)
 }
 
 /**
+ * Finds a validated one-step correction for input that failed to parse.
+ *
+ * Each candidate from `correctionCandidates` is put through the *real* mathjs
+ * parser before being accepted, so a suggestion is never offered unless it
+ * genuinely works. This is the difference between "we guessed you meant sin" and
+ * "we checked that `sin(x)` really does parse".
+ */
+function findCorrection(rawEquation: string): EquationSuggestion | undefined {
+  for (const candidate of correctionCandidates(rawEquation)) {
+    const sanitized = sanitizeEquationString(candidate.text);
+    if (!sanitized) continue;
+    try {
+      const compiled = parse(sanitized).compile();
+      // A candidate that parses but cannot produce a finite number is still
+      // broken (e.g. it references an unknown symbol), so evaluate it too.
+      const value = compiled.evaluate({ x: 0.5, pi: Math.PI, PI: Math.PI, e: Math.E, E: Math.E });
+      if (typeof value !== 'number' || Number.isNaN(value)) continue;
+      return { equation: candidate.text, reason: correctionReason(candidate) };
+    } catch {
+      // Try the next candidate.
+    }
+  }
+  return undefined;
+}
+
+/**
  * Safely parses and validates a mathematical equation without ever using eval().
  */
 export function parseEquation(rawEquation: string): ParseResult {
@@ -152,6 +195,7 @@ export function parseEquation(rawEquation: string): ParseResult {
       return {
         success: false,
         error: `We couldn't understand "${rawEquation}". Try something like sin(x) or x^2 + 3*x.`,
+        suggestion: findCorrection(rawEquation),
       };
     }
 
@@ -198,6 +242,11 @@ export function parseEquation(rawEquation: string): ParseResult {
         return {
           success: false,
           error: "Equation contains unsupported variables or functions. Only variable 'x' is supported.",
+          // This is the branch a mistyped function name actually lands in:
+          // mathjs happily *parses* `sinn(x)` as an undefined symbol and only
+          // fails when it is evaluated, so a suggestion attached solely to the
+          // parse-failure path would never fire for `sinn`/`sqtr`/`taan`.
+          suggestion: findCorrection(rawEquation),
         };
       }
     }

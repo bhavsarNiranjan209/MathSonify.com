@@ -569,6 +569,95 @@ footer a:hover {
 .music-lab-history { display: grid; gap: .35rem; margin-top: .75rem; border-top: 1px solid rgb(var(--sc-line) / .12); padding-top: .65rem; }
 .music-lab-history button, .music-lab-history small { overflow: hidden; border: 0; background: transparent; color: rgb(var(--sc-text-faint)); text-align: left; text-overflow: ellipsis; white-space: nowrap; font: 9px 'JetBrains Mono', monospace; }
 .music-lab-history button:hover { color: rgb(var(--sc-accent)); }
+
+/* ------------------------------------------------------------------ */
+/* Equation catalog: featured glow + "Funny Questions" chip ripple     */
+/* ------------------------------------------------------------------ */
+
+/* The five prioritised funny questions breathe.
+   `box-shadow` is not an animatable property, so the glow lives on
+   pseudo-elements and only their `opacity` (plus a hair of scale on the halo)
+   is keyframed. The card's own box, border, size and text never move — just
+   the halo's intensity, on a 2.8s ease-in-out cycle. Two layers kept in sync:
+   a crisp inset edge and a wider soft bloom. */
+.equation-card--glow {
+  position: relative;
+  /* Establishes a stacking context so the negative-z pseudo-elements paint
+     above the card's background but below its content. Without it they would
+     fall behind the page background and the glow would be invisible. */
+  isolation: isolate;
+}
+
+.equation-card--glow::before,
+.equation-card--glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Crisp tinted edge. */
+.equation-card--glow::after {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--card-accent) 18%, transparent);
+  animation: sc-card-glow-edge 2.8s ease-in-out infinite;
+}
+
+/* Soft outer bloom; the small scale change is what reads as "spread". */
+.equation-card--glow::before {
+  box-shadow: 0 0 20px -8px color-mix(in srgb, var(--card-accent) 34%, transparent);
+  animation: sc-card-glow-halo 2.8s ease-in-out infinite;
+}
+
+/* The 0% keyframe doubles as the reduced-motion resting state: global.css
+   collapses animations to a single iteration for `prefers-reduced-motion`, so
+   the glow settles here rather than at the dimmest possible value. */
+@keyframes sc-card-glow-edge {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1; }
+}
+
+@keyframes sc-card-glow-halo {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.02); }
+}
+
+/* The chip's plain border is replaced by the filtered ripple layer. */
+.chip--wavy {
+  position: relative;
+  border-color: transparent;
+}
+
+.chip--wavy:hover {
+  border-color: transparent;
+}
+
+/* Sits above the ripple layer so the chip's own label is never displaced. */
+.chip-label {
+  position: relative;
+  z-index: 1;
+}
+
+.chip-ripple {
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  border-radius: 9999px;
+  border: 1.5px solid rgb(127 178 229 / 0.75);
+  pointer-events: none;
+  /* The organic wobble. Where a browser declines to apply an SVG filter to an
+     HTML element this degrades to a plain faint outline — i.e. the chip looks
+     like its neighbours instead of breaking. */
+  filter: url(#sc-ripple);
+}
+
+/* Keyboard users still get a clear focus ring on the wavy chip. */
+.chip--wavy:focus-visible {
+  outline: 2px solid rgb(var(--sc-accent));
+  outline-offset: 2px;
+}
+
 .music-lab-piano-roll, .music-lab-drum-machine { margin-top: .8rem; padding: .8rem; background: rgb(var(--sc-sunken)); border: 1px solid rgb(var(--sc-line) / .12); border-radius: 5px; }
 .music-lab-roll-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; margin-top: .65rem; }
 .music-lab-roll-grid button { min-height: 24px; border: 1px solid rgb(var(--sc-line) / .15); background: rgb(var(--sc-surface)); cursor: pointer; }

@@ -6,6 +6,21 @@ export interface EquationPreset {
   description: string;
   soundDescription: string;
   latex?: string;
+  /**
+   * Ordering *within* the preset's category — higher sorts first. Absent means
+   * 0, which leaves the existing catalog's order exactly as authored.
+   *
+   * This is deliberately a data field rather than relying on array position:
+   * inserting a new entry above an existing one silently reorders the catalog,
+   * and "which funny question is first" should not be a side effect of where
+   * somebody pasted a block. See `sortPresets`.
+   */
+  sortPriority?: number;
+  /**
+   * Per-equation accent, used only for the faint edge glow on its catalog card.
+   * Absent means no glow at all, so the other 150+ cards are untouched.
+   */
+  accentColor?: string;
   recommendedSettings: {
     minX: number;
     maxX: number;
@@ -20,14 +35,63 @@ export interface EquationPreset {
 
 export const PRESET_CATEGORIES = [
   { id: 'all', name: 'All Presets' },
+  // Funny Questions sits second, right after All Presets: it is the playful
+  // end of the catalog and reads better as a near-entry point than buried at
+  // the end of the row. The order here IS the chip order and also the
+  // grouping order used by `sortPresets`.
+  { id: 'rare', name: 'Funny Questions' },
   { id: 'trig', name: 'Trigonometric' },
   { id: 'polynomial', name: 'Polynomials' },
   { id: 'waves', name: 'Acoustic Waves' },
   { id: 'chaos', name: 'Chaos & Physics' },
   { id: 'fractal', name: 'Exponentials & Growth' },
   { id: 'famous', name: 'Famous Math' },
-  { id: 'rare', name: 'Funny Questions' },
 ] as const;
+
+/**
+ * Canonical catalog order: grouped by the category tab order, and within each
+ * group sorted by `sortPriority` (descending), falling back to authored order.
+ *
+ * Two properties matter here and both are load-bearing:
+ *
+ * 1. **Stability.** `Array.prototype.sort` is stable in every engine we target
+ *    (ES2019 guarantees it), so the 150+ entries with no `sortPriority` keep the
+ *    exact order they have today. Adding a prioritised entry must not reshuffle
+ *    anything else.
+ * 2. **No holes.** `PRESETS` is a plain array literal, and a stray comma in it
+ *    creates a *sparse* hole that `map`/`filter` skip but `PRESETS[i]` returns
+ *    as `undefined`. Copying through an explicit loop (rather than
+ *    `[...presets]`) keeps this robust and is why `presets.test.ts` asserts
+ *    every slot is a real object.
+ */
+export function sortPresets(presets: readonly EquationPreset[] = PRESETS): EquationPreset[] {
+  const categoryRank = new Map<string, number>(
+    PRESET_CATEGORIES.map((cat, index) => [cat.id as string, index]),
+  );
+
+  // Explicit copy-by-index: a hole would survive `map` as a hole.
+  const result: EquationPreset[] = [];
+  for (let i = 0; i < presets.length; i++) {
+    if (i in presets && presets[i]) result.push(presets[i]);
+  }
+
+  return result
+    .map((preset, authoredIndex) => ({ preset, authoredIndex }))
+    .sort((a, b) => {
+      const rankDelta =
+        (categoryRank.get(a.preset.category) ?? Number.MAX_SAFE_INTEGER) -
+        (categoryRank.get(b.preset.category) ?? Number.MAX_SAFE_INTEGER);
+      if (rankDelta !== 0) return rankDelta;
+
+      const priorityDelta = (b.preset.sortPriority ?? 0) - (a.preset.sortPriority ?? 0);
+      if (priorityDelta !== 0) return priorityDelta;
+
+      // Authored order — the explicit tiebreak that makes this independent of
+      // the engine's sort implementation.
+      return a.authoredIndex - b.authoredIndex;
+    })
+    .map((entry) => entry.preset);
+}
 
 export const PRESETS: EquationPreset[] = [
   // ============================
@@ -1943,7 +2007,141 @@ export const PRESETS: EquationPreset[] = [
       sonificationMode: 'note',
     },
   },
-,
+  {
+    // ── Featured funny questions (sortPriority) ──────────────────────
+    // These sort ahead of the rest of the "rare" category via `sortPriority`,
+    // NOT via array position, so appending to this block later cannot displace
+    // them.
+    //
+    // Every equation below was plotted through the app's own
+    // `parseEquation`/`sampleEquationDetailed` and renders with 100% valid
+    // points — see `scripts/verify-shapes.mjs`. Two deviations from the
+    // originally drafted formulas are load-bearing and must not be "simplified"
+    // back:
+    //
+    //   * All ASCII. `sanitizeEquationString` maps `−` but NOT `√`, `·` or `²`,
+    //     so a `√(9 − x²)·sin(16x)` formula fails to parse outright.
+    //   * `abs(x)^(2/3)`, not `x^(2/3)`, in Heart. mathjs returns a *complex*
+    //     number for a negative base with a fractional exponent, and the parser
+    //     maps any non-`number` result to NaN — which blanks the entire left
+    //     half of the curve (measured: 50% valid vs 100%).
+    // See the comments on each entry for its verified domain and k default.
+    id: 'rare-heart',
+    name: 'Heart',
+    equation: 'abs(x)^(2/3) + 0.9*cos(28*x)*sqrt(3 - x^2)',
+    category: 'rare',
+    description:
+      'A dense zigzag fills the space between two mirrored curves — this is what the shape of a heart sounds like.',
+    soundDescription:
+      'Rapid alternating pitches racing up and down inside a swelling, fading envelope.',
+    latex: 'y = |x|^{2/3} + 0.9\\cos(28x)\\sqrt{3 - x^2}',
+    sortPriority: 100,
+    accentColor: '#E5484D',
+    recommendedSettings: {
+      // sqrt(3 - x^2) is real only for |x| <= sqrt(3) ~= 1.732. Any wider
+      // domain renders the curve as two disconnected edge fragments.
+      minX: -1.73,
+      maxX: 1.73,
+      minFreq: 180,
+      maxFreq: 900,
+      duration: 5,
+      instrument: 'triangle',
+      sonificationMode: 'frequency',
+    },
+  },
+  {
+    id: 'rare-bloom',
+    name: 'Bloom',
+    equation: 'sqrt(9 - x^2)*sin(16x)',
+    category: 'rare',
+    description:
+      "A circle's edge traced by a trembling wave — petals unfolding in sound.",
+    soundDescription:
+      'A shimmering tremolo that swells at the center and fades toward the edges.',
+    latex: 'y = \\sqrt{9 - x^2}\\sin(16x)',
+    sortPriority: 96,
+    accentColor: '#F5A623',
+    recommendedSettings: {
+      // Exactly sqrt(9) — past this the envelope goes imaginary.
+      minX: -3,
+      maxX: 3,
+      minFreq: 200,
+      maxFreq: 1100,
+      duration: 5,
+      instrument: 'sine',
+      sonificationMode: 'frequency',
+    },
+  },
+  {
+    id: 'rare-starburst',
+    name: 'Starburst',
+    equation: 'sign(x)*sqrt(abs(x))*cos(14*x)',
+    category: 'rare',
+    description:
+      'Spikes radiate outward from the center, each one a flicker of sound.',
+    soundDescription:
+      'Sharp bursts of pitch that fan outward, quiet at the core, bright at the tips.',
+    latex: 'y = \\mathrm{sgn}(x)\\sqrt{|x|}\\cos(14x)',
+    sortPriority: 92,
+    accentColor: '#9B6BFF',
+    recommendedSettings: {
+      // sqrt(abs(x)) is defined for all x, so this one is safe on any domain;
+      // [-4, 4] gives ~4.5 oscillations per side, which reads as radiating arms.
+      minX: -4,
+      maxX: 4,
+      minFreq: 160,
+      maxFreq: 1200,
+      duration: 5,
+      instrument: 'square',
+      sonificationMode: 'rhythm',
+    },
+  },
+  {
+    id: 'rare-crown',
+    name: 'Crown',
+    equation: 'sqrt(16 - x^2) - 2 + 0.6*sin(14*x)*exp(-0.05*abs(x))',
+    category: 'rare',
+    description:
+      'A ridge of jagged points settles into a smooth arc — a crown worn by sound.',
+    soundDescription:
+      'A ragged flutter that gradually smooths into a single held tone.',
+    latex: 'y = \\sqrt{16 - x^2} - 2 + 0.6\\sin(14x)e^{-0.05|x|}',
+    sortPriority: 88,
+    accentColor: '#2DD4BF',
+    recommendedSettings: {
+      // sqrt(16 - x^2) is real for |x| <= 4.
+      minX: -4,
+      maxX: 4,
+      minFreq: 180,
+      maxFreq: 800,
+      duration: 5,
+      instrument: 'sawtooth',
+      sonificationMode: 'frequency',
+    },
+  },
+  {
+    id: 'rare-shell',
+    name: 'Shell',
+    equation: 'sqrt(9 - x^2)*cos(5*x^2)',
+    category: 'rare',
+    description:
+      'The spiral tightens as it nears the center, like sound curling into itself.',
+    soundDescription:
+      'A chirp that accelerates toward the middle, then unwinds back out.',
+    latex: 'y = \\sqrt{9 - x^2}\\cos(5x^2)',
+    sortPriority: 84,
+    accentColor: '#38BDF8',
+    recommendedSettings: {
+      // sqrt(9 - x^2) is real for |x| <= 3.
+      minX: -3,
+      maxX: 3,
+      minFreq: 200,
+      maxFreq: 1000,
+      duration: 5,
+      instrument: 'sine',
+      sonificationMode: 'frequency',
+    },
+  },
   {
     id: 'rare-inverted-staircase',
     name: 'Inverted Staircase',

@@ -2,7 +2,7 @@ const ga = {
   // Navigation
   'nav.scientists': 'Eolaithe',
   'nav.explore': 'Taiscéal',
-  'nav.create': 'Cruthaigh',
+  'nav.studio': 'Stiúideo',
   'nav.howItWorks': 'Conas a Oibríonn Sé',
   'nav.equations': 'Cothromóidí',
   'nav.about': 'Fúinn',
@@ -18,7 +18,7 @@ const ga = {
   'hero.titleAccent': 'bheo',
   'hero.titleLine2': 'fhuaim',
   'hero.subtitle': 'Clóscríobh cothromóid. Léigh a geoiméadracht ón bpáipéar, brúigh súgradh, agus éist lena armónaigh sintéisithe tríd an Web Audio API i bhfíor-am.',
-  'hero.ctaStudio': 'Oscail an Stiúideo Fuaime',
+  'hero.ctaStudio': 'Oscail an Stiúideo',
   'hero.ctaLibrary': 'Brabhsáil an leabharlann',
   'hero.curveLabel': 'sampláilte ag 800 pointe',
   'hero.quickExperiments': 'turgnaimh thapa — cliceáil chun oscailt sa stiúideo',
@@ -148,7 +148,7 @@ const ga = {
   'howItWorks.step4Note': 'Cinntíonn máistir DynamicsCompressorNode nialas bearradh fuaime, ag cosaint do chluasa ar spící matamaiticiúla tobanna nó ar aisíomptóití.',
   'howItWorks.step5Title': 'Athsheinm sioncronaithe fuaime is amhairc',
   'howItWorks.step5Desc': 'De réir mar a shintéisíonn comhthéacs na fuaime an tonnchruth, tiomáineann lúb beochana 60 FPS inneall canbhás 2D. Leanann an ceann súgartha an pointe matamaiticiúil cruinn ar an scáileán agus freagraíonn staid an chuair agus an speictrim don aschur fuaime.',
-  'howItWorks.cta': 'Bain triail as sa stiúideo fuaime',
+  'howItWorks.cta': 'Bain triail as sa Stiúideo',
 
   // Equations page
   'equations.tag': 'catalóg mhatamaiticiúil',
@@ -157,12 +157,15 @@ const ga = {
   'equations.openInStudio': 'Oscail sa stiúideo',
 
   // About page
-  'about.tag': 'forógra tionscadail',
+  'about.tag': 'faoi an tionscadal seo',
   'about.title': 'Maidir le MathSonify',
   'about.subtitle': 'Droichid iomasacha, cruthaitheacha agus ceolmhaire a thógáil isteach in áilleacht theibí na matamaitice.',
   'about.missionTitle': 'Ár misean',
   'about.missionDesc1': 'Is minic a mhúintear an mhatamaitic mar chothromóidí statacha ar ghreillí clár dubha. Ach is matamaitic ag gluaiseacht í an fhuaim fhisiciúil féin: tonnchruthanna tréimhsiúla, sraitheanna forthonacha armónacha, cothromóidí difreálacha athshondais, agus dianscaoiltí Fourier.',
   'about.missionDesc2': 'Cruthaíodh MathSonify chun an mhatamaitic a dhéanamh inláimhsithe, mothúchánach agus cruthaitheach. Cibé an mac léinn thú ag foghlaim triantánachta, léiritheoir ceoil ag dearadh pailéid thimbreacha uathúla, nó códálaí cruthaitheach ag taiscéaladh áilleacht algartamach, ligeann MathSonify duit a chloisteáil cén chuma atá ar uimhreacha.',
+  'about.builderTitle': 'Cé a thógann MathSonify',
+  'about.builderDesc': 'Dearnaíonn, thóg agus coinníonn foireann bheag díograiseach MathSonify. Thosaigh sé le ceist shimplí — céard é fuaim na cothromóide i ndáiríre? — agus tá sé fós á mhúniú ag na daoine a úsáideann é.',
+  'about.underHood': 'faoi an mbonn',
   'about.techTitle': 'Ailtireacht theicniúil',
   'about.techDesc': 'Tá MathSonify deartha le bheith 100% gan fhreastalaí, príobháideach, agus saor ó chostas cothabhála:',
   'about.techAstro': 'Hibrideach Astro + React: seachadadh statach tapa do leathanaigh mhargaíochta agus oideachais, le hoileán React imoibríoch scoite don stiúideo.',
@@ -171,7 +174,7 @@ const ga = {
   'about.techExport': 'Easpórtálaí WAV ar thaobh an chliaint: rindreáil maoláin fuaime fíor-ama agus as líne ag tiontú foirmlí ina gcomhaid fuaime caighdeánacha 16-giotán 44.1kHz.',
   'about.privacyTitle': 'Príobháideachas agus rochtain oscailte',
   'about.privacyDesc': 'Ní éilíonn MathSonify aon chuntas úsáideora, logáil isteach ná síntiús dá phríomhfheidhmiúlacht. Déantar do chothromóidí a phróiseáil go díreach ar LAP do ghléis agus ní tharchuirtear riamh chuig freastalaithe anailísíochta nó bunachar sonraí seachtracha iad.',
-  'about.cta': 'Oscail an stiúideo fuaime',
+  'about.cta': 'Oscail an Stiúideo',
 
   // Scientists page
   'scientists.tag': 'éist leis na máistrí',
@@ -190,7 +193,7 @@ const ga = {
   'footer.brandDesc': 'Turgnamh fuaime matamaiticiúil idirghníomhach agus ardán sonaithe cruthaitheach — iompaigh matamaitic ina ceol.',
   'footer.zeroBackend': 'nialas cúlcheann · 100% Web Audio API',
   'footer.product': 'Táirge',
-  'footer.creationStudio': 'Stiúideo Cruthaithe',
+  'footer.creationStudio': 'Stiúideo',
   'footer.equationLibrary': 'Leabharlann Cothromóidí',
   'footer.howItWorks': 'Conas a Oibríonn Sé',
   'footer.equationGuide': 'Treoir Cothromóidí',

@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ClipboardEvent } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useStudioStore } from '../store/studioStore';
 import { useTranslation } from '../i18n/index';
-import { parseEquation, sanitizeEquationString } from '../utils/equationParser';
+import { parseEquation, sanitizeEquationString, type EquationSuggestion } from '../utils/equationParser';
 import { PRESETS } from '../data/presets';
 import MathSymbolPad from './MathSymbolPad';
 
@@ -34,6 +34,8 @@ export default function EquationInput() {
 
   const [rawInput, setRawInput] = useState(equation);
   const [error, setError] = useState<string>('');
+  // A validated typo fix offered to the user, never applied behind their back.
+  const [suggestion, setSuggestion] = useState<EquationSuggestion | null>(null);
   const [showDomainControls, setShowDomainControls] = useState(false);
   const [shakeError, setShakeError] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -51,13 +53,60 @@ export default function EquationInput() {
     const parsed = parseEquation(val);
     if (!parsed.success) {
       setError(parsed.error || 'Invalid equation syntax');
+      // Offered, not applied — the user decides whether this is what they meant.
+      setSuggestion(parsed.suggestion ?? null);
       setShakeError(true);
       setTimeout(() => setShakeError(false), 600);
     } else {
       setError('');
+      setSuggestion(null);
       setEquation(val);
       if (isPlaying) setHasPendingChanges(true);
     }
+  };
+
+  /**
+   * Paste an equation, and treat it exactly as if it had been typed.
+   *
+   * WHY THIS IS NOT LEFT TO onChange: the input is a single-line text field, so
+   * the browser silently flattens a multi-line paste and the native input event
+   * hands us the mangled result. Pasting a row copied out of a spreadsheet, a
+   * textbook line with a trailing reference marker, or a block that happens to
+   * include a newline all produced either a syntax error or a wrong equation.
+   *
+   * Here the clipboard is read directly: trimmed, and reduced to the FIRST
+   * non-empty line, so the equation survives and everything after it is dropped.
+   * `preventDefault` stops the browser inserting its own flattened version on top.
+   *
+   * Handled through `handleChange` so a pasted equation is parsed, rendered and
+   * validated by the exact same path as a typed one — no second code path that
+   * could drift.
+   */
+  const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData('text');
+    if (!text) return; // Let the browser do its thing for non-text pastes.
+
+    e.preventDefault();
+
+    const firstLine = text
+      .split(/\r\n|\r|\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0);
+
+    // Nothing but blank lines: leave the field alone rather than clearing it.
+    if (firstLine === undefined) return;
+
+    caretRef.current = firstLine.length;
+    handleChange(firstLine);
+  };
+
+  /** Accept a suggested correction, exactly as if the user had typed it. */
+  const applySuggestion = (value: string) => {
+    setSuggestion(null);
+    setRawInput(value);
+    setEquation(value);
+    if (isPlaying) setHasPendingChanges(true);
+    inputRef.current?.focus();
   };
 
   // Insert at the saved caret (kept in sync with the visible input), so tapping
@@ -118,7 +167,23 @@ export default function EquationInput() {
           </div>
         </div>
 
-        <div className="relative panel-inset">
+        <div
+          className="relative panel-inset z-[45]"
+          /*
+           * WHY z-[45]:
+           *
+           * The keyboard's backdrop is `fixed inset-0 z-40` with a 55% scrim and a
+           * blur. Without an explicit stacking position this row sat below it, so
+           * opening the keyboard put the blurred, scrimmed page ON TOP of the very
+           * field being edited — the equation the user was typing became
+           * unreadable at exactly the moment they needed to read it.
+           *
+           * z-45 places the field above the backdrop (z-40) but below the keyboard
+           * panel itself (z-50), so it stays legible while the sheet is open and
+           * the sheet still covers the page. It only applies while the keyboard is
+           * open; with no keyboard there is nothing to out-rank.
+           */
+        >
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-sc-text-faint font-mono text-sm pointer-events-none select-none">
             f(x) =
           </div>
@@ -131,6 +196,7 @@ export default function EquationInput() {
               caretRef.current = e.target.selectionStart;
               handleChange(e.target.value);
             }}
+            onPaste={handlePaste}
             onSelect={trackCaret}
             onClick={trackCaret}
             onKeyUp={trackCaret}
@@ -190,6 +256,36 @@ export default function EquationInput() {
             </motion.p>
           )}
         </AnimatePresence>
+
+        {/* Typo suggestion. Never applied automatically — the user has to tap
+            "Use this". Silently rewriting someone's equation is worse than
+            telling them they made a typo. */}
+        {suggestion && (
+          <motion.div
+            key="suggestion"
+            className="mt-2 flex flex-wrap items-center gap-2 text-xs"
+            initial={reduceMotion ? { opacity: 1 } : { opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <span className="text-sc-text-soft">
+              Did you mean{' '}
+              <code className="font-mono text-sc-accent">{suggestion.equation}</code>?
+            </span>
+            <button
+              type="button"
+              onClick={() => applySuggestion(suggestion.equation)}
+              className="px-3 rounded-full font-semibold text-xs min-h-[44px] transition-colors"
+              style={{
+                background: 'color-mix(in srgb, var(--sc-accent) 16%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--sc-accent) 40%, transparent)',
+                color: 'var(--sc-accent)',
+              }}
+            >
+              Use this
+            </button>
+            <span className="text-[11px] text-sc-text-faint">({suggestion.reason})</span>
+          </motion.div>
+        )}
       </div>
 
       {/* Insert helper dials */}
@@ -221,10 +317,19 @@ export default function EquationInput() {
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-sc-text-soft">{t('eq.popularPresets')}</span>
           <button
-            onClick={() => setPresetDrawerOpen(true)}
+            /*
+             * Opens the math symbol keyboard.
+             *
+             * This used to read "View all 12+" and open the preset library, which
+             * duplicated the separate Library button sitting elsewhere on the page.
+             * The keyboard is the more useful thing to reach for from here, and it
+             * is also the one that was hardest to discover on desktop.
+             */
+            onClick={() => setKeyboardOpen(true)}
+            aria-label={t('eq.moreSymbols')}
             className="text-[11px] text-sc-accent hover:underline"
           >
-            {t('eq.viewAll')}
+            {t('eq.moreSymbols')}
           </button>
         </div>
         <div className="flex flex-wrap gap-1.5">

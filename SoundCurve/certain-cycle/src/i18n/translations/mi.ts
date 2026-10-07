@@ -2,7 +2,7 @@ const mi = {
   // Navigation
   'nav.scientists': 'Ngā Kaimātai Pūtaiao',
   'nav.explore': 'Tūhura',
-  'nav.create': 'Waihanga',
+  'nav.studio': 'Studio',
   'nav.howItWorks': 'Me Pēhea te Mahi',
   'nav.equations': 'Ngā Whārite',
   'nav.about': 'Mō Mātou',
@@ -18,7 +18,7 @@ const mi = {
   'hero.titleAccent': 'oro',
   'hero.titleLine2': 'ora',
   'hero.subtitle': 'Tāurua he whārite. Pānuihia tōna āhuahanga mai i te pepa, pēhi purei, ka whakarongo ki ōna ōrite kua whakahiatohia mā te Web Audio API i te wā tūturu.',
-  'hero.ctaStudio': 'Whakatuwheratia te Taiwhanga Oro',
+  'hero.ctaStudio': 'Whakatuwheratia te Taiwhanga',
   'hero.ctaLibrary': 'Tirotiro i te whare pukapuka',
   'hero.curveLabel': 'kua tatau ki ngā pūwāhi 800',
   'hero.quickExperiments': 'ngā whakamātau tere — pāwhiria hei whakatuwhera i te taiwhanga',
@@ -148,7 +148,7 @@ const mi = {
   'howItWorks.step4Note': 'Mā te DynamicsCompressorNode matua e kore rawa e tapahia te oro, e tiaki ana i ō taringa i ngā koikoi pāngarau ohorere, i ngā taupare rānei.',
   'howItWorks.step5Title': 'Purei tukutahi oro-ataata',
   'howItWorks.step5Desc': 'I te whakahiato o te horopaki oro i te puka ngaru, ka peia e tētahi koru hākoritanga 60 FPS te pūkaha kānawehi 2D. Ka whai te upoko purei i te pūwāhi pāngarau tika i runga i te mata, ā, ka urupare te āhua o te ānau me te tūāwhiorangi ki te putanga oro.',
-  'howItWorks.cta': 'Whakamātauria i te taiwhanga oro',
+  'howItWorks.cta': 'Whakamātauria i te taiwhanga',
 
   // Equations page
   'equations.tag': 'rārangi pāngarau',
@@ -157,12 +157,15 @@ const mi = {
   'equations.openInStudio': 'Whakatuwhera i te taiwhanga',
 
   // About page
-  'about.tag': 'kupu whakapuaki kaupapa',
+  'about.tag': 'mō tēnei kaupapa',
   'about.title': 'Mō MathSonify',
   'about.subtitle': 'Te hanga piriti mārama, auaha, puoro hoki ki te ataahua waitara o te pāngarau.',
   'about.missionTitle': 'Tā mātou kaupapa',
   'about.missionDesc1': 'He maha ngā wā ka akona te pāngarau hei whārite pateko i runga i ngā mātiti papa pango. Engari ko te oro tinana tonu he pāngarau e neke ana: ngā puka ngaru wā, ngā raupapa oro ōrite, ngā whārite pārōnaki o te kōwaro, me ngā wetewete Fourier.',
   'about.missionDesc2': 'I waihangatia a MathSonify kia noho ngāwari, kare ā-roto, auaha hoki te pāngarau. Ahakoa he ākonga koe e ako ana i te pākoki, he kaihanga puoro e hoahoa ana i ngā papatae tae oro ahurei, he kaiwaehere auaha rānei e tūhura ana i te ataahua hātepe, ka tukuna koe e MathSonify kia rongo he aha te āhua o ngā tau.',
+  'about.builderTitle': 'Ko wai te kaihanganga o MathSonify',
+  'about.builderDesc': 'He tīma iti, he ngaukai e hoahoa, e hanga, e tiaki i te MathSonify. I tīmata mai i tētahi pātai simple: he aha te oro o tētahi pātai? — ā, e āhua tonu ana e āhuatia ana i ngā kaiwhakamahi.',
+  'about.underHood': 'i raro i te papa',
   'about.techTitle': 'Hoahoa hangarau',
   'about.techDesc': 'Kua hoahoatia a MathSonify kia 100% kore tūmau, tūmataiti, kore utu tiaki hoki:',
   'about.techAstro': 'Ranunga Astro + React: tuku pateko tere mō ngā whārangi hokohoko me te mātauranga, me tētahi motu React tauwhitiwhiti motuhake mō te taiwhanga.',
@@ -171,7 +174,7 @@ const mi = {
   'about.techExport': 'Kaikaweake WAV taha kiritaki: te whakaputa pūtake oro wā tūturu me te tuimotu e huri ana i ngā tātai hei kōnae oro paerewa 16-bit 44.1kHz.',
   'about.privacyTitle': 'Tūmataitinga me te uru tuwhera',
   'about.privacyDesc': 'Kāore a MathSonify e hiahia pūkete kaiwhakamahi, takiuru, ohaurunga rānei mō tōna mahinga matua. Ka tukatukahia ō whārite i runga tonu i te PTM o tō pūrere, kāore rawa e tukuna ki ngā tūmau tātari, pātengi raraunga o waho rānei.',
-  'about.cta': 'Whakatuwheratia te taiwhanga oro',
+  'about.cta': 'Whakatuwheratia te taiwhanga',
 
   // Scientists page
   'scientists.tag': 'whakarongo ki ngā tohunga',
@@ -190,7 +193,7 @@ const mi = {
   'footer.brandDesc': 'He whakamātau oro pāngarau tauwhitiwhiti me te papa oro auaha — hurihia te pāngarau hei puoro.',
   'footer.zeroBackend': 'kore pūmuri · 100% Web Audio API',
   'footer.product': 'Hua',
-  'footer.creationStudio': 'Taiwhanga Waihanga',
+  'footer.creationStudio': 'Studio',
   'footer.equationLibrary': 'Whare Pukapuka Whārite',
   'footer.howItWorks': 'Me Pēhea te Mahi',
   'footer.equationGuide': 'Aratohu Whārite',

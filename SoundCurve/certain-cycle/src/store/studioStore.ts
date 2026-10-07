@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import type { ScaleKey } from '../utils/equationParser';
+// Type-only import: the readout type lives in the audio engine, and importing
+// it for real would pull the whole Web Audio module into the store's graph.
+import type { PlaybackReadout } from '../utils/audioEngine';
 import type { Scientist } from '../data/scientists';
 import {
   sampleEquationToControlPoints,
@@ -18,6 +21,18 @@ export interface StudioState {
   progress: number;
   currentX: number;
   currentY: number;
+  /**
+   * Live Learn-mode readout, emitted by the audio engine every frame the
+   * playhead moves. Null when not playing or when the current sample is
+   * invalid, so the UI never shows a value the engine did not play.
+   */
+  readout: PlaybackReadout | null;
+  /** Learn-mode overlay visibility. Off by default. */
+  learnMode: boolean;
+  /** Curve-height stereo panning. On by default; off for mono output. */
+  panningEnabled: boolean;
+  /** Blind/accessibility mode: spoken + written curve description. */
+  curveDescriber: boolean;
 
   // Audio parameters
   volume: number;
@@ -64,7 +79,15 @@ export interface StudioState {
 
 export interface StudioActions {
   setPlaying: (playing: boolean) => void;
-  setProgress: (progress: number, currentX: number, currentY: number) => void;
+  setProgress: (
+    progress: number,
+    currentX: number,
+    currentY: number,
+    readout?: PlaybackReadout,
+  ) => void;
+  setLearnMode: (on: boolean) => void;
+  setPanningEnabled: (on: boolean) => void;
+  setCurveDescriber: (on: boolean) => void;
   setVolume: (volume: number) => void;
   setDuration: (duration: number) => void;
   setSpeed: (speed: number) => void;
@@ -125,6 +148,15 @@ const initialState: StudioState = {
   progress: 0,
   currentX: 0,
   currentY: 0,
+  readout: null,
+  // Learn mode is off by default, per spec, and is deliberately NOT persisted
+  // across reloads — it is a per-session aid, not a preference tied to an
+  // equation. Keeping it in this in-memory store is what makes that true.
+  learnMode: false,
+  panningEnabled: true,
+  // Blind mode is off by default per spec; the toggle is session state like
+  // Learn mode, so it resets on reload rather than becoming a sticky preference.
+  curveDescriber: false,
 
   volume: 0.7,
   duration: 4,
@@ -166,7 +198,11 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
   ...initialState,
 
   setPlaying: (playing) => set((state) => ({ isPlaying: playing, progress: playing ? state.progress : 0 })),
-  setProgress: (progress, currentX, currentY) => set({ progress, currentX, currentY }),
+  setProgress: (progress, currentX, currentY, readout) =>
+    set({ progress, currentX, currentY, readout: readout ?? null }),
+  setLearnMode: (learnMode) => set({ learnMode }),
+  setPanningEnabled: (panningEnabled) => set({ panningEnabled }),
+  setCurveDescriber: (curveDescriber) => set({ curveDescriber }),
   setVolume: (volume) => set({ volume }),
   setDuration: (duration) => set({ duration }),
   setSpeed: (speed) => set({ speed }),

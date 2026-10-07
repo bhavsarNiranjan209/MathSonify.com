@@ -2,7 +2,7 @@ const lb = {
   // Navigation
   'nav.scientists': 'Wëssenschaftler',
   'nav.explore': 'Entdecken',
-  'nav.create': 'Erstellen',
+  'nav.studio': 'Studio',
   'nav.howItWorks': 'Wéi et funktionéiert',
   'nav.equations': 'Equatiounen',
   'nav.about': 'Iwwer',
@@ -18,7 +18,7 @@ const lb = {
   'hero.titleAccent': 'liewegen',
   'hero.titleLine2': 'Toun',
   'hero.subtitle': 'Gitt eng Equatioun an. Liest hir Geometrie vum Pabeier, dréckt op Play a lauschtert hir Harmonien déi duerch de Web Audio API an Echtzäit synthetiséiert ginn.',
-  'hero.ctaStudio': 'Tounstudio opmaachen',
+  'hero.ctaStudio': 'Studio opmaachen',
   'hero.ctaLibrary': 'Bibliothéik duerchsichen',
   'hero.curveLabel': 'echantillonéiert op 800 Punkten',
   'hero.quickExperiments': 'séier Experimenter — klickt fir am Studio opzemaachen',
@@ -148,7 +148,7 @@ const lb = {
   'howItWorks.step4Note': 'En Master DynamicsCompressorNode garantéiert null Audio-Clipping, a schützt Är Oueren virun plötzleche mathematesche Spëtzten oder Asymptoten.',
   'howItWorks.step5Title': 'Audio-visuell synchroniséiert Widderginn',
   'howItWorks.step5Desc': 'Während den Audiokontext d\'Welleform synthetiséiert, dreiwt eng 60-FPS Animatiounsschleif de Canvas-2D-Moteur un. De Playhead verfollegt de geneeë mathematesche Punkt um Bildschierm, während d\'Kurv an de Spektrumzoustand op den Toun-Output reagéieren.',
-  'howItWorks.cta': 'Probéiert et am Tounstudio',
+  'howItWorks.cta': 'Probéiert et am Studio',
 
   // Equations page
   'equations.tag': 'mathematesche Katalog',
@@ -157,12 +157,15 @@ const lb = {
   'equations.openInStudio': 'Am Studio opmaachen',
 
   // About page
-  'about.tag': 'Projetmanifest',
+  'about.tag': 'iwwer dëst Projet',
   'about.title': 'Iwwer MathSonify',
   'about.subtitle': 'Intuitiv, kreativ a musikalesch Brécken an déi abstrakt Schéinheet vun der Mathematik bauen.',
   'about.missionTitle': 'Eis Missioun',
   'about.missionDesc1': 'Mathematik gëtt dacks als statesch Equatiounen op Tafelgitter geléiert. Mee physeschen Toun selwer ass Mathematik a Beweegung: periodesch Welleformen, harmoneesch Iwwertounreien, Differentialequatioune vun der Resonanz a Fourier-Zerleeungen.',
   'about.missionDesc2': 'MathSonify gouf geschaf fir Mathematik spierbar, emotional a kreativ ze maachen. Egal ob Dir e Student sidd deen Trigonometrie léiert, e Museksproduzent deen eenzegaarteg Tounfaarf-Paletten entwéckelt, oder e kreative Coder deen algorithmësch Schéinheet exploréiert, MathSonify léisst Iech héieren wéi Zuele ausgesinn.',
+  'about.builderTitle': 'Wien baut MathSonify',
+  'about.builderDesc': 'MathSonify gëtt vun engem klengen, motivéierte Team entwéckelt an ënnerhalen. Et huet ugefaang mat enger einfacher Fro: wéi kléngt eng Gläichung eigentlech? — a gëtt nachëmmer vun de Leit geprägt, déi et benotzen.',
+  'about.underHood': 'ënner der Haube',
   'about.techTitle': 'Technesch Architektur',
   'about.techDesc': 'MathSonify ass architekturéiert fir 100% serverlos, privat an ouni Ënnerhaltskäschten ze sinn:',
   'about.techAstro': 'Astro + React Hybrid: séier statesch Liwwerung fir Marketing- a Bildungssäiten, mat enger isoléierter, reaktiver Zustand-gedriwwener React-Insel fir de Studio.',
@@ -171,7 +174,7 @@ const lb = {
   'about.techExport': 'Client-säitegen WAV-Exporteur: Echtzäit- an Offline-Audio-Buffer-Rendering dat Formelen an Standard 16-Bit 44.1kHz Audiodateien ëmwandelt.',
   'about.privacyTitle': 'Privatsphär an oppenen Zougang',
   'about.privacyDesc': 'MathSonify brauch kee Benotzerkont, kee Login a kee Abonnement fir seng Kärfunktionalitéit. Är Equatiounen ginn direkt op der CPU vun Ärem Apparat veraarbecht a ginn ni un extern Analyse- oder Datebankserveren iwwerdroen.',
-  'about.cta': 'Tounstudio opmaachen',
+  'about.cta': 'Studio opmaachen',
 
   // Footer
   // Scientists page
@@ -191,7 +194,7 @@ const lb = {
   'footer.brandDesc': 'En interaktiven mathemateschen Audio-Experiment a kreativ Sonifikatiounsplattform — verwandelt Mathematik an Musek.',
   'footer.zeroBackend': 'Kee Backend · 100% Web Audio API',
   'footer.product': 'Produit',
-  'footer.creationStudio': 'Kreativstudio',
+  'footer.creationStudio': 'Studio',
   'footer.equationLibrary': 'Equatiounsbibliothéik',
   'footer.howItWorks': 'Wéi et funktionéiert',
   'footer.equationGuide': 'Equatiouns-Guide',

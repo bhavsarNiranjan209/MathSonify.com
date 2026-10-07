@@ -31,8 +31,8 @@ const heroPresets = PRESETS.slice(0, 3);
 
     <!-- CTAs -->
     <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in" style="animation-delay: 0.2s">
-      <a href="/create" class="w-full sm:w-auto px-8 py-3.5 text-base btn-primary" data-i18n="hero.ctaStudio">
-        Open the Sound Studio
+      <a href="/studio" class="w-full sm:w-auto px-8 py-3.5 text-base btn-primary" data-i18n="hero.ctaStudio">
+        Open Studio
       </a>
       <a href="/equations" class="w-full sm:w-auto px-8 py-3.5 text-base btn-ghost" data-i18n="hero.ctaLibrary">
         Browse the library
@@ -56,7 +56,7 @@ const heroPresets = PRESETS.slice(0, 3);
       <div class="flex flex-wrap items-center justify-center gap-2">
         {heroPresets.map((preset) => (
           <a
-            href={`/create?eq=${encodeURIComponent(preset.equation)}&inst=${preset.recommendedSettings.instrument}&mode=${preset.recommendedSettings.sonificationMode}`}
+            href={`/studio?eq=${encodeURIComponent(preset.equation)}&inst=${preset.recommendedSettings.instrument}&mode=${preset.recommendedSettings.sonificationMode}`}
             class="chip chip-idle font-mono text-xs"
           >
             <span class="text-sc-text-soft">{preset.name}:</span>

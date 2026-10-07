@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sc-bg: 10, 12, 28;
+  --sc-surface: 16, 20, 38;
+  --sc-sunken: 8, 10, 24;
+  --sc-text: 238, 240, 251;
+  --sc-text-soft: 169, 182, 211;
+  --sc-text-faint: 102, 115, 143;
+  --sc-line: 148, 178, 255;
+  --sc-accent: 233, 180, 68;
+  --sc-on-accent: 16, 19, 28;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: rgb(var(--sc-bg));
+  color: rgb(var(--sc-text));
+  font-family: 'Inter', system-ui, sans-serif;
+}

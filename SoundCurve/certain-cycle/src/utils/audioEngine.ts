@@ -1,8 +1,36 @@
 import { parseEquation, type SamplePoint, normalize, clamp, quantizeToScale, type ScaleKey } from './equationParser';
+import { pitchAt, panAt, type PlaybackPitch } from './sonificationMapping';
 import type { InstrumentType, SonificationMode } from '../store/studioStore';
 
+/** Everything the engine needs to describe the current sample in Learn mode. */
+export interface PlaybackReadout {
+  x: number;
+  y: number;
+  /** What the engine is doing with this sample — a real Hz, or honest amplitude. */
+  pitch: PlaybackPitch;
+  /** Stereo position for this sample, [-1, 1]. */
+  pan: number;
+}
+
+/**
+ * Called every frame the playhead moves.
+ *
+ * `readout` is optional and appended, so existing three-argument callers keep
+ * working untouched. It is supplied from the same sample point the synth is
+ * playing, not recomputed by the UI — see `sonificationMapping`.
+ */
 export interface PlayProgressCallback {
-  (progress: number, currentX: number, currentY: number): void;
+  (progress: number, currentX: number, currentY: number, readout?: PlaybackReadout): void;
+}
+
+/** The per-playback values the readout and panning are derived from. */
+interface PlaybackParams {
+  minY: number;
+  maxY: number;
+  minFreq: number;
+  maxFreq: number;
+  mode: SonificationMode;
+  scale: ScaleKey;
 }
 
 export class AudioEngine {
@@ -10,6 +38,17 @@ export class AudioEngine {
   private analyser: AnalyserNode | null = null;
   private masterGain: GainNode | null = null;
   private compressor: DynamicsCompressorNode | null = null;
+  /**
+   * Studio-only stereo panner, sitting between the studio voices and the
+   * shared master bus.
+   *
+   * Deliberately NOT in the master path: `compositionEngine` and
+   * `musicLabEngine` also connect to `getMasterGain()`, and their mixing is
+   * unrelated to the studio curve's height. Putting the panner here scopes it
+   * to studio playback and leaves pitch/volume mapping completely untouched.
+   */
+  private voiceBus: StereoPannerNode | null = null;
+  private panningEnabled = true;
   private isInitialized = false;
 
   private activeNodes: AudioNode[] = [];
@@ -28,6 +67,8 @@ export class AudioEngine {
   private progressCallback: PlayProgressCallback | null = null;
   private onFinishCallback: (() => void) | null = null;
   private loopActive = false;
+  /** Set per playback so the readout and panning use the same numbers the synth does. */
+  private playParams: PlaybackParams | null = null;
 
   /**
    * Initializes the Web Audio API context. Must be triggered via user interaction.
@@ -61,7 +102,23 @@ export class AudioEngine {
       this.compressor.attack.setValueAtTime(0.003, this.audioContext.currentTime);
       this.compressor.release.setValueAtTime(0.15, this.audioContext.currentTime);
 
-      // Routing: Nodes -> MasterGain -> Compressor -> Analyser -> Destination
+      // Stereo panner for studio voices only. `createStereoPanner` is missing in
+      // older Safari; there we fall back to the plain master bus so panning is
+      // simply unavailable rather than the whole engine failing to initialise.
+      const withPanner = this.audioContext as AudioContext & {
+        createStereoPanner?: () => StereoPannerNode;
+      };
+      if (typeof withPanner.createStereoPanner === 'function') {
+        this.voiceBus = withPanner.createStereoPanner();
+        this.voiceBus.pan.value = 0;
+        this.voiceBus.connect(this.masterGain);
+      } else {
+        this.voiceBus = null;
+      }
+
+      // Routing: Studio voices -> [Panner] -> MasterGain -> Compressor ->
+      // Analyser -> Destination. SoundLab/MusicLab connect to MasterGain
+      // directly and are therefore unaffected by studio panning.
       this.masterGain.connect(this.compressor);
       this.compressor.connect(this.analyser);
       this.analyser.connect(this.audioContext.destination);
@@ -83,6 +140,41 @@ export class AudioEngine {
 
   getMasterGain(): GainNode | null {
     return this.masterGain;
+  }
+
+  /**
+   * Where studio voices connect. Falls back to the master bus on browsers with
+   * no StereoPannerNode support, so those simply lose panning.
+   *
+   * Non-null because every synth method guards `!this.masterGain` before
+   * building a voice, so masterGain is guaranteed by the time this is read.
+   */
+  private get voiceOut(): AudioNode {
+    return (this.voiceBus ?? this.masterGain) as AudioNode;
+  }
+
+  /** True when this browser can pan stereo at all. */
+  supportsPanning(): boolean {
+    return this.voiceBus !== null;
+  }
+
+  /**
+   * Turns curve-height panning on or off. Defaults to on; users on mono
+   * speakers or a single earbud will want it off. Off means the panner is
+   * parked at centre, so nothing else in the chain changes.
+   */
+  setPanningEnabled(enabled: boolean): void {
+    this.panningEnabled = enabled;
+    if (!this.voiceBus || !this.audioContext) return;
+    this.voiceBus.pan.setTargetAtTime(
+      enabled ? this.voiceBus.pan.value : 0,
+      this.audioContext.currentTime,
+      0.02,
+    );
+  }
+
+  isPanningEnabled(): boolean {
+    return this.panningEnabled;
   }
 
   isPlayingStatus(): boolean {
@@ -177,6 +269,9 @@ export class AudioEngine {
     const yVals = validPoints.map((p) => p.y);
     const minY = Math.min(...yVals);
     const maxY = Math.max(...yVals);
+    // Retained so the per-frame readout and panning are computed from exactly
+    // the range the synth is using.
+    this.playParams = { minY, maxY, minFreq, maxFreq, mode, scale };
 
     const executeSonification = () => {
       if (!this.isPlaying || !this.audioContext || !this.masterGain) return;
@@ -267,6 +362,7 @@ export class AudioEngine {
     const yVals = validPoints.map((p) => p.y);
     const minY = Math.min(...yVals);
     const maxY = Math.max(...yVals);
+    this.playParams = { minY, maxY, minFreq, maxFreq, mode, scale };
 
     const executeSonification = () => {
       if (!this.isPlaying || !this.audioContext || !this.masterGain) return;
@@ -326,7 +422,28 @@ export class AudioEngine {
           Math.floor(progress * (this.cachedPoints.length - 1))
         );
         const pt = this.cachedPoints[index];
-        this.progressCallback(progress, pt.x, pt.y);
+
+        // Everything below is derived from THIS sample point — the same one the
+        // oscillators are playing right now — via the shared mappings. Nothing
+        // is re-sampled or re-derived, so the readout cannot drift from the
+        // sound. If the cached point is not valid (a singularity), skip the
+        // frame rather than reporting a value the engine never played.
+        if (pt.isValid && this.playParams) {
+          const { minY, maxY, minFreq, maxFreq, mode, scale } = this.playParams;
+          const pan = panAt(pt.y, minY, maxY);
+          const pitch = pitchAt(mode, pt.y, minY, maxY, minFreq, maxFreq, scale);
+
+          // Drive the panner here too, so stereo and the readout come from one
+          // computation and cannot disagree.
+          if (this.voiceBus && this.panningEnabled && this.audioContext) {
+            // setTargetAtTime rather than assigning: assigning every frame makes
+            // the value jump in audible steps, which is exactly the harshness
+            // panning is supposed to avoid.
+            this.voiceBus.pan.setTargetAtTime(pan, this.audioContext.currentTime, 0.03);
+          }
+
+          this.progressCallback(progress, pt.x, pt.y, { x: pt.x, y: pt.y, pitch, pan });
+        }
       }
 
       if (progress < 1) {
@@ -372,7 +489,7 @@ export class AudioEngine {
 
     osc.connect(filter);
     filter.connect(env);
-    env.connect(this.masterGain);
+    env.connect(this.voiceOut);
 
     // ADSR Envelope
     env.gain.setValueAtTime(0.0001, now);
@@ -402,7 +519,7 @@ export class AudioEngine {
       subGain.gain.setValueAtTime(0.2, now);
 
       subOsc.connect(subGain);
-      subGain.connect(this.masterGain);
+      subGain.connect(this.voiceOut);
 
       points.forEach((pt, i) => {
         const t = now + i * dt;
@@ -559,7 +676,7 @@ export class AudioEngine {
 
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(this.masterGain);
+      gain.connect(this.voiceOut);
 
       osc.frequency.setValueAtTime(frequency, startTime);
 
@@ -581,7 +698,7 @@ export class AudioEngine {
       osc.connect(filter);
       osc2.connect(filter);
       filter.connect(gain);
-      gain.connect(this.masterGain);
+      gain.connect(this.voiceOut);
 
       gain.gain.setValueAtTime(0.0001, startTime);
       gain.gain.linearRampToValueAtTime(gainLevel, startTime + 0.01);
@@ -598,7 +715,7 @@ export class AudioEngine {
 
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(this.masterGain);
+      gain.connect(this.voiceOut);
 
       osc.frequency.setValueAtTime(frequency, startTime);
 

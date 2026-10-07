@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useStudioStore, type VisualizerMode } from '../store/studioStore';
-import { buildVerticalShiftEquation, parseEquation, type SamplePoint } from '../utils/equationParser';
+import { buildVerticalShiftEquation, type SamplePoint } from '../utils/equationParser';
+import { useActiveCurve } from '../utils/useActiveCurve';
 import {
   applyParameter,
   clampParamValue,
@@ -53,16 +54,18 @@ export default function Visualizer() {
   const originalEquation = useStudioStore((s) => s.originalEquation);
   const resetEquation = useStudioStore((s) => s.resetEquation);
   const setHasPendingChanges = useStudioStore((s) => s.setHasPendingChanges);
+  // Read by `useActiveCurve` so a sculpted or fitted curve resolves to the same
+  // points the audio engine and the exporters already use.
+  const isCustomCurve = useStudioStore((s) => s.isCustomCurve);
+  const splineControlPoints = useStudioStore((s) => s.splineControlPoints);
 
   const hasEquationChanges = equation !== originalEquation;
 
   const [editMode, setEditMode] = useState(false);
   const [hoverCoord, setHoverCoord] = useState<{ x: number; y: number; px: number; py: number } | null>(null);
-  const [renderError, setRenderError] = useState<string>('');
+  // `renderError` is derived from the shared curve further down, not held here.
 
   const reduceMotion = !!useReducedMotion();
-
-  const cachedPointsRef = useRef<SamplePoint[]>([]);
 
   // Live values the rAF loop reads every frame WITHOUT restarting.
   const progressRef = useRef(progress);
@@ -74,7 +77,6 @@ export default function Visualizer() {
   // In edit mode the user drags up/down on the graph to shift the
   // entire curve vertically — no individual handles, no Fourier fit.
   const editModeRef = useRef(false);
-  const freeformRef = useRef<SamplePoint[] | null>(null);
   const dragRef = useRef<{ lastY: number; lastCommit: number } | null>(null);
   const yOffsetRef = useRef(0); // accumulated vertical offset in math coords
   const baseEquationRef = useRef(equation); // equation before any shift
@@ -101,28 +103,23 @@ export default function Visualizer() {
       }
       editModeRef.current = false;
       setEditMode(false);
-      freeformRef.current = null;
+      setFreeform(null);
       yOffsetRef.current = 0;
       dragRef.current = null;
-      const parseResult = parseEquation(equationRef.current);
-      if (parseResult.success && parseResult.sample) {
-        cachedPointsRef.current = parseResult.sample(minX, maxX, 800);
-      }
+      // No manual re-sampling: `useActiveCurve` already re-derives from
+      // `equationRef`'s store value, and doing it here was a second source of
+      // truth that could disagree with it.
     } else {
       // Enter — anchor the base equation and start fresh with zero offset.
       baseEquationRef.current = equationRef.current;
       yOffsetRef.current = 0;
       editModeRef.current = true;
       setEditMode(true);
-      freeformRef.current = null;
-      const parseResult = parseEquation(equationRef.current);
-      if (parseResult.success && parseResult.sample) {
-        cachedPointsRef.current = parseResult.sample(minX, maxX, 800);
-      }
+      setFreeform(null);
       // Show the base equation in the chip
       requestAnimationFrame(() => writeChip(equationRef.current));
     }
-  }, [minX, maxX]);
+  }, []);
 
   // Follow the active theme so the curve is re-inked on switch.
   // Bumping a nonce makes the on-demand repaint effect below run, which is
@@ -135,20 +132,54 @@ export default function Visualizer() {
     });
   }, []);
 
-  // Update cached sample points whenever equation or bounds change.
-  // While a freeform drag is in flight the freeform owns the canvas.
-  useEffect(() => {
-    const parseResult = parseEquation(equation);
-    if (parseResult.success && parseResult.sample) {
-      const pts = parseResult.sample(minX, maxX, 800);
-      if (freeformRef.current) return;
-      cachedPointsRef.current = pts;
-      setRenderError('');
-    } else {
-      cachedPointsRef.current = [];
-      setRenderError(parseResult.error || 'Cannot render equation');
-    }
-  }, [equation, minX, maxX]);
+  // ── the ONE shared source of the active curve ─────────────────────
+  //
+  // Replaces the old `cachedPointsRef` + `freeformRef` pair. That pair was two
+  // sources of truth with no ordering guarantee, and `freeformRef` — cleared only
+  // on `pointerup` — could outlive the drag that created it, permanently masking
+  // the real curve so that every later equation change was silently invisible.
+  // Deriving with `useMemo` means the value is correct in the very render that
+  // changed the equation, so no view can ever paint a stale frame.
+  const activeCurve = useActiveCurve({
+    equation,
+    minX,
+    maxX,
+    isCustomCurve,
+    splineControlPoints,
+  });
+
+  /**
+   * The drag preview, as state rather than a ref.
+   *
+   * State is the point: a ref can persist invisibly past the gesture that made
+   * it, which is exactly the bug above. This is null whenever no drag is in
+   * flight, and is cleared on pointerup, pointercancel AND pointerleave.
+   */
+  const [freeform, setFreeform] = useState<SamplePoint[] | null>(null);
+
+  /**
+   * Points every pointer helper reads. Mirrors the shared curve, so the maths
+   * helpers (hover coords, drag deltas) always work from current data rather
+   * than a cache that can lag the equation.
+   */
+  const cachedPointsRef = useRef<SamplePoint[]>(activeCurve.points);
+  cachedPointsRef.current = activeCurve.points;
+
+  // The render error is DERIVED from the shared curve, not set imperatively by
+  // an effect. That removes the last piece of duplicated state: previously an
+  // effect had to remember to clear the message when an equation became valid.
+  const renderError = activeCurve.error ?? '';
+
+  /** Resolves the points to draw: the live drag preview, else the shared curve. */
+  const graphPoints = freeform ?? activeCurve.points;
+
+  /**
+   * Mirror of `graphPoints` for the render loop, which is mounted once and reads
+   * live values through refs. Re-assigned on every render, so it is current by
+   * the time the loop next runs.
+   */
+  const graphPointsRef = useRef<SamplePoint[]>(graphPoints);
+  graphPointsRef.current = graphPoints;
 
   // Main Canvas Render Loop — mounted ONCE, reads live state via refs.
   //
@@ -192,7 +223,10 @@ export default function Visualizer() {
       const hasAudio = playing && analyser;
 
       // The freeform (offset) curve supersedes the committed equation while editing.
-      const graphPoints = freeformRef.current ?? cachedPointsRef.current;
+      // Read through a ref because this loop is mounted once and must not
+      // re-subscribe to every state change; the ref is re-synced every render,
+      // which is what keeps it from ever being the stale value.
+      const graphPoints = graphPointsRef.current;
 
       switch (visualizerMode) {
         case '2d-graph':
@@ -237,9 +271,15 @@ export default function Visualizer() {
   }, [visualizerMode, minX, maxX, showGrid, isPlaying]);
 
   // Repaint on demand whenever the static frame could have gone stale.
+  //
+  // Keyed on the RESOLVED CURVE, not on the equation string. That distinction is
+  // the whole staleness fix: the curve is what actually gets drawn, so when it
+  // changes identity this repaints — including when the change came from a
+  // preset, a fitted curve, a sculpted spline, or a domain change rather than
+  // from typing. Depending on `equation` alone left gaps between those paths.
   useEffect(() => {
     drawRef.current();
-  }, [equation, showGrid, minX, maxX, visualizerMode, themeNonce]);
+  }, [graphPoints, showGrid, minX, maxX, visualizerMode, themeNonce]);
 
   // Resize / orientation changes must not leave a stretched or blank canvas.
   useEffect(() => {
@@ -296,7 +336,7 @@ export default function Visualizer() {
       const basePts = cachedPointsRef.current;
       if (basePts.length > 0) {
         const offsetPts = applyYOffset(basePts, newOffset);
-        freeformRef.current = offsetPts;
+        setFreeform(offsetPts);
 
         // Build a modified equation string showing the offset.
         const displayEq = buildVerticalShiftEquation(baseEquationRef.current, newOffset);
@@ -321,13 +361,27 @@ export default function Visualizer() {
         setEquation(newEq);
         if (isPlayingRef.current) setHasPendingChanges(true);
       }
-      freeformRef.current = null;
+      setFreeform(null);
       yOffsetRef.current = 0;
     }
   };
 
+  /**
+   * Leaving the canvas ends the drag.
+   *
+   * THE STALENESS FIX, in its most concrete form. `handlePointerUp` only fires
+   * for a pointerup delivered to the canvas. Release the mouse outside it, or
+   * have the browser cancel the pointer (a system gesture, a second touch, a
+   * context-menu interrupt), and the old code left the drag preview set
+   * forever — so every subsequent equation change was masked and the graph
+   * appeared frozen on the previous curve. Committing and clearing here as well
+   * means the drag preview cannot outlive the gesture that created it.
+   */
   const handlePointerLeave = () => {
     setHoverCoord(null);
+    if (dragRef.current) {
+      handlePointerUp();
+    }
   };
 
   // ── Parameterised equation editing (control points) ──────────────────
@@ -414,7 +468,7 @@ export default function Visualizer() {
     if (editModeRef.current) {
       editModeRef.current = false;
       setEditMode(false);
-      freeformRef.current = null;
+      setFreeform(null);
       yOffsetRef.current = 0;
     }
     resetEquation();
@@ -429,7 +483,15 @@ export default function Visualizer() {
   ];
 
   return (
-    <div className="relative w-full flex flex-col rounded-md border border-sc-ink/20 bg-sc-paper" style={{ contain: 'content' }}>
+    /*
+        `h-full` all the way down the chain, so every height resolves against a
+        definite box: GraphPanel's frame declares the height, the absolute
+        wrapper inherits it via `inset-0`, and this root and the canvas area fill
+        what is left after the toolbar. Without the root's own `h-full`, the
+        canvas area's percentage height would resolve against an auto-height
+        parent — which browsers treat as auto, collapsing the canvas to nothing.
+      */
+    <div className="relative w-full h-full flex flex-col rounded-md border border-sc-ink/20 bg-sc-paper" style={{ contain: 'content' }}>
       {/* Toolbar strip */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-sc-ink/10 bg-sc-surface text-sc-text-soft">
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 sm:pb-0 scrollbar-none">
@@ -532,8 +594,11 @@ export default function Visualizer() {
         </div>
       </div>
 
-      {/* Paper canvas */}
-      <div className="relative w-full h-[400px] sm:h-[480px] lg:h-[520px] cursor-crosshair">
+      {/* Paper canvas.
+          The height lives on GraphPanel's frame, and this fills it — the same
+          responsive ladder the panel declares, so the canvas is still exactly
+          400/480/520px and the image and video exports are unchanged. */}
+      <div className="relative w-full h-full min-h-0 cursor-crosshair">
         <canvas
           ref={canvasRef}
           data-export-canvas="visualizer"

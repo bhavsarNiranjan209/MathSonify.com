@@ -1,0 +1,148 @@
+src/components/EquationInput.tsx(102,16): error TS2345: Argument of type '{ minX: number; maxX: number; minFreq: number; maxFreq: number; duration: number; instrument: 'sine' | 'triangle' | 'sawtooth' | 'square' | 'piano' | 'pluck'; sonificationMode: 'frequency' | 'note' | 'rhythm' | 'chord'; scale?: string; equation: string; }' is not assignable to parameter of type '{ equation: string; minX?: number | undefined; maxX?: number | undefined; minFreq?: number | undefined; maxFreq?: number | undefined; duration?: number | undefined; instrument?: InstrumentType | undefined; sonificationMode?: SonificationMode | undefined; scale?: "chromatic" | ... 7 more ... | undefined; }'.
+  Types of property 'scale' are incompatible.
+    Type 'string | undefined' is not assignable to type '"chromatic" | "dorian" | "hirajoshi" | "major" | "majorPentatonic" | "minor" | "mixolydian" | "pentatonic" | undefined'.
+      Type 'string' is not assignable to type '"chromatic" | "dorian" | "hirajoshi" | "major" | "majorPentatonic" | "minor" | "mixolydian" | "pentatonic" | undefined'.
+src/components/EquationInput.tsx(279,41): error TS2345: Argument of type '{ minX: number; maxX: number; minFreq: number; maxFreq: number; duration: number; instrument: 'sine' | 'triangle' | 'sawtooth' | 'square' | 'piano' | 'pluck'; sonificationMode: 'frequency' | 'note' | 'rhythm' | 'chord'; scale?: string; equation: string; }' is not assignable to parameter of type '{ equation: string; minX?: number | undefined; maxX?: number | undefined; minFreq?: number | undefined; maxFreq?: number | undefined; duration?: number | undefined; instrument?: InstrumentType | undefined; sonificationMode?: SonificationMode | undefined; scale?: "chromatic" | ... 7 more ... | undefined; }'.
+  Types of property 'scale' are incompatible.
+    Type 'string | undefined' is not assignable to type '"chromatic" | "dorian" | "hirajoshi" | "major" | "majorPentatonic" | "minor" | "mixolydian" | "pentatonic" | undefined'.
+      Type 'string' is not assignable to type '"chromatic" | "dorian" | "hirajoshi" | "major" | "majorPentatonic" | "minor" | "mixolydian" | "pentatonic" | undefined'.
+src/components/MusicLab/Inspector.tsx(40,78): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/MusicLab/Inspector.tsx(41,66): error TS2322: Type 'unknown' is not assignable to type 'string | number | readonly string[] | undefined'.
+src/components/MusicLab/InstrumentBrowser.tsx(22,24): error TS2339: Property 'libraryFilter' does not exist on type 'State'.
+src/components/MusicLab/InstrumentBrowser.tsx(23,24): error TS2339: Property 'search' does not exist on type 'State'.
+src/components/MusicLab/InstrumentBrowser.tsx(24,28): error TS2339: Property 'favourites' does not exist on type 'State'.
+src/components/MusicLab/InstrumentBrowser.tsx(25,27): error TS2339: Property 'setLibraryFilter' does not exist on type 'State'.
+src/components/MusicLab/InstrumentBrowser.tsx(26,27): error TS2339: Property 'setSearch' does not exist on type 'State'.
+src/components/MusicLab/InstrumentBrowser.tsx(27,33): error TS2339: Property 'toggleFavourite' does not exist on type 'State'.
+src/components/MusicLab/MasterCurve.tsx(21,22): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(29,11): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(29,42): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(30,9): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(31,9): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(32,9): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(33,9): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(34,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(45,7): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(48,7): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(49,7): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(52,7): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(53,7): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(54,45): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(54,62): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(54,80): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(54,98): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(55,7): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(55,24): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(55,46): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(55,72): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(72,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(73,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(74,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(75,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(76,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(80,24): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(80,47): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(82,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(83,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(86,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(87,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(88,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(89,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(90,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MasterCurve.tsx(91,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MusicLab.tsx(42,32): error TS2740: Type 'import("C:/Projects(NiJo)/SoundCurve/certain-cycle/src/components/MusicLab/types").MusicLabProject' is missing the following properties from type 'import("C:/Projects(NiJo)/SoundCurve/certain-cycle/src/utils/musicLabProject").MusicLabProject': version, key, scale, swing, and 2 more.
+src/components/MusicLab/MusicLab.tsx(59,47): error TS2740: Type 'import("C:/Projects(NiJo)/SoundCurve/certain-cycle/src/components/MusicLab/types").MusicLabProject' is missing the following properties from type 'import("C:/Projects(NiJo)/SoundCurve/certain-cycle/src/utils/musicLabProject").MusicLabProject': version, key, scale, swing, and 2 more.
+src/components/MusicLab/MusicLab.tsx(71,42): error TS2740: Type 'import("C:/Projects(NiJo)/SoundCurve/certain-cycle/src/components/MusicLab/types").MusicLabProject' is missing the following properties from type 'import("C:/Projects(NiJo)/SoundCurve/certain-cycle/src/utils/musicLabProject").MusicLabProject': version, key, scale, swing, and 2 more.
+src/components/MusicLab/MusicLab.tsx(89,146): error TS2740: Type 'Record<string, number>' is missing the following properties from type 'MusicLabParameters': pitch, intensity, brightness, warmth, and 16 more.
+src/components/MusicLab/MusicLab.tsx(132,48): error TS2339: Property 'tracks' does not exist on type 'State'.
+src/components/MusicLab/MusicLab.tsx(132,60): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/components/MusicLab/MusicLab.tsx(150,51): error TS2551: Property 'selectedTrack' does not exist on type 'State'. Did you mean 'selectedTrackId'?
+src/components/MusicLab/MusicLab.tsx(150,109): error TS2551: Property 'selectedTrack' does not exist on type 'State'. Did you mean 'selectedTrackId'?
+src/components/MusicLab/MusicLab.tsx(155,22): error TS2551: Property 'selectedTrack' does not exist on type 'State'. Did you mean 'selectedTrackId'?
+src/components/MusicLab/MusicLab.tsx(156,18): error TS2304: Cannot find name 'Inspector'.
+src/components/MusicLab/MusicLab.tsx(156,41): error TS2551: Property 'selectedTrack' does not exist on type 'State'. Did you mean 'selectedTrackId'?
+src/components/MusicLab/MusicLab.tsx(190,47): error TS2551: Property 'selectedTrack' does not exist on type 'State'. Did you mean 'selectedTrackId'?
+src/components/MusicLab/MusicLab.tsx(190,105): error TS2551: Property 'selectedTrack' does not exist on type 'State'. Did you mean 'selectedTrackId'?
+src/components/MusicLab/MusicLabBackground.tsx(33,22): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(41,11): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(41,42): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(42,9): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(43,9): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(44,9): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(45,9): error TS18047: 'canvas' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(46,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(56,7): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(59,7): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(60,7): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(73,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(74,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(75,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(76,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(77,9): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/MusicLabBackground.tsx(79,7): error TS18047: 'ctx' is possibly 'null'.
+src/components/MusicLab/PianoRoll.tsx(4,10): error TS2305: Module '"./pianoRollHelpers"' has no exported member 'getMusicLabInstrument'.
+src/components/MusicLab/PianoRoll.tsx(30,29): error TS2339: Property 'snapEnabled' does not exist on type 'State'.
+src/components/MusicLab/PianoRoll.tsx(77,3): error TS2304: Cannot find name 'useEffect'.
+src/components/MusicLab/PianoRoll.tsx(132,39): error TS2322: Type 'RefObject<HTMLDivElement | null>' is not assignable to type 'LegacyRef<HTMLDivElement> | undefined'.
+  Type 'RefObject<HTMLDivElement | null>' is not assignable to type 'RefObject<HTMLDivElement>'.
+    Type 'HTMLDivElement | null' is not assignable to type 'HTMLDivElement'.
+      Type 'null' is not assignable to type 'HTMLDivElement'.
+src/components/PresetDrawer.tsx(27,16): error TS2345: Argument of type '{ minX: number; maxX: number; minFreq: number; maxFreq: number; duration: number; instrument: 'sine' | 'triangle' | 'sawtooth' | 'square' | 'piano' | 'pluck'; sonificationMode: 'frequency' | 'note' | 'rhythm' | 'chord'; scale?: string; equation: string; }' is not assignable to parameter of type '{ equation: string; minX?: number | undefined; maxX?: number | undefined; minFreq?: number | undefined; maxFreq?: number | undefined; duration?: number | undefined; instrument?: InstrumentType | undefined; sonificationMode?: SonificationMode | undefined; scale?: "chromatic" | ... 7 more ... | undefined; }'.
+  Types of property 'scale' are incompatible.
+    Type 'string | undefined' is not assignable to type '"chromatic" | "dorian" | "hirajoshi" | "major" | "majorPentatonic" | "minor" | "mixolydian" | "pentatonic" | undefined'.
+      Type 'string' is not assignable to type '"chromatic" | "dorian" | "hirajoshi" | "major" | "majorPentatonic" | "minor" | "mixolydian" | "pentatonic" | undefined'.
+src/data/scientists.ts(52,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "piano"; sonificationMode: "rhythm"; duration: number; minX: number; maxX: number; }, { id: string; name: string; equation: string; ... 5 more ...; maxX: number; }, { ...; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "piano"; sonificationMode: "rhythm"; duration: number; minX: number; maxX: number; } | { id: string; name: string; equation: string; ... 5 more ...; maxX: number; } | { ...; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(142,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "pluck"; sonificationMode: "note"; duration: number; minX: number; maxX: number; }, { id: string; name: string; equation: string; ... 5 more ...; maxX: number; }, { ...; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "pluck"; sonificationMode: "note"; duration: number; minX: number; maxX: number; } | { id: string; name: string; equation: string; ... 5 more ...; maxX: number; } | { ...; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(232,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "sine"; sonificationMode: "frequency"; duration: number; minX: number; maxX: number; }, { id: string; name: string; ... 6 more ...; maxX: number; }, { ...; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "sine"; sonificationMode: "frequency"; duration: number; minX: number; maxX: number; } | { id: string; name: string; ... 6 more ...; maxX: number; } | { ...; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(793,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "sawtooth"; sonificationMode: "rhythm"; duration: number; minX: number; maxX: number; }, { id: string; name: string; ... 6 more ...; maxX: number; }, { ...; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "sawtooth"; sonificationMode: "rhythm"; duration: number; minX: number; maxX: number; } | { id: string; name: string; ... 6 more ...; maxX: number; } | { ...; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(849,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "triangle"; sonificationMode: "frequency"; duration: number; minX: number; maxX: number; }, { id: string; name: string; ... 6 more ...; maxX: number; }, { ...; }, { ...; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "triangle"; sonificationMode: "frequency"; duration: number; minX: number; maxX: number; } | { id: string; name: string; ... 6 more ...; maxX: number; } | { ...; } | { ...; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(916,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "triangle"; sonificationMode: "rhythm"; duration: number; minX: number; maxX: number; }, { id: string; name: string; ... 6 more ...; maxX: number; }, { ...; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "triangle"; sonificationMode: "rhythm"; duration: number; minX: number; maxX: number; } | { id: string; name: string; ... 6 more ...; maxX: number; } | { ...; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(1062,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "piano"; sonificationMode: "note"; duration: number; minX: number; maxX: number; }, { id: string; name: string; equation: string; ... 5 more ...; maxX: number; }, { ...; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "piano"; sonificationMode: "note"; duration: number; minX: number; maxX: number; } | { id: string; name: string; equation: string; ... 5 more ...; maxX: number; } | { ...; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(1422,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "piano"; sonificationMode: "note"; duration: number; minX: number; maxX: number; }, { id: string; name: string; equation: string; ... 5 more ...; maxX: number; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "piano"; sonificationMode: "note"; duration: number; minX: number; maxX: number; } | { id: string; name: string; equation: string; ... 5 more ...; maxX: number; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(1501,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "sawtooth"; sonificationMode: "chord"; duration: number; minX: number; maxX: number; }, { id: string; name: string; ... 6 more ...; maxX: number; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "sawtooth"; sonificationMode: "chord"; duration: number; minX: number; maxX: number; } | { id: string; name: string; ... 6 more ...; maxX: number; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(1546,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "sawtooth"; sonificationMode: "note"; duration: number; minX: number; maxX: number; }, { id: string; name: string; equation: string; ... 5 more ...; maxX: number; }, { ...; }, { ...; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "sawtooth"; sonificationMode: "note"; duration: number; minX: number; maxX: number; } | { id: string; name: string; equation: string; ... 5 more ...; maxX: number; } | { ...; } | { ...; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(1669,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "sine"; sonificationMode: "note"; duration: number; minX: number; maxX: number; }, { id: string; name: string; equation: string; ... 5 more ...; maxX: number; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "sine"; sonificationMode: "note"; duration: number; minX: number; maxX: number; } | { id: string; name: string; equation: string; ... 5 more ...; maxX: number; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(1714,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "triangle"; sonificationMode: "note"; duration: number; minX: number; maxX: number; }, { id: string; name: string; equation: string; ... 5 more ...; maxX: number; }, { ...; }, { ...; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "triangle"; sonificationMode: "note"; duration: number; minX: number; maxX: number; } | { id: string; name: string; equation: string; ... 5 more ...; maxX: number; } | { ...; } | { ...; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(2197,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "sawtooth"; sonificationMode: "frequency"; duration: number; minX: number; maxX: number; }, { id: string; name: string; ... 6 more ...; maxX: number; }, { ...; }, { ...; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "sawtooth"; sonificationMode: "frequency"; duration: number; minX: number; maxX: number; } | { id: string; name: string; ... 6 more ...; maxX: number; } | { ...; } | { ...; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(2399,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "piano"; sonificationMode: "note"; duration: number; minX: number; maxX: number; }, { id: string; name: string; equation: string; ... 5 more ...; maxX: number; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "piano"; sonificationMode: "note"; duration: number; minX: number; maxX: number; } | { id: string; name: string; equation: string; ... 5 more ...; maxX: number; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/data/scientists.ts(2444,5): error TS2322: Type '[{ id: string; name: string; equation: string; description: string; instrument: "sine"; sonificationMode: "frequency"; duration: number; minX: number; maxX: number; }, { id: string; name: string; ... 6 more ...; maxX: number; }, undefined, { ...; }]' is not assignable to type 'ScientistEquation[]'.
+  Type '{ id: string; name: string; equation: string; description: string; instrument: "sine"; sonificationMode: "frequency"; duration: number; minX: number; maxX: number; } | { id: string; name: string; ... 6 more ...; maxX: number; } | { ...; } | undefined' is not assignable to type 'ScientistEquation'.
+    Type 'undefined' is not assignable to type 'ScientistEquation'.
+src/store/musicLabStore.ts(41,8): error TS2305: Module '"../utils/musicLabProject"' has no exported member 'SaveStatus'.
+src/utils/audioExporter.ts(15,5): error TS2322: Type 'Float32Array<ArrayBufferLike>' is not assignable to type 'ArrayBuffer'.
+  The types returned by 'slice(...)[Symbol.toStringTag]' are incompatible between these types.
+    Type '"Float32Array"' is not assignable to type '"ArrayBuffer"'.
+src/utils/audioExporter.ts(17,5): error TS2322: Type 'Float32Array<ArrayBuffer>' is not assignable to type 'ArrayBuffer'.
+  Types of property '[Symbol.toStringTag]' are incompatible.
+    Type '"Float32Array"' is not assignable to type '"ArrayBuffer"'.
+src/utils/audioExporter.ts(20,20): error TS2352: Conversion of type 'ArrayBuffer' to type 'Float32Array<ArrayBufferLike>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'ArrayBuffer' is missing the following properties from type 'Float32Array<ArrayBufferLike>': BYTES_PER_ELEMENT, buffer, byteOffset, copyWithin, and 24 more.
+src/utils/musicLabProject.ts(161,15): error TS2304: Cannot find name 'MusicLabInstrument'.

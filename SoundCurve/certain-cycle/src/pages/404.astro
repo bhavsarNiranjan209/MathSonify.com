@@ -36,15 +36,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       </div>
 
       <!-- Numerals + Plot -->
-      <div class="flex flex-col sm:flex-row items-center gap-6 sm:gap-12 mb-10">
+      <div class="tilt-host flex flex-col sm:flex-row items-center gap-6 sm:gap-12 mb-10">
 
         <!-- "404" numerals — middle gap reads as asymptote -->
-        <div class="font-serif text-7xl sm:text-8xl lg:text-9xl font-bold tracking-tighter leading-none select-none" aria-hidden="true">
+        <div id="numerals" class="font-serif text-7xl sm:text-8xl lg:text-9xl font-bold tracking-tighter leading-none select-none" aria-hidden="true">
           <span class="inline-block">4</span><span class="inline-block mx-1 sm:mx-2" style="width:2px;height:0.9em;background:rgb(var(--sc-line)/0.5);display:inline-block;vertical-align:middle;"></span><span class="inline-block">0</span><span class="inline-block mx-1 sm:mx-2" style="width:2px;height:0.9em;background:rgb(var(--sc-line)/0.5);display:inline-block;vertical-align:middle;"></span><span class="inline-block">4</span>
         </div>
 
         <!-- SVG Plot -->
-        <div class="w-full sm:w-auto flex-shrink-0" style="max-width:420px;width:min(420px,60vw);">
+        <div id="plot-panel" class="w-full sm:w-auto flex-shrink-0" style="max-width:420px;width:min(420px,60vw);">
           <svg
             id="plot-svg"
             viewBox="0 0 400 300"
@@ -88,10 +88,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
               <path id="c-right" fill="none" stroke="rgb(var(--sc-ink))" stroke-width="2" stroke-linecap="round"/>
             </g>
 
+            <!-- Mathematical noise — the undefined point quietly leaking dots and
+                 symbols. Populated by script; atmosphere only. -->
+            <g id="break-noise" clip-path="url(#pc)"></g>
+
             <!-- Playhead -->
             <g id="ph" opacity="0">
               <circle id="ph-dot" r="5" fill="rgb(var(--sc-ink))"/>
               <circle id="ph-ring" r="5" fill="none" stroke="rgb(var(--sc-ink))" stroke-width="1.5" opacity="0"/>
+            </g>
+
+            <!-- Slow shockwave from the break — "something keeps trying to
+                 resolve here and can't." Fires on a long loop from script. -->
+            <g id="ph-ripple" clip-path="url(#pc)">
+              <circle cx="199.5" cy="158" r="70" fill="none" stroke="rgb(var(--sc-accent))" stroke-width="1.5"/>
             </g>
           </svg>
         </div>
@@ -116,7 +126,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <!-- Actions -->
       <div class="flex flex-col sm:flex-row items-center gap-3 mb-10">
         <a href="/" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-primary text-center">Back to MathSonify</a>
-        <a href="/create" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-ghost text-center">Open Create</a>
+        <a href="/studio" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-ghost text-center">Open Studio</a>
         <a href="/equations" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-ghost text-center">Explore equations</a>
       </div>
 
@@ -146,6 +156,76 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     }
   </style>
 
+  <!--
+    Ambient life at rest: numeral glitch, noise leak, grid parallax, panel
+    tilt, break ripple. Kept in a global block so script-spawned noise
+    particles can match their keyframes (scoped selectors would miss them).
+    Everything here drops out entirely under prefers-reduced-motion — the
+    static fallback is the original page.
+  -->
+  <style is:global>
+    /* 3 · Grid parallax — the video export renderer's technique
+       (videoScene.ts drawBackground): a modulo-wrapped offset so tile seams
+       never show. There it's `off = (t * 4) % 56`; here the same wrap at
+       one 40px cell, slowed to 40px/60s ≈ 0.67px/s — a few pixels over
+       many seconds. Translate only, with one cell of bleed so it never gaps. */
+    #bg-grid {
+      left: -40px;
+      right: -40px;
+      will-change: transform;
+      animation: sc-404-grid-drift 60s linear infinite;
+    }
+    @keyframes sc-404-grid-drift {
+      from { transform: translate3d(0, 0, 0); }
+      to { transform: translate3d(40px, 0, 0); }
+    }
+
+    /* 1 · Recurring RGB-split glitch on the "404" numerals — brief and
+       infrequent on purpose (a visual pun on undefined, not a flicker). */
+    #numerals.glitching {
+      animation: sc-404-glitch 150ms linear;
+    }
+    @keyframes sc-404-glitch {
+      0%   { text-shadow: 0 0 0 rgba(0, 0, 0, 0); transform: translate(0, 0); }
+      25%  { text-shadow: -3px 0 rgba(255, 24, 90, 0.75), 3px 0 rgba(0, 229, 255, 0.75); transform: translate(2px, -1px); }
+      50%  { text-shadow: 3px 0 rgba(255, 24, 90, 0.7), -3px 0 rgba(0, 229, 255, 0.7); transform: translate(-2px, 1px); }
+      75%  { text-shadow: -2px 0 rgba(255, 24, 90, 0.4), 2px 0 rgba(0, 229, 255, 0.4); transform: translate(1px, 0); }
+      100% { text-shadow: 0 0 0 rgba(0, 0, 0, 0); transform: translate(0, 0); }
+    }
+
+    /* 2 · Noise particles rising from the undefined point (spawned by script) */
+    .nf-p {
+      animation-name: sc-404-noise-rise;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+    }
+    @keyframes sc-404-noise-rise {
+      0%   { opacity: 0; transform: translate(0, 0); }
+      18%  { opacity: var(--nf-o, 0.24); }
+      72%  { opacity: var(--nf-o, 0.24); }
+      100% { opacity: 0; transform: translate(var(--nf-dx, 3px), calc(-1 * var(--nf-rise, 44px))); }
+    }
+
+    /* 4 · Desktop pointer tilt on the graph panel */
+    .tilt-host { perspective: 1100px; }
+    #plot-panel {
+      will-change: transform;
+      transition: transform 0.6s ease-out;
+    }
+
+    /* 5 · Ripple base state (driven from script via Web Animations) */
+    #ph-ripple {
+      opacity: 0;
+      transform-box: view-box;
+      transform-origin: 199.5px 158px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #bg-grid, #numerals.glitching, .nf-p { animation: none !important; }
+      #plot-panel { transition: none !important; }
+    }
+  </style>
+
   <!-- ── Scripts ── -->
   <script is:inline>
     (function() {
@@ -165,6 +245,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       var phRing = $('ph-ring');
       var tapBtn = $('tap-btn');
       var tapLabel = $('tap-label');
+      var numeralsEl = $('numerals');
+      var plotPanel = $('plot-panel');
+      var noiseG = $('break-noise');
+      var phRipple = $('ph-ripple');
 
       // Coordinate mapping: x domain [384,424] -> svg x = (x-384)*10
       // Asymptote x=404 -> svgX=200
@@ -289,7 +373,128 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         })();
 
         showTap();
+
+        // The break is established: start the ambient loops.
+        scheduleNoise();
+        scheduleRipple();
       }
+
+      // ── Ambient life at rest ──
+      // Atmosphere only: none of this may out-shout the curve or the
+      // tap-the-break moment. Every piece self-guards on `red` (and the
+      // noise/ripple loops only start from onStall, which the reduced-
+      // motion path never reaches).
+
+      // 1 · Numeral glitch — 120–180ms RGB split every 10–12s.
+      function scheduleGlitch() {
+        if (red) return;
+        setTimeout(function() {
+          var dur = 120 + Math.round(Math.random() * 60);
+          numeralsEl.style.animationDuration = dur + 'ms';
+          numeralsEl.classList.add('glitching');
+          setTimeout(function() { numeralsEl.classList.remove('glitching'); }, dur + 30);
+          scheduleGlitch();
+        }, 10000 + Math.random() * 2000);
+      }
+
+      // 2 · Mathematical noise — faint dots and symbols rising from the
+      //     break point. One every ~1.5–3.4s, capped at nine alive, so it
+      //     reads as a quiet leak rather than a particle show.
+      function scheduleNoise() {
+        if (red) return;
+        setTimeout(function() {
+          spawnNoise();
+          scheduleNoise();
+        }, 1500 + Math.random() * 1900);
+      }
+
+      function spawnNoise() {
+        if (red || !noiseG) return;
+        var el;
+        var x = stallX + (Math.random() - 0.5) * 26;
+        var y = stallY + Math.random() * 38;
+        if (Math.random() < 0.55) {
+          el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          el.setAttribute('r', (0.9 + Math.random() * 0.8).toFixed(2));
+          el.setAttribute('cx', x.toFixed(1));
+          el.setAttribute('cy', y.toFixed(1));
+        } else {
+          var symbols = ['+', '−', '∞'];
+          el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          el.setAttribute('x', x.toFixed(1));
+          el.setAttribute('y', y.toFixed(1));
+          el.setAttribute('text-anchor', 'middle');
+          el.setAttribute('font-family', 'JetBrains Mono, monospace');
+          el.setAttribute('font-size', (7 + Math.random() * 3).toFixed(1));
+          el.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+        }
+        el.setAttribute('fill', 'rgb(var(--sc-ink))');
+        el.setAttribute('class', 'nf-p');
+        el.style.setProperty('--nf-o', (0.14 + Math.random() * 0.16).toFixed(2));
+        el.style.setProperty('--nf-dx', ((Math.random() - 0.5) * 10).toFixed(1) + 'px');
+        el.style.setProperty('--nf-rise', (36 + Math.random() * 26).toFixed(0) + 'px');
+        el.style.animationDuration = (5.2 + Math.random() * 2.6).toFixed(1) + 's';
+        el.addEventListener('animationend', function() {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        });
+        noiseG.appendChild(el);
+        while (noiseG.childNodes.length > 9) noiseG.removeChild(noiseG.firstChild);
+      }
+
+      // 5 · Ripple — a soft shockwave from the stall point: one early beat,
+      //     then every 8–10s. Something keeps trying to resolve and can't.
+      var rippleFirst = true;
+      function scheduleRipple() {
+        if (red) return;
+        var wait = rippleFirst ? 5000 : 8000 + Math.random() * 2000;
+        rippleFirst = false;
+        setTimeout(function() {
+          fireRipple();
+          scheduleRipple();
+        }, wait);
+      }
+
+      function fireRipple() {
+        if (!phRipple || !phRipple.animate) return;
+        try {
+          phRipple.animate([
+            { transform: 'scale(0.06)', opacity: 0.32, easing: 'cubic-bezier(0.1, 0.7, 0.25, 1)' },
+            { transform: 'scale(0.5)', opacity: 0.12, offset: 0.55 },
+            { transform: 'scale(1)', opacity: 0 }
+          ], { duration: 1900 });
+        } catch (e) { /* animation is garnish; never let it break the page */ }
+      }
+
+      // 4 · Pointer tilt — desktop mouse only: a few degrees following the
+      //     cursor over the graph panel, settling flat on leave. Skipped
+      //     outright on touch (no touch equivalent, per brief) and under
+      //     reduced motion.
+      function initTilt() {
+        if (red || !plotPanel || !window.PointerEvent) return;
+        var fine = false;
+        try { fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) {}
+        if (!fine) return;
+
+        plotPanel.addEventListener('pointermove', function(e) {
+          if (e.pointerType && e.pointerType !== 'mouse') return;
+          var r = plotPanel.getBoundingClientRect();
+          if (!r.width || !r.height) return;
+          var nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1));
+          var ny = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height) * 2 - 1));
+          plotPanel.style.transitionDuration = '0.18s';
+          plotPanel.style.transform =
+            'rotateX(' + (-ny * 4).toFixed(2) + 'deg) rotateY(' + (nx * 4.5).toFixed(2) + 'deg)';
+        });
+        function settle() {
+          plotPanel.style.transitionDuration = '0.7s';
+          plotPanel.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        }
+        plotPanel.addEventListener('pointerleave', settle);
+        plotPanel.addEventListener('pointercancel', settle);
+      }
+
+      scheduleGlitch();
+      initTilt();
 
       // ── Web Audio ──
       var ctx = null, playing = false;
