@@ -652,7 +652,14 @@ test('idle drift is imperceptible and respects reduced motion', () => {
 test('interaction is contained and never scrolls the page', () => {
   const viewer = read(VIEWER);
   // touch-action: none stops one-finger drag orbiting AND scrolling at once.
-  assert.match(viewer, /touchAction: 'none'/);
+  //
+  // It is the DEFAULT, and that is the point: in the Studio the graph IS the
+  // page, so a drag there must never move the page. The same viewer is also
+  // embedded small inside a reading page (the /how-it-works card), where
+  // swallowing the scroll is the worse failure — so the policy is a prop, and
+  // the default must stay 'none' or the Studio silently loses this guarantee.
+  assert.match(viewer, /touchAction = 'none'/, 'the default must keep the page still');
+  assert.match(viewer, /style=\{\{ touchAction, cursor: 'grab'/, 'the canvas must honour the policy');
   // The wheel listener must be non-passive or preventDefault is ignored and the
   // page scrolls while the user tries to zoom the graph.
   assert.match(viewer, /addEventListener\('wheel', onWheel, \{ passive: false \}\)/);

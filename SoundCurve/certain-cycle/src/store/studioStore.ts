@@ -74,6 +74,7 @@ export interface StudioState {
   shareModalOpen: boolean;
   exportModalOpen: boolean;
   presetDrawerOpen: boolean;
+  shortcutModalOpen: boolean;
   hasPendingChanges: boolean;
 }
 
@@ -191,6 +192,7 @@ const initialState: StudioState = {
   shareModalOpen: false,
   exportModalOpen: false,
   presetDrawerOpen: false,
+  shortcutModalOpen: false,
   hasPendingChanges: false,
 };
 
@@ -329,6 +331,7 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
   setShareModalOpen: (shareModalOpen) => set({ shareModalOpen }),
   setExportModalOpen: (exportModalOpen) => set({ exportModalOpen }),
   setPresetDrawerOpen: (presetDrawerOpen) => set({ presetDrawerOpen }),
+  setShortcutModalOpen: (shortcutModalOpen) => set({ shortcutModalOpen }),
   setHasPendingChanges: (hasPendingChanges) => set({ hasPendingChanges }),
 
   loadPreset: (preset) =>

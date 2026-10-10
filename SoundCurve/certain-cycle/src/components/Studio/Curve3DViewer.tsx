@@ -139,6 +139,19 @@ export interface Curve3DViewerProps {
   points: SamplePoint[];
   /** Accessible description of what is on screen. */
   label: string;
+  /**
+   * How the canvas negotiates touch gestures with the page.
+   *
+   * `'none'` (the default, and what the Studio uses) gives a one-finger drag to
+   * the orbit and nothing to the page: correct when the graph IS the page.
+   *
+   * `'pan-y'` hands a vertical drag to the page and keeps horizontal drags for
+   * the orbit — correct for a small graph embedded in something you are
+   * reading, where swallowing a scroll gesture is a worse failure than a
+   * restricted tilt. Pinch is not in the browser's allowed list, so two-finger
+   * zoom still reaches the app.
+   */
+  touchAction?: 'none' | 'pan-y';
 }
 
 interface Playhead {
@@ -149,7 +162,7 @@ interface Playhead {
   centerline: Vector3[];
 }
 
-export default function Curve3DViewer({ points, label }: Curve3DViewerProps) {
+export default function Curve3DViewer({ points, label, touchAction = 'none' }: Curve3DViewerProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const orbitRef = useRef<OrbitState | null>(null);
@@ -914,7 +927,7 @@ export default function Curve3DViewer({ points, label }: Curve3DViewerProps) {
         // `touch-action: none` is what stops a one-finger drag orbiting the graph
         // AND the page scrolling at the same time. `none` (not `pan-y`) because
         // vertical drag is an orbit gesture here too.
-        style={{ touchAction: 'none', cursor: 'grab', outline: 'none' }}
+        style={{ touchAction, cursor: 'grab', outline: 'none' }}
         role="img"
         aria-label={`3D view of ${label}. A curve in a labelled three-dimensional coordinate space. Drag to orbit, scroll to zoom.`}
       />
@@ -1106,3 +1119,4 @@ function updateTrail(trail: LineSegments, centerline: Vector3[], progress: numbe
   }
   attribute.needsUpdate = true;
 }
+

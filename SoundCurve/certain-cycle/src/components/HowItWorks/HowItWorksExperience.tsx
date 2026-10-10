@@ -18,7 +18,7 @@
  * Nothing on this page is decorative noise pretending to be mathematics.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { audioEngine } from '../../utils/audioEngine';
 import { onThemeChange, type ThemeMode } from '../../utils/theme';
@@ -32,6 +32,19 @@ import {
   SONIFICATION_MAP,
   type DemoCurve,
 } from '../../utils/howItWorksMath';
+import { useStudioStore } from '../../store/studioStore';
+
+/**
+ * Studio's 3D viewer, loaded on demand.
+ *
+ * This is still the ONE shared component — the same orbit/zoom, arrowhead axes
+ * and bounding box the Studio draws — not a reduced copy. But it pulls in
+ * three.js (~578 kB), and this page's contract is that a reader who only reads
+ * pays for nothing: the static sections ship zero JavaScript and the island owns
+ * one canvas. Deferring the chunk means the 2D demo costs what it always did,
+ * and 3D is a cost paid only by the visitor who presses 3D.
+ */
+const Curve3DViewer = lazy(() => import('../Studio/Curve3DViewer'));
 
 /** Playback length. Long enough to hear the shape, short enough not to bore. */
 const PLAY_SECONDS = 6;
@@ -91,6 +104,63 @@ interface LiveState {
   hoverIndex: number;
 }
 
+/**
+ * Mirrors the demo's transport into the studio store.
+ *
+ * The store is the channel the shared 3D viewer reads: `Curve3DViewer` takes no
+ * progress prop (a 60Hz prop would re-render React on every tick) and instead
+ * subscribes to the store and writes the value straight into a ref. The 2D face
+ * reads `liveRef` directly. Publishing the SAME numbers to both is what makes
+ * ONE Play state drive both faces — flipping 2D -> 3D mid-playback lands on an
+ * identical playhead rather than restarting it or leaving the faces disagreeing.
+ *
+ * Written straight into the store rather than through `setPlaying` /
+ * `setProgress`: those actions carry the Studio's own transport policy
+ * (`setPlaying(false)` zeroes progress), while this card mirrors whatever the
+ * engine reports — including the `1` left behind when a run finishes, which the
+ * 2D face still draws.
+ */
+function publishTransport(live: LiveState): void {
+  useStudioStore.setState({ progress: live.progress, isPlaying: live.playing });
+}
+
+/**
+ * The viewer chunk, pulled in ahead of the click.
+ *
+ * It carries three.js (~578 kB). Loading it lazily keeps the page light, but a
+ * visitor who presses 3D should not then watch a spinner for a second — so the
+ * import is warmed the moment the card is near the viewport, during idle time,
+ * and again the moment the pointer or keyboard heads for the 3D button. The
+ * module is cached, so every call after the first is free.
+ */
+function warmViewer(): void {
+  void import('../Studio/Curve3DViewer');
+}
+
+/**
+ * What the 3D face shows while its chunk arrives.
+ *
+ * A skeleton rather than a blank box: the frame keeps its shape and reads as
+ * "still loading" instead of as a failure. The sweep is `motion-safe` because
+ * an indefinite shimmer is exactly the sort of thing motion sensitivity is
+ * about; under reduced motion it becomes a static rule with the label.
+ */
+function GraphSkeleton({ label }: { label: string }) {
+  return (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4"
+      aria-hidden="true"
+    >
+      <span className="block h-px w-3/5 overflow-hidden bg-sc-line/25">
+        <span className="block h-px w-1/3 bg-sc-accent/70 motion-safe:animate-pulse" />
+      </span>
+      <span className="block max-w-full truncate font-mono text-[10px] tracking-wide text-sc-text-faint">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export default function HowItWorksExperience() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -99,9 +169,26 @@ export default function HowItWorksExperience() {
   const [draft, setDraft] = useState<string>('sin(x)');
   const [playing, setPlaying] = useState(false);
   const [mode, setMode] = useState<SonificationMode>('frequency');
+  /**
+   * Which face of the demo card is showing.
+   *
+   * Local state, exactly as in the Studio's `GraphPanel`: which way one panel is
+   * looking is a property of that panel, so this card can sit on 3D without
+   * changing any other graph on the site. Playback is the opposite case and
+   * deliberately IS shared — see `publishTransport`.
+   */
+  const [view, setView] = useState<'2d' | '3d'>('2d');
+  /** The card, so the 3D chunk can be warmed as soon as it is near the viewport. */
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   /** The sampled curve. Recomputed only when the equation changes. */
   const curve = useMemo<DemoCurve>(() => buildDemoCurve(equation), [equation]);
+
+  // The same gate the Studio's panel applies: 3D needs a curve it can honestly
+  // represent. Both the toggle and the flip read this, so the card can never
+  // show an empty box for a bare constant or a broken expression.
+  const canDraw3D = curve.points.length > 1 && !curve.error;
+  const show3D = view === '3d' && canDraw3D;
 
   const themeRef = useRef<ThemeMode>('dark');
   const inkRef = useRef<SceneInk>(SCENE_INK.dark);
@@ -143,6 +230,36 @@ export default function HowItWorksExperience() {
     return () => query.removeEventListener('change', apply);
   }, []);
 
+  /**
+   * Warm the 3D chunk while the visitor is still reading.
+   *
+   * Deferring the import kept the page light but made the first press of 3D
+   * pay for three.js in full view. Observing the card and deferring to an idle
+   * callback splits that cost across the scroll instead — the click then finds
+   * the module already cached.
+   */
+  useEffect(() => {
+    const host = cardRef.current;
+    if (!host || typeof IntersectionObserver === 'undefined') return;
+
+    const idle = (cb: () => void) => {
+      const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number };
+      if (typeof w.requestIdleCallback === 'function') w.requestIdleCallback(cb, { timeout: 2000 });
+      else setTimeout(cb, 1200);
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        observer.disconnect();
+        idle(warmViewer);
+      },
+      { rootMargin: '300px 0px' },
+    );
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, []);
+
   /** Latest curve, readable from the frame loop without re-subscribing. */
   const curveRef = useRef(curve);
   curveRef.current = curve;
@@ -167,6 +284,7 @@ export default function HowItWorksExperience() {
     live.playing = false;
     live.progress = 0;
     live.headIndex = 0;
+    publishTransport(live);
     setPlaying(false);
   }, [equation]);
 
@@ -426,6 +544,12 @@ export default function HowItWorksExperience() {
   const play = useCallback(async () => {
     if (playing) {
       audioEngine.stop();
+      // `stop()` reports 0 through the same callback the 2D face reads, so the
+      // mirror only needs the fact that we are no longer running. Progress is
+      // left exactly where the engine put it, which is what keeps the 2D and 3D
+      // faces agreeing when the visitor pauses.
+      liveRef.current.playing = false;
+      publishTransport(liveRef.current);
       setPlaying(false);
       return;
     }
@@ -460,12 +584,16 @@ export default function HowItWorksExperience() {
           points.length - 1,
           Math.floor(progress * (points.length - 1)),
         );
+        // Mirrored on every tick so the 3D face reveals in lockstep with the
+        // scanner above it — one Play state, two faces.
+        publishTransport(live);
       },
       () => {
         const live = liveRef.current;
         live.playing = false;
         live.progress = 1;
         live.headIndex = points.length - 1;
+        publishTransport(live);
         setPlaying(false);
       },
     );
@@ -479,6 +607,7 @@ export default function HowItWorksExperience() {
     live.progress = 0;
     live.playing = false;
     live.headIndex = 0;
+    publishTransport(live);
     wantsPlayRef.current = false;
     setPlaying(false);
   }, []);
@@ -659,37 +788,135 @@ export default function HowItWorksExperience() {
       </div>
 
       {/* ── RIGHT: the small contained demo card ── */}
-      <div className="panel p-3 sm:p-4 w-full min-w-0">
-        <div className="flex items-baseline justify-between gap-2 mb-2">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-sc-text-faint">
+      <div ref={cardRef} className="panel p-3 sm:p-4 w-full min-w-0">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-sc-text-faint shrink-0">
             Now playing
           </span>
+          {/*
+            The 2D / 3D toggle: the same segmented control the Studio's
+            GraphPanel puts in its panel header, scaled to this card. `view` is
+            panel-local, so which way THIS card is looking never changes what any
+            other graph does — but the Play button below drives both of its faces,
+            because both read the one transport.
+          */}
+          <div
+            className="flex rounded-md p-0.5 gap-0.5"
+            style={{ background: 'rgb(var(--sc-sunken))' }}
+            role="group"
+            aria-label="Demo graph view mode"
+          >
+            {(['2d', '3d'] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView(v)}
+                onMouseEnter={v === '3d' ? warmViewer : undefined}
+                onFocus={v === '3d' ? warmViewer : undefined}
+                aria-pressed={view === v}
+                // 3D needs a drawable curve; if there is not one, say so rather
+                // than offering a button that can only fail.
+                disabled={v === '3d' && !canDraw3D}
+                className="px-2.5 min-h-[40px] rounded text-xs font-semibold whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                style={
+                  view === v
+                    ? { background: 'rgb(var(--sc-accent))', color: 'rgb(var(--sc-on-accent))' }
+                    : { color: 'rgb(var(--sc-text-soft))' }
+                }
+              >
+                {v === '2d' ? '2D Graph' : '3D Graph'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-baseline justify-between gap-2 mb-2">
           <span className="font-mono text-xs text-sc-text truncate" title={equation}>
             {equation}
           </span>
         </div>
 
-        {/* ── the canvas: curve above, live waveform below ── */}
+        {/*
+          ONE frame, TWO faces — the same flip the Studio's GraphPanel does.
+
+          Both faces stay mounted and the whole frame rotates on Y, because
+          `backface-visibility: hidden` hides the far face from the viewer while
+          leaving it laid out. That matters twice here: the 2D canvas keeps its
+          backing store instead of being blanked by a `display: none` (which
+          AGENTS.md forbids for exactly that reason), and the 3D scene is handed a
+          box that already has a size, so it can never paint into a zero-height
+          host.
+
+          Nothing navigates, nothing unmounts, and the Play button below stays in
+          charge of both faces.
+        */}
         <div
-          ref={wrapRef}
           className="relative w-full h-[200px] rounded-md overflow-hidden border border-sc-line/15"
+          style={{ perspective: '1600px' }}
         >
-          <canvas
-            ref={canvasRef}
-            onPointerMove={onPointerMove}
-            onPointerLeave={onPointerLeave}
-            className="block w-full h-full touch-pan-y"
-            role="img"
-            aria-label={`Graph of ${equation}, with the waveform MathSonify produces from it.`}
-          />
-          {hoverLabel && (
-            <div className="absolute left-2 top-2 pointer-events-none font-mono text-[10px] sm:text-[11px] text-sc-text bg-sc-surface/90 border border-sc-line/20 rounded px-2 py-1">
-              {hoverLabel}
+          <div
+            className="absolute inset-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
+            style={{
+              transformStyle: 'preserve-3d',
+              transform: `rotateY(${show3D ? 180 : 0}deg)`,
+            }}
+          >
+            {/* The 2D face: curve above, live waveform below. Hidden by backface
+                culling, never by display:none. */}
+            <div className="absolute inset-0" style={{ backfaceVisibility: 'hidden' }}>
+              <div ref={wrapRef} className="relative w-full h-full overflow-hidden">
+                <canvas
+                  ref={canvasRef}
+                  onPointerMove={onPointerMove}
+                  onPointerLeave={onPointerLeave}
+                  className="block w-full h-full touch-pan-y"
+                  role="img"
+                  aria-label={`Graph of ${equation}, with the waveform MathSonify produces from it.`}
+                />
+                {hoverLabel && (
+                  <div className="absolute left-2 top-2 pointer-events-none font-mono text-[10px] sm:text-[11px] text-sc-text bg-sc-surface/90 border border-sc-line/20 rounded px-2 py-1">
+                    {hoverLabel}
+                  </div>
+                )}
+                <div className="absolute right-2 bottom-1.5 font-mono text-[9px] text-sc-text-faint pointer-events-none">
+                  waveform
+                </div>
+              </div>
+            </div>
+
+            {/* The 3D face: Studio's own viewer — the same orbit/zoom, arrowhead
+                axes and bounding box the Studio shows, not a reduced variant.
+                Pre-rotated so it lands facing the viewer when the frame turns,
+                and mounted only in 3D: a WebGL context held open for a hidden
+                view is a cost with no upside. */}
+            <div
+              className="absolute inset-0"
+              style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+            >
+              {show3D && (
+                <Suspense fallback={<GraphSkeleton label={equation} />}>
+                  <Curve3DViewer points={curve.points} label={equation} touchAction="pan-y" />
+                </Suspense>
+              )}
+            </div>
+          </div>
+
+          {/*
+            Graceful fallback: 3D was asked for but this equation cannot honestly
+            be shown in it. Deliberately a small message inside the graph frame —
+            the 2D graph and the audio keep working, so this must never take the
+            page down.
+          */}
+          {view === '3d' && !canDraw3D && (
+            <div className="absolute inset-0 flex items-center justify-center px-6">
+              <p className="text-center text-xs leading-relaxed text-sc-text-soft">
+                3D visualization unavailable for this equation.
+                {curve.error && (
+                  <span className="block mt-1 text-sc-text-faint">{curve.error}</span>
+                )}
+              </p>
             </div>
           )}
-          <div className="absolute right-2 bottom-1.5 font-mono text-[9px] text-sc-text-faint pointer-events-none">
-            waveform
-          </div>
         </div>
 
         <div className="mt-3 flex items-center gap-2">

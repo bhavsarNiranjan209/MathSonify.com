@@ -8,6 +8,7 @@ import GraphPanel from './GraphPanel';
 import AudioControls from './AudioControls';
 import PresetDrawer from './PresetDrawer';
 import ShareModal from './ShareModal';
+import ShortcutModal from './ShortcutModal';
 import ExportModal from './ExportModal';
 import { audioEngine } from '../utils/audioEngine';
 import { resolveActiveCurve } from '../utils/activeCurve';
@@ -61,6 +62,13 @@ function StudioInner() {
 
   const graphSectionRef = useRef<HTMLDivElement>(null);
   const wasPlayingRef = useRef(false);
+
+  // Stop audio on unmount / tab hide / page navigation
+  useEffect(() => {
+    return () => {
+      audioEngine.stop();
+    };
+  }, []);
 
   // Mobile: scroll to graph when playback starts
   useEffect(() => {
@@ -143,7 +151,21 @@ function StudioInner() {
     },
   };
 
-  // Keyboard shortcut: Spacebar to toggle Play/Stop (when not typing in an input)
+  // Keyboard shortcut: ? opens shortcut modal (with guards)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const active = document.activeElement as HTMLElement | null;
+      const tag = active?.tagName.toLowerCase();
+      const isInput = tag === 'input' || tag === 'textarea' || active?.isContentEditable;
+      if (isInput || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === '?') {
+        e.preventDefault();
+        useStudioStore.getState().setShortcutModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = document.activeElement?.tagName.toLowerCase();
@@ -237,6 +259,8 @@ function StudioInner() {
           <div className="panel-inset px-3 py-1.5 text-xs font-mono text-sc-text-faint flex items-center gap-2 min-h-[44px]">
             <kbd className="px-1.5 py-0.5 rounded bg-sc-accent text-sc-on-accent font-semibold">Space</kbd>
             <span>{t('studio.spaceHint')}</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-sc-surface border text-sc-text-faint font-mono hidden sm:inline-block">?</kbd>
+            <span className="hidden sm:inline text-xs text-sc-text-faint">{t('studio.shortcutsHint') || 'Shortcuts'}</span>
           </div>
         </div>
       </motion.div>
@@ -273,6 +297,7 @@ function StudioInner() {
       </motion.div>
 
       <PresetDrawer />
+      <ShortcutModal />
       <ShareModal />
       <ExportModal />
     </motion.div>

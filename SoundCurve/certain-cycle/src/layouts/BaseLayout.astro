@@ -129,6 +129,35 @@ const {
       </div>
     </div>
 
+    <!-- Failsafe panel: shown ONLY if the island never mounts. Static markup,
+         no framework — it has to work when React has already failed. -->
+    <div
+      id="sc-startup-error"
+      role="alert"
+      style="position:fixed;inset:0;z-index:9998;display:none;align-items:center;justify-content:center;padding:24px;background:rgb(var(--sc-bg))"
+    >
+      <div style="max-width:34rem;border:1px solid rgb(var(--sc-line) / .3);border-top:2px solid rgb(var(--sc-live) / .6);border-radius:12px;padding:24px;background:rgb(var(--sc-surface))">
+        <p style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:rgb(var(--sc-text-faint))">
+          MathSonify · could not start
+        </p>
+        <h1 style="margin-top:12px;font-family:'Space Grotesk',sans-serif;font-size:1.35rem;font-weight:600;color:rgb(var(--sc-text))">
+          This page did not finish loading.
+        </h1>
+        <p style="margin-top:10px;font-size:0.9rem;line-height:1.6;color:rgb(var(--sc-text-soft))">
+          This is a bug on our side, not something you did. Reloading usually clears it.
+        </p>
+        <pre id="sc-startup-diag" style="margin-top:14px;max-height:10rem;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.6;color:rgb(var(--sc-text-soft));background:rgb(var(--sc-sunken));border:1px solid rgb(var(--sc-line) / .2);border-radius:8px;padding:10px"></pre>
+        <div style="margin-top:18px;display:flex;flex-wrap:wrap;gap:10px">
+          <button id="sc-startup-reload" type="button" style="min-height:44px;padding:0 20px;border-radius:8px;border:1px solid rgb(var(--sc-accent));background:rgb(var(--sc-accent));color:rgb(var(--sc-on-accent));font-size:14px;cursor:pointer">
+            Reload
+          </button>
+          <a href="/" style="display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border-radius:8px;border:1px solid rgb(var(--sc-line) / .3);color:rgb(var(--sc-text-soft));font-size:14px;text-decoration:none">
+            Back to MathSonify
+          </a>
+        </div>
+      </div>
+    </div>
+
     <!-- Scroll progress bar -->
     <div id="scroll-progress" aria-hidden="true"></div>
 
@@ -161,6 +190,150 @@ const {
     <!-- Preloader logic ΓÇö runs immediately, zero deps -->
     <script is:inline>
       (function () {
+        // ── Startup: dismiss the preloader from SEVERAL independent paths ──
+        //
+        // This node is `position:fixed; inset:0; z-index:9999` over an opaque
+        // background, so if it is never removed it hides the page completely —
+        // the visitor sees a blank studio that is in fact rendered underneath.
+        // The previous version had exactly ONE removal path and it began with
+        // `if (!wave) return;`, an early return that skipped the only
+        // setTimeout capable of removing the overlay. Everything below is armed
+        // before any decorative code can run, and the 8s failsafe is registered
+        // synchronously so no throw and no early return can preempt it.
+        var PRELOADER_ID = 'sc-preloader';
+        var ERROR_ID = 'sc-startup-error';
+        var MOUNT_TIMEOUT_MS = 8000;
+        var startedAt = Date.now();
+        var reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        var state = {
+          dismissed: false,
+          mounted: false,
+          islandExpected: false,
+          emptyIsland: false,
+          errorShown: false,
+          cosmeticArmed: false,
+        };
+
+        function dismiss(reason) {
+          if (state.dismissed) return;
+          state.dismissed = true;
+          state.dismissReason = reason;
+          var el = document.getElementById(PRELOADER_ID);
+          if (!el) return;
+          el.style.opacity = '0';
+          el.style.transform = 'scale(1.02)';
+          setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 500);
+        }
+
+        function showStartupError(reason) {
+          if (state.errorShown) return;
+          state.errorShown = true;
+          var panel = document.getElementById(ERROR_ID);
+          if (!panel) return;
+          panel.style.display = 'flex';
+          var diag = document.getElementById('sc-startup-diag');
+          if (diag) {
+            diag.textContent = [
+              'reason: ' + reason,
+              'astro-island present: ' + state.islandExpected,
+              'island still empty: ' + state.emptyIsland,
+              'island mounted: ' + state.mounted,
+              'readyState: ' + document.readyState,
+              'elapsed: ' + (Date.now() - startedAt) + 'ms',
+              'url: ' + location.href,
+            ].join('\n');
+          }
+          try {
+            console.warn('[MathSonify] page startup failed: ' + reason, {
+              islandExpected: state.islandExpected,
+              islandMounted: state.mounted,
+              readyState: document.readyState,
+              elapsedMs: Date.now() - startedAt,
+            });
+          } catch (e) { /* logging is best-effort; the panel is the contract */ }
+        }
+
+        var reloadBtn = document.getElementById('sc-startup-reload');
+        if (reloadBtn) {
+          reloadBtn.addEventListener('click', function () { location.reload(); });
+        }
+
+        // An island with NO children is a `client:only` island: Astro ships its
+        // element but none of its markup, so the page really is empty until
+        // React paints. That is the case worth waiting for. An island that
+        // already has children is server-rendered — content is on screen, so
+        // the loader only owes the visitor its branding window.
+        function anyEmptyIsland() {
+          var list = document.querySelectorAll('astro-island');
+          for (var i = 0; i < list.length; i++) if (!list[i].children.length) return true;
+          return false;
+        }
+        function allIslandsMounted() {
+          var list = document.querySelectorAll('astro-island');
+          for (var i = 0; i < list.length; i++) if (!list[i].children.length) return false;
+          return list.length > 0;
+        }
+        // PATH 1 — the island itself reporting for duty. Observed AND polled,
+        // so neither mechanism has to be individually reliable.
+        function watchIslands() {
+          if (allIslandsMounted()) { state.mounted = true; dismiss('island-mounted'); return; }
+          try {
+            var obs = new MutationObserver(function () {
+              if (allIslandsMounted()) { state.mounted = true; obs.disconnect(); dismiss('island-mounted'); }
+            });
+            obs.observe(document.documentElement, { childList: true, subtree: true });
+          } catch (e) { /* the poll below still runs */ }
+          var poll = setInterval(function () {
+            if (allIslandsMounted()) { state.mounted = true; clearInterval(poll); dismiss('island-mounted'); }
+          }, 400);
+        }
+
+        // PATH 3 — pages whose markup is already on screen keep the branded
+        // window they had before: fonts, a short floor, and a hard cap.
+        function armCosmetic() {
+          if (state.cosmeticArmed) return;
+          state.cosmeticArmed = true;
+          if (reducedMotion) { setTimeout(function () { dismiss('reduced-motion'); }, 300); return; }
+          var t0 = Date.now();
+          var fontsReady = document.fonts ? document.fonts.ready : Promise.resolve();
+          fontsReady.then(function () {
+            setTimeout(function () { dismiss('fonts-ready'); }, Math.max(0, 900 - (Date.now() - t0)));
+          });
+          setTimeout(function () { dismiss('cosmetic-cap'); }, 2800);
+        }
+
+        var armed = false;
+        function armPaths() {
+          if (armed) return;
+          armed = true;
+          state.islandExpected = !!document.querySelector('astro-island');
+          state.emptyIsland = anyEmptyIsland();
+          if (state.emptyIsland) watchIslands();
+          else armCosmetic();
+        }
+
+        // PATH 4 — ABSOLUTE failsafe, registered before anything decorative can
+        // run. It removes the overlay unconditionally, and escalates to the
+        // visible error panel when the page really did fail to start.
+        setTimeout(function () {
+          dismiss('startup-timeout-' + MOUNT_TIMEOUT_MS + 'ms');
+          if (state.emptyIsland && !state.mounted) {
+            showStartupError('island did not mount within ' + MOUNT_TIMEOUT_MS + 'ms');
+          }
+        }, MOUNT_TIMEOUT_MS);
+
+        // PATH 2 — DOMContentLoaded re-arms everything, so a script that ran
+        // while the document was still parsing (or whose first arm failed) is
+        // never the single point of failure.
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function () { armPaths(); });
+        }
+        armPaths();
+
+        // The bars and dots are decoration, so they get their own function: a
+        // failure or an early return inside them can no longer skip dismissal,
+        // which is exactly what the old top-level `if (!wave) return` did.
+        function buildLoaderArt() { try {
         var wave = document.getElementById('sc-wave');
         var dotsEl = document.getElementById('sc-dots');
         if (!wave) return;
@@ -218,29 +391,13 @@ const {
           }
         }
 
-        var dismissed = false;
-        function dismiss() {
-          if (dismissed) return;
-          dismissed = true;
-          var el = document.getElementById('sc-preloader');
-          if (!el) return;
-          el.style.opacity = '0';
-          el.style.transform = 'scale(1.02)';
-          setTimeout(function () { el.remove(); }, 500);
+        } catch (e) {
+          // Decorative only — a throw here must never strand the overlay.
+        }
         }
 
-        if (reduced) {
-          setTimeout(dismiss, 300);
-        } else {
-          var startTime = Date.now();
-          var fontsReady = document.fonts ? document.fonts.ready : Promise.resolve();
-          fontsReady.then(function () {
-            var elapsed = Date.now() - startTime;
-            var remaining = Math.max(0, 900 - elapsed);
-            setTimeout(dismiss, remaining);
-          });
-          setTimeout(dismiss, 2800);
-        }
+        // Dismissal was armed above; all that is left is the decoration.
+        buildLoaderArt();
       })();
     </script>
   </body>
