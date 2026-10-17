@@ -1,5 +1,33 @@
 import { parse, type MathNode } from 'mathjs';
+import * as math from 'mathjs';
 import { correctionCandidates, correctionReason } from './typoCorrection';
+
+/**
+ * Lookup for mathjs functions invoked by name from a `FunctionNode`.
+ * Cast to a callable record so `math[name]` type-checks under `strict`.
+ */
+const mathFn = math as unknown as Record<string, (...args: number[]) => number>;
+
+/** Binary operators mathjs emits as `op` chars, mapped to typed functions. */
+const BINARY_OPS: Record<string, (...args: number[]) => number> = {
+  '+': mathFn.add,
+  '-': mathFn.subtract,
+  '*': mathFn.multiply,
+  '/': mathFn.divide,
+  '^': mathFn.pow,
+  '%': mathFn.mod,
+  // Comparisons and logical operators. mathjs returns booleans here; they are
+  // normalised to 1/0 so `Number()` at every call site keeps working, and so a
+  // ternary condition can treat them like any other numeric truth.
+  '>': (a, b) => (a > b ? 1 : 0),
+  '<': (a, b) => (a < b ? 1 : 0),
+  '>=': (a, b) => (a >= b ? 1 : 0),
+  '<=': (a, b) => (a <= b ? 1 : 0),
+  '==': (a, b) => (a === b ? 1 : 0),
+  '!=': (a, b) => (a !== b ? 1 : 0),
+  '&&': (a, b) => (a !== 0 && b !== 0 ? 1 : 0),
+  '||': (a, b) => (a !== 0 || b !== 0 ? 1 : 0),
+};
 
 export interface SamplePoint {
   x: number;
@@ -175,6 +203,135 @@ function findCorrection(rawEquation: string): EquationSuggestion | undefined {
 }
 
 /**
+ * Structural shapes for the mathjs node kinds {@link evaluateNode} walks.
+ *
+ * mathjs's `MathNode` declares `type: string`, so it is NOT a discriminated
+ * union: `Extract<MathNode, { type: 'ConstantNode' }>` collapses to `never`.
+ * These local aliases pin the literal `type` plus only the fields each case
+ * reads — which is exactly what the switch was meant to narrow. (`FunctionNode`
+ * exposes `name` at runtime via the getter `this.fn.name || ""`.)
+ */
+type ConstantNodeLike = MathNode & { type: 'ConstantNode'; value: unknown };
+type SymbolNodeLike = MathNode & { type: 'SymbolNode'; name: string };
+type FunctionNodeLike = MathNode & {
+  type: 'FunctionNode';
+  name: string;
+  args: MathNode[];
+};
+type OperatorNodeLike = MathNode & {
+  type: 'OperatorNode';
+  op: string;
+  args: MathNode[];
+};
+type ParenthesisNodeLike = MathNode & { type: 'ParenthesisNode'; content: MathNode };
+type AssignmentNodeLike = MathNode & {
+  type: 'AssignmentNode';
+  object: MathNode;
+  value: MathNode;
+};
+type ArrayNodeLike = MathNode & { type: 'ArrayNode'; items: MathNode[] };
+type ConditionalNodeLike = MathNode & {
+  type: 'ConditionalNode';
+  condition: MathNode;
+  trueExpr: MathNode;
+  falseExpr: MathNode;
+};
+
+/**
+ * Evaluates a mathjs AST against `scope`.
+ *
+ * mathjs's own `compile()`/`evaluate()` is not used because equations can
+ * contain `sum(k=lo, hi, body)`, whose body must stay symbolic so the index
+ * can be rebound to each integer on every iteration — a mathjs typed-function
+ * argument is always pre-evaluated, so it cannot carry a symbolic body.
+ * Walking the AST read-only here also avoids reconstructing mathjs nodes,
+ * whose constructors reject plain objects.
+ */
+function evaluateNode(node: MathNode, scope: Record<string, number>): number {
+  switch (node.type) {
+    case 'ConstantNode': {
+      const c = node as ConstantNodeLike;
+      return Number(c.value);
+    }
+    case 'SymbolNode': {
+      const s = node as SymbolNodeLike;
+      const value = scope[s.name];
+      if (value === undefined) throw new Error(`Unknown symbol: ${s.name}`);
+      return Number(value);
+    }
+    case 'FunctionNode': {
+      const f = node as FunctionNodeLike;
+      // sum(k=lo, hi, body): a series summation with a bound index variable.
+      if (f.name === 'sum' && f.args.length === 3) {
+        const [indexArg, hiArg, bodyArg] = f.args;
+        const assign = indexArg as AssignmentNodeLike;
+        if (
+          assign.type === 'AssignmentNode' &&
+          assign.object.type === 'SymbolNode'
+        ) {
+          // mathjs v15 stores the assigned expression in `value`, not `expr`.
+          const lo = Math.floor(evaluateNode(assign.value, scope));
+          const hi = Math.floor(evaluateNode(hiArg, scope));
+          const index = (assign.object as SymbolNodeLike).name;
+          let total = 0;
+          for (let k = lo; k <= hi; k++) {
+            total += evaluateNode(bodyArg, { ...scope, [index]: k });
+          }
+          return total;
+        }
+      }
+      const fn = mathFn[f.name];
+      if (typeof fn !== 'function') throw new Error(`Unknown function: ${f.name}`);
+      return Number(fn(...f.args.map((a) => evaluateNode(a, scope))));
+    }
+    case 'OperatorNode': {
+      const o = node as OperatorNodeLike;
+      // Unary minus/plus arrive as a single-argument OperatorNode in mathjs v15
+      // (e.g. `-x`, `exp(-x)`), not as a UnaryMinusNode.
+      if (o.args.length === 1 && (o.op === '-' || o.op === '+')) {
+        const value = evaluateNode(o.args[0], scope);
+        return o.op === '-' ? -value : value;
+      }
+      // Logical not: `!expr` — truth is "non-zero", matching the 1/0
+      // normalisation the comparison operators above produce.
+      if (o.args.length === 1 && o.op === '!') {
+        return evaluateNode(o.args[0], scope) === 0 ? 1 : 0;
+      }
+      const fn = BINARY_OPS[o.op];
+      if (typeof fn !== 'function') throw new Error(`Unsupported operator: ${o.op}`);
+      return Number(fn(...o.args.map((a) => evaluateNode(a, scope))));
+    }
+    case 'ParenthesisNode': {
+      const p = node as ParenthesisNodeLike;
+      return evaluateNode(p.content, scope);
+    }
+    case 'ConditionalNode': {
+      // `cond ? a : b`. Truth is "non-zero", which is exactly how the
+      // comparison operators above normalise their boolean results.
+      const c = node as ConditionalNodeLike;
+      const branch =
+        evaluateNode(c.condition, scope) !== 0 ? c.trueExpr : c.falseExpr;
+      return evaluateNode(branch, scope);
+    }
+    case 'UnaryMinusNode': {
+      return -evaluateNode(
+        (node as unknown as { args: MathNode[] }).args[0],
+        scope,
+      );
+    }
+    case 'ArrayNode': {
+      const arr = node as ArrayNodeLike;
+      return Number(arr.items.map((a) => evaluateNode(a, scope)));
+    }
+    default: {
+      throw new Error(
+        `Unsupported expression node: ${(node as { type: string }).type}`,
+      );
+    }
+  }
+}
+
+/**
  * Safely parses and validates a mathematical equation without ever using eval().
  */
 export function parseEquation(rawEquation: string): ParseResult {
@@ -199,8 +356,6 @@ export function parseEquation(rawEquation: string): ParseResult {
       };
     }
 
-    const compiled = node.compile();
-
     const evaluateFn = (xVal: number): number => {
       try {
         const scope = {
@@ -210,7 +365,7 @@ export function parseEquation(rawEquation: string): ParseResult {
           e: Math.E,
           E: Math.E,
         };
-        const result = compiled.evaluate(scope);
+        const result = evaluateNode(node, scope);
 
         if (typeof result !== 'number' || isNaN(result)) {
           return NaN;

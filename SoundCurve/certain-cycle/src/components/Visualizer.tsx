@@ -1051,6 +1051,7 @@ function draw2DGraph(
       ctx.fillStyle = p.live;
       ctx.fillText(label, labelLeft, labelTop);
     }
+    drawAxisTicks();
     drawVignette();
     return;
   }

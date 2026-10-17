@@ -24,7 +24,7 @@
  *
  * Scope: VIEW-ONLY. Orbit, zoom and pan. Editing is 2D.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ACESFilmicToneMapping,
   AdditiveBlending,
@@ -97,9 +97,10 @@ import {
   orbitPosition,
   type OrbitState,
 } from '../../utils/orbitCamera';
+import { DEFAULT_MAX_DIMENSION, render3DImage } from '../../utils/render3DImage';
 import { useStudioStore } from '../../store/studioStore';
 import { audioEngine } from '../../utils/audioEngine';
-import { getThemeMode, onThemeChange } from '../../utils/theme';
+import { getThemeMode, onThemeChange, type ThemeMode } from '../../utils/theme';
 
 /**
  * Playhead marker radius in world units, and the length of the faint trace
@@ -140,6 +141,12 @@ export interface Curve3DViewerProps {
   /** Accessible description of what is on screen. */
   label: string;
   /**
+   * Overrides the store transport when provided. The default reads the studio
+   * store's progress directly (no React re-renders, ~60x/second safe).
+   * Return null/undefined when idle.
+   */
+  getProgress?: () => number | null | undefined;
+  /**
    * How the canvas negotiates touch gestures with the page.
    *
    * `'none'` (the default, and what the Studio uses) gives a one-finger drag to
@@ -162,7 +169,7 @@ interface Playhead {
   centerline: Vector3[];
 }
 
-export default function Curve3DViewer({ points, label, touchAction = 'none' }: Curve3DViewerProps) {
+export default function Curve3DViewer({ points, label, getProgress, touchAction = 'none' }: Curve3DViewerProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const orbitRef = useRef<OrbitState | null>(null);
@@ -204,7 +211,7 @@ export default function Curve3DViewer({ points, label, touchAction = 'none' }: C
   const builtForRef = useRef<SamplePoint[] | null>(null);
   const rebuildRef = useRef<((p: SamplePoint[]) => void) | null>(null);
   const playheadRef = useRef<Playhead | null>(null);
-  /** Set by the theme subscription; the loop reads it to re-ink without a rebuild. */
+  /** Kept in sync with <html data-theme> by `syncTheme`; the loop reads it to re-ink without a rebuild. */
   const paletteRef = useRef(scenePalette('dark'));
   const curveUniformsRef = useRef<CurveUniforms | null>(null);
   /** The tube's own material, so the frame loop can lift its emissive with audio. */
@@ -212,9 +219,30 @@ export default function Curve3DViewer({ points, label, touchAction = 'none' }: C
 
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  /** Set by `rebuild` when the layout's y-range was percentile-trimmed (e.g. tan). */
+  const [yTrimmed, setYTrimmed] = useState(false);
+  /**
+   * Bumped on theme change so the points effect re-runs `rebuild` and re-inks
+   * EVERY material (floor colour, grid uniforms, curve, axes, ticks, labels,
+   * playhead) with the new palette. Background/fog/exposure re-ink in place;
+   * these are the colours only the rebuild path knows about.
+   */
+  const [themeNonce, setThemeNonce] = useState(0);
+
+  /** 3D image capture state. */
+  const [captureError, setCaptureError] = useState<string | null>(null);
+
+  /** Allocation of the 3D shell, created once on mount; the capture hook closes
+   *  over these so it can call `render3DImage` from component scope. */
+  const rendererRef = useRef<WebGLRenderer | null>(null);
+  const sceneRef = useRef<Scene | null>(null);
+  const cameraRef = useRef<PerspectiveCamera | null>(null);
 
   // ── the imperative transport subscription ───────────────────────────
+  const progressOverrideRef = useRef(getProgress);
+  progressOverrideRef.current = getProgress;
   useEffect(() => {
+    if (progressOverrideRef.current) return; // caller drives the playhead directly
     const sync = (state: { progress: number; isPlaying: boolean }) => {
       progressRef.current = state.progress;
       playingRef.current = state.isPlaying;
@@ -243,7 +271,11 @@ export default function Curve3DViewer({ points, label, touchAction = 'none' }: C
       return;
     }
 
-    const palette = scenePalette('dark');
+    // The scene follows the page's theme from the first frame. It used to
+    // hard-code dark here and rely on a later CSS-background read to correct
+    // itself — which made fresh light loads depend on timing luck.
+    let appliedTheme: ThemeMode = getThemeMode();
+    const palette = scenePalette(appliedTheme);
     paletteRef.current = palette;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     // Shadows are back. They were removed in the previous pass because a shadow
@@ -367,6 +399,7 @@ export default function Curve3DViewer({ points, label, touchAction = 'none' }: C
         setError('3D visualization unavailable for this equation.');
         return;
       }
+      setYTrimmed(layout.yTrimmed);
 
       // ── the curve: a clearcoated tube ─────────────────────────────
       // MeshPhysicalMaterial with a clearcoat layer. This is the single biggest
@@ -818,8 +851,12 @@ export default function Curve3DViewer({ points, label, touchAction = 'none' }: C
       camera.lookAt(state.target.x, state.target.y, state.target.z);
 
       // ── playback: one uniform write, no allocation, no React ───────
-      const progress = progressRef.current;
-      const playing = playingRef.current;
+      // The drop's `getProgress` contract: an explicit reader wins when it
+      // returns a finite number; otherwise the store subscription owns the refs.
+      const override = progressOverrideRef.current?.();
+      const hasOverride = typeof override === 'number' && Number.isFinite(override);
+      const progress = hasOverride ? Math.min(1, Math.max(0, override as number)) : progressRef.current;
+      const playing = hasOverride ? true : playingRef.current;
       const uniforms = curveUniformsRef.current;
       if (uniforms) {
         uniforms.uProgress.value = progress;
@@ -865,21 +902,48 @@ export default function Curve3DViewer({ points, label, touchAction = 'none' }: C
     };
     rafRef.current = requestAnimationFrame(frame);
 
-    // ── theme: re-ink without rebuilding geometry ────────────────────
-    // Colours, fog and light levels change; the tube and grid do not. Recompiling
-    // the scene here would be both slower and unnecessary.
-    const unsubscribeTheme = onThemeChange((mode) => {
+    // ── theme: re-ink from <html data-theme> ─────────────────────────
+    // THE PALETTE DECISION COMES FROM getThemeMode() ONLY — never from a
+    // resolved CSS background colour. An earlier version re-read the host's
+    // background 30 ms after a toggle (watchTheme), while the panel's
+    // background-color transition was still running, misclassified the
+    // in-between colour as the OTHER theme, and left the scene INVERTED
+    // relative to the page — and the 400 ms re-read then agreed with
+    // data-theme and early-returned, so the wrong palette stuck.
+    //
+    // Background/fog/exposure re-ink in place. Every material colour (floor,
+    // grid uniforms, curve, axes, ticks, labels, playhead) is re-created by
+    // bumping themeNonce, which re-runs `rebuild` with the new paletteRef —
+    // a theme toggle is a rare, deliberate action, so a one-off rebuild is
+    // the honest price of every colour being right.
+    const syncTheme = () => {
+      const mode = getThemeMode();
+      if (mode === appliedTheme) return;
+      appliedTheme = mode;
       const next = scenePalette(mode);
       paletteRef.current = next;
       renderer.toneMappingExposure = next.exposure;
       scene.background = new Color(next.background);
-      if (scene.fog instanceof Fog) scene.fog.color = new Color(next.fog);
       scene.fog = new Fog(new Color(next.fog), next.fogNear, next.fogFar);
+      // The grid lives in shader uniforms captured at mount; refresh them so
+      // the rebuilt floor material picks up the new theme's lines.
+      floorUniformsRef.current = floorUniforms(next);
       // Light levels change with the theme, and a shadow map is baked from the
       // light that casts it — so it is stale the moment the palette swaps.
       renderer.shadowMap.needsUpdate = true;
+      setThemeNonce((n) => n + 1);
       resize();
-    });
+    };
+    const unsubscribeTheme = onThemeChange(syncTheme);
+    // Backstop for data-theme changes that never fire the store event (another
+    // island writing the attribute, an OS-level switch). Same function, same
+    // guard — so the event + observer double-fire is a no-op, not an inversion.
+    let unwatchBackground: (() => void) | null = null;
+    try {
+      const mo = new MutationObserver(syncTheme);
+      mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      unwatchBackground = () => mo.disconnect();
+    } catch {}
 
     return () => {
       cancelAnimationFrame(rafRef.current);
@@ -892,17 +956,45 @@ export default function Curve3DViewer({ points, label, touchAction = 'none' }: C
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('contextmenu', onContextMenu);
       unsubscribeTheme();
+      unwatchBackground?.();
       rebuildRef.current = null;
       // three does not free GPU memory on its own, and this is the only place
       // that knows what was allocated.
       clearGroup(curveGroup);
-      renderer.dispose();
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+      }
     };
     // Intentionally empty: the scene shell, renderer and input live for the
     // component's lifetime. Geometry changes are handled by the `points` effect
     // below, which is what keeps an equation swap cheap.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 3D image capture one live render, then a footer-composited PNG. The hook
+  // writes the file through the same Web Share / download path as every other
+  // export, so it never leaves the device without the user choosing where.
+  const captureImage = useCallback(async () => {
+    const renderer = rendererRef.current;
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+    if (!renderer || !scene || !camera) {
+      setCaptureError('3D scene is not ready; cannot export.');
+      return;
+    }
+    setCaptureError(null);
+    try {
+      const eq = label.trim();
+      await render3DImage(renderer, scene, camera, {
+        equation: eq,
+        maxDimension: DEFAULT_MAX_DIMENSION,
+      });
+    } catch (err) {
+      setCaptureError(
+        err instanceof Error ? err.message : 'Could not capture the 3D image.',
+      );
+    }
+  }, [label]);
 
   /**
    * Rebuild geometry when the shared curve changes.
@@ -913,11 +1005,17 @@ export default function Curve3DViewer({ points, label, touchAction = 'none' }: C
    * entire scene every frame.
    */
   useEffect(() => {
-    if (builtForRef.current === points) return;
-    builtForRef.current = points;
-    rebuildRef.current?.(points);
-    setReady(true);
-  }, [points]);
+    if (builtForRef.current !== points) {
+      builtForRef.current = points;
+      rebuildRef.current?.(points);
+      setReady(true);
+      return;
+    }
+    // themeNonce changed with the same points: rebuild only to re-ink every
+    // material with the new palette (syncTheme already refreshed paletteRef
+    // and the floor uniforms synchronously, before this effect ran).
+    if (themeNonce > 0) rebuildRef.current?.(points);
+  }, [points, themeNonce]);
 
   return (
     <div ref={hostRef} className="relative w-full h-full">
@@ -929,8 +1027,50 @@ export default function Curve3DViewer({ points, label, touchAction = 'none' }: C
         // vertical drag is an orbit gesture here too.
         style={{ touchAction, cursor: 'grab', outline: 'none' }}
         role="img"
-        aria-label={`3D view of ${label}. A curve in a labelled three-dimensional coordinate space. Drag to orbit, scroll to zoom.`}
+        aria-label={label}
       />
+      {/* 3D image capture one live render, footer-composited, then Web Share or
+        * download. Floats above the 3D scene so it stays reachable while
+        * orbiting. */}
+      <button
+        type="button"
+        className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/6 bg-clip-padding backdrop-blur-sm px-3.5 py-2 text-xs font-medium text-white/85 shadow-lg hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+        style={{ touchAction: 'manipulation' }}
+        onClick={captureImage}
+        title="Save 3D image"
+        aria-label="Save 3D image"
+      >
+        <svg
+          className="h-3.5 w-3.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 3v12m0 0 4-4m-4 4-4-4"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M4 20h16"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+        <span>Save image</span>
+      </button>
+
+      {captureError ? (
+        <p
+          className="absolute bottom-16 right-3 max-w-xs rounded-md bg-red-500/15 px-3 py-1.5 text-xs text-red-500/90"
+          role="alert"
+        >
+          {captureError}
+        </p>
+      ) : null}
 
       {/*
         Building state. Not a spinner: a thin line drawing itself across the panel
@@ -960,6 +1100,14 @@ export default function Curve3DViewer({ points, label, touchAction = 'none' }: C
       {error && (
         <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-xs text-sc-text-soft">
           {error}
+        </p>
+      )}
+
+      {/* Shown when the y-range was percentile-trimmed so an asymptotic curve
+          (e.g. tan) is readable instead of stretched beyond the viewport. */}
+      {yTrimmed && (
+        <p className="absolute bottom-10 left-1/2 -translate-x-1/2 text-[10px] text-sc-text-faint px-3 py-1.5 rounded-md border border-sc-text-faint/30 bg-white/20 backdrop-blur-sm shadow-sm">
+          y-range trimmed to show the shape
         </p>
       )}
 

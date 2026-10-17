@@ -53,6 +53,11 @@ export interface CurveLayout {
   dataBounds: { minX: number; maxX: number; minY: number; maxY: number };
   /** How many of the sampled points were valid and used. */
   pointCount: number;
+  /**
+   * Whether the display y-range was percentile-trimmed to keep asymptotic
+   * curves (e.g. tan) from stretching the view beyond the shape worth showing.
+   */
+  yTrimmed: boolean;
 }
 
 /**
@@ -73,6 +78,16 @@ export function usablePoints(points: SamplePoint[], maxPoints = 512): SamplePoin
   // The stride lands on neither endpoint, so pin them explicitly.
   if (kept[kept.length - 1] !== last) kept.push(last);
   return kept;
+}
+
+/** The `q`-th percentile of a sorted sample, by linear interpolation. */
+function percentile(sorted: number[], q: number): number {
+  if (sorted.length === 0) return 0;
+  const rank = q * (sorted.length - 1);
+  const lower = Math.floor(rank);
+  const upper = Math.ceil(rank);
+  const frac = rank - lower;
+  return sorted[lower] * (1 - frac) + sorted[upper] * frac;
 }
 
 /**
@@ -106,10 +121,28 @@ export function layoutCurve(
   }
 
   const xSpan = maxX - minX || 1;
-  const ySpan = maxY - minY || 1;
   const scale = width / xSpan;
   const midX = (minX + maxX) / 2;
-  const midY = (minY + maxY) / 2;
+
+  // Percentile-trim the y range so asymptotic curves (e.g. tan) do not stretch
+  // the view far beyond the shape worth showing. When extreme outliers inflate
+  // the raw span far past the inter-percentile range, the display range is
+  // clamped to the 5th-95th percentile bulk; extreme points still exist in the
+  // geometry but fall outside the framed viewport.
+  const ys = usable.map((p) => p.y).sort((a, b) => a - b);
+  const p5 = percentile(ys, 0.05);
+  const p95 = percentile(ys, 0.95);
+  const iqr = p95 - p5;
+  let dispMinY = minY;
+  let dispMaxY = maxY;
+  let yTrimmed = false;
+  if (iqr > 0 && maxY - minY > 4 * iqr) {
+    dispMinY = p5;
+    dispMaxY = p95;
+    yTrimmed = true;
+  }
+  const midY = (dispMinY + dispMaxY) / 2;
+  const ySpan = dispMaxY - dispMinY || 1;
 
   const centerline = usable.map(
     (p) => new Vector3((p.x - midX) * scale, (p.y - midY) * scale + lift, 0),
@@ -124,13 +157,14 @@ export function layoutCurve(
     centerline,
     scale,
     floorY,
+    yTrimmed,
     bounds: {
       minX: (minX - midX) * scale,
       maxX: (maxX - midX) * scale,
       minY: lift - halfHeight,
       maxY: lift + halfHeight,
     },
-    dataBounds: { minX, maxX, minY, maxY },
+    dataBounds: { minX, maxX, minY: dispMinY, maxY: dispMaxY },
     pointCount: usable.length,
   };
 }

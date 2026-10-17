@@ -120,15 +120,14 @@ const LIGHT: ScenePalette = {
 
   floor: '#faf9f6',
   // Cool grey on a warm ground: neutral lines recede, warm lines compete.
-  gridMinor: '#d6d1c7',
-  // Dark enough to read as a drawn rule on paper. The previous value (#d2cec5)
-  // was barely a shade off the ground, so the graph had no visible ruling and
-  // the eye fell back to the black curve as the only thing on screen — which is
-  // what made the whole panel read as "a dark graph" instead of "paper with
-  // lines drawn on it".
-  gridMajor: '#6f695f',
-  gridMinorOpacity: 0.75,
-  gridMajorOpacity: 1,
+  gridMinor: '#6e665e',
+  // Dark enough to read as drawn ink on paper: black grid rules on a white
+  // ground. Minor stays well under major so the page reads as paper first,
+  // graph paper second, and the floor itself stays the paper colour (no dark
+  // base competing with the curve).
+  gridMajor: '#2a2622',
+  gridMinorOpacity: 0.5,
+  gridMajorOpacity: 0.85,
   gridFadeEnd: 58,
 
   // WHITE. The curve is the single most important colour in the scene, and it is

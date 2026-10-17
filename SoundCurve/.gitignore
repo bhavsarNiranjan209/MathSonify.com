@@ -1,1 +1,6 @@
 node_modules
+
+# Session/runtime artifacts — never meant for the repo
+.cdp-profile/
+.astro/dev.json
+*.log

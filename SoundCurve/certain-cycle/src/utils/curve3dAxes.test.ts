@@ -81,10 +81,13 @@ test('a narrow domain keeps its decimal precision', () => {
   assert.deepEqual(ticks, [-0.25, -0.12, 0, 0.13, 0.25]);
 });
 
-test('ticks near the origin are dropped by epsilon', () => {
-  // -6.28..6.28 across 7 gives 0 at i=3, which epsilon removes.
-  assert.ok(!referenceTickValues(-6.28, 6.28, 7, 0.3).includes(0));
-  assert.ok(referenceTickValues(-6.28, 6.28, 7, 0).includes(0));
+test('zero and negative ticks are retained, even under epsilon', () => {
+  // The origin and the negative side must be labelled so the 3D view agrees
+  // with the 2D graph beside it. `epsilon` no longer filters values out.
+  const ticks = referenceTickValues(-6.28, 6.28, 7, 0.3);
+  assert.ok(ticks.includes(0), 'zero must be labelled');
+  assert.ok(ticks.some((v) => v < 0), 'negative ticks must be labelled');
+  assert.ok(ticks.some((v) => v > 0), 'positive ticks must be labelled');
 });
 
 test('rounding never produces duplicates', () => {

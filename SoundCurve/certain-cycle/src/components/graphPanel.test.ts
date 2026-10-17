@@ -287,13 +287,16 @@ test('the 3D viewer takes shared points, subscribing to the transport itself', (
   const source = read(VIEWER);
   assert.match(source, /points: SamplePoint\[\]/);
   // The PROPS interface must not carry progress. Checked on that interface rather
-  // than by searching for the text "progress: number", which also appears in the
+  // A `getProgress` reader prop is allowed: it is invoked per frame from a ref and
+  // causes no re-render. Only a `progress: <value>` prop is banned. Checked with a
+  // bracket-aware pattern rather than by searching for the text "progress:",
+  // which also appears in the
   // store-subscription's state type and would be a false positive.
   const propsBlock = source.slice(
     source.indexOf('export interface Curve3DViewerProps'),
     source.indexOf('export interface Curve3DViewerProps') + 500,
   );
-  assert.doesNotMatch(propsBlock, /progress/, 'progress must not be a React prop');
+  assert.doesNotMatch(propsBlock, /[^a-zA-Z]progress\s*:/, 'progress must not be a React prop');
   assert.match(source, /useStudioStore\.subscribe\(/, 'progress must arrive by subscription');
   assert.match(source, /progressRef\.current = state\.progress/);
   assert.doesNotMatch(code(VIEWER), /parseEquation\(/, 'the viewer must not sample; the hook did');
@@ -305,14 +308,30 @@ test('the 3D viewer takes shared points, subscribing to the transport itself', (
 
 test('the scene rebuilds on a new curve but not on every frame', () => {
   const source = read(VIEWER);
-  assert.match(source, /if \(builtForRef\.current === points\) return;/);
+  // The rebuild effect is keyed on the points ARRAY IDENTITY. `themeNonce` is
+  // its one other dependency: a theme toggle re-runs the rebuild to re-ink
+  // every material with the new palette — a rare, deliberate action, never a
+  // per-frame value. Playback progress belongs to neither the body nor the
+  // deps.
+  const guard = 'if (builtForRef.current !== points) {';
+  const rebuildStart = source.indexOf(guard);
+  assert.ok(rebuildStart > 0, 'the points effect must exist');
+  assert.match(
+    source,
+    /if \(themeNonce > 0\) rebuildRef\.current\?\.\(points\);/,
+    'a theme change with the same points must re-ink via one rebuild',
+  );
+  assert.match(
+    source,
+    /\}, \[points, themeNonce\]\);/,
+    'deps: points identity + theme nonce, nothing else',
+  );
 
   // Progress changes ~60x/second; as a dependency of the rebuild it would rebuild
-  // the whole scene every frame. The slice below is the effect's own body.
-  const at = source.indexOf('}, [points]);');
-  assert.ok(at > 0, 'the points effect must exist');
-  const effect = code(VIEWER).slice(0, code(VIEWER).indexOf('}, [points]);'));
-  assert.doesNotMatch(effect.slice(-400), /progress/, 'progress must not rebuild geometry');
+  // the whole scene every frame. The slice below is the rebuild effect's own body.
+  const bodyStart = source.lastIndexOf('useEffect(() => {', rebuildStart);
+  const body = source.slice(bodyStart, rebuildStart + guard.length);
+  assert.doesNotMatch(body, /progress/, 'progress must not rebuild geometry');
 
   // Exactly ONE animation loop. Counted by the loop DEFINITION, not by
   // `requestAnimationFrame(frame)`: the standard self-rescheduling idiom calls
@@ -678,7 +697,7 @@ test('a hidden tab does not keep rendering', () => {
 
 test('resources are disposed, including textures', () => {
   const viewer = read(VIEWER);
-  assert.match(viewer, /renderer\.dispose\(\)/);
+  assert.match(viewer, /rendererRef\.current\.dispose\(\)/);
   assert.match(viewer, /clearGroup\(curveGroup\)/);
   // An axis label's CanvasTexture leaks on every rebuild unless disposed too.
   assert.match(viewer, /map\?\.dispose\?\.\(\)/);

@@ -258,24 +258,46 @@ const {
           reloadBtn.addEventListener('click', function () { location.reload(); });
         }
 
-        // An island with NO children is a `client:only` island: Astro ships its
-        // element but none of its markup, so the page really is empty until
-        // React paints. That is the case worth waiting for. An island that
-        // already has children is server-rendered — content is on screen, so
-        // the loader only owes the visitor its branding window.
+        // An island with NO children is either a `client:only` island — Astro
+        // ships its element but none of its markup, so the page really is empty
+        // until React paints — OR an island that hydrated successfully but
+        // legitimately renders nothing while closed (e.g. the Scientist modal
+        // on /scientists, which only paints once a card is clicked). Children
+        // alone cannot tell those apart, so hydration has to count too: after
+        // a successful hydrate Astro removes the island's `ssr` attribute and
+        // dispatches a non-bubbling `astro:hydrate` event on the element.
+        function islandReady(el) {
+          return (
+            el.children.length > 0 ||
+            el.dataset.scHydrated === '1' ||
+            !el.hasAttribute('ssr')
+          );
+        }
         function anyEmptyIsland() {
           var list = document.querySelectorAll('astro-island');
-          for (var i = 0; i < list.length; i++) if (!list[i].children.length) return true;
+          for (var i = 0; i < list.length; i++) if (!islandReady(list[i])) return true;
           return false;
         }
         function allIslandsMounted() {
           var list = document.querySelectorAll('astro-island');
-          for (var i = 0; i < list.length; i++) if (!list[i].children.length) return false;
+          for (var i = 0; i < list.length; i++) if (!islandReady(list[i])) return false;
           return list.length > 0;
         }
         // PATH 1 — the island itself reporting for duty. Observed AND polled,
-        // so neither mechanism has to be individually reliable.
+        // so neither mechanism has to be individually reliable. `astro:hydrate`
+        // listeners are attached too: an island that mounts to zero children
+        // (a closed modal) produces no DOM mutation at all, so the observer
+        // and the poll would never see it — the event is the only signal.
         function watchIslands() {
+          var list = document.querySelectorAll('astro-island');
+          for (var i = 0; i < list.length; i++) {
+            (function (el) {
+              el.addEventListener('astro:hydrate', function () {
+                el.dataset.scHydrated = '1';
+                if (allIslandsMounted()) { state.mounted = true; dismiss('island-mounted'); }
+              });
+            })(list[i]);
+          }
           if (allIslandsMounted()) { state.mounted = true; dismiss('island-mounted'); return; }
           try {
             var obs = new MutationObserver(function () {

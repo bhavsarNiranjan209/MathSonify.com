@@ -656,3 +656,20 @@ test('the curve never dips into the floor', () => {
     );
   }
 });
+
+test('asymptotic curves (tan) have their y-range percentile-trimmed', () => {
+  const layout = layoutCurve(sample('tan(x)', -6, 6));
+  assert.equal(layout.yTrimmed, true, 'tan must trigger y-range trimming');
+  // The trimmed range is a tight bulk, not the raw asymptotic extremes.
+  assert.ok(layout.dataBounds.maxY < 20, 'trimmed maxY bounds the shape');
+  assert.ok(layout.dataBounds.minY > -20, 'trimmed minY bounds the shape');
+  // And the curve stays above the floor despite the asymptotes.
+  assert.ok(layout.bounds.minY > layout.floorY, 'trimmed curve stays above the floor');
+});
+
+test('ordinary curves are not y-range trimmed', () => {
+  for (const eq of ['sin(x)', 'x^3', '5*x', 'sin(5*x) * exp(-0.1*x^2)']) {
+    const layout = layoutCurve(sample(eq, -6, 6));
+    assert.equal(layout.yTrimmed, false, `${eq} must not be trimmed`);
+  }
+});

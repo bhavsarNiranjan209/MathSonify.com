@@ -11,6 +11,13 @@
  *   3. TOUCH    — on a phone-sized, touch-emulated viewport: a horizontal
  *      drag over the 3D face orbits, and a vertical drag still scrolls the
  *      page (the embedded card opts into `pan-y`).
+ *   4. A11Y     — the 3D canvas keeps its accessible name, and under an
+ *      emulated `prefers-reduced-motion` the flip has no transition and the
+ *      idle camera drift stays off (measured: ~0 pixels over 1.4s).
+ *
+ * The reduced-motion emulation is set BEFORE the first navigation, so every
+ * pass above runs in that mode — it also makes the pixel diffs deterministic,
+ * because the ambient drift can never fire.
  *
  * Usage: node scripts/verify-hiw-3d-stress.mjs [baseUrl]
  */
@@ -69,6 +76,10 @@ async function main() {
   await send('Log.enable');
   await send('Network.enable');
   await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  // Follow-up 4: run the whole pass under reduced motion. Set BEFORE the first
+  // navigation so the viewer reads `matches === true` at mount — the frame loop
+  // samples matchMedia once, deliberately, rather than re-subscribing per frame.
+  await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
 
   const t0 = Date.now();
   await send('Page.navigate', { url: BASE + '/how-it-works' });
@@ -110,5 +121,147 @@ async function main() {
   expect('the 3D canvas keeps its accessible name',
     !!lastFlip && /3D view of /.test(lastFlip.label || ''), lastFlip?.label);
 
-// __APPEND__
+  // ── 3. touch on a phone-sized viewport ──────────────────────────────────
+  //
+  // The DECISION under test (documented on `Curve3DViewerProps.touchAction`):
+  // the Studio keeps the default `touch-action: none` — its graph IS the page,
+  // so a one-finger drag must orbit and never scroll — while this embedded card
+  // opts into `pan-y`, because swallowing a reader's scroll gesture in the
+  // middle of an article is a worse failure than a restricted tilt. `pan-y`
+  // means: horizontal finger movement reaches the orbit, vertical still scrolls
+  // the page.
+  await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 3, mobile: true });
+  await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+  await sleep(600);
+
+  await evalJs(`(() => {
+    const el = document.querySelector('div[style*="perspective"]');
+    if (el) el.scrollIntoView({ block: 'center' });
+    return true;
+  })()`);
+  await sleep(400);
+
+  const phoneCanvas = await evalJs(`(() => {
+    const c = [...document.querySelectorAll('div[style*="perspective"] canvas')]
+      .find((el) => (el.getAttribute('aria-label') || '').startsWith('3D view of'));
+    if (!c) return null;
+    const r = c.getBoundingClientRect();
+    return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
+             touchAction: getComputedStyle(c).touchAction };
+  })()`);
+  expect('the 3D canvas reflows to the phone viewport with non-zero size',
+    !!phoneCanvas && phoneCanvas.w > 100 && phoneCanvas.h > 100, JSON.stringify(phoneCanvas));
+  // The card's opt-in must be on the canvas the visitor actually touches.
+  expect('the embedded canvas negotiates touch as pan-y',
+    !!phoneCanvas && phoneCanvas.touchAction === 'pan-y', phoneCanvas?.touchAction);
+
+  /** Clip-screenshot of the graph frame, same helper shape as verify-hiw-3d. */
+  const shot = async () => {
+    const clip = JSON.parse(await evalJs(`(() => {
+      const r = document.querySelector('div[style*="perspective"]').getBoundingClientRect();
+      return JSON.stringify({ x: r.x + window.scrollX, y: r.y + window.scrollY, width: r.width, height: r.height });
+    })()`));
+    const out = await send('Page.captureScreenshot', {
+      format: 'png',
+      clip: { x: clip.x, y: clip.y, width: clip.width, height: clip.height, scale: 1 },
+    });
+    return out.data;
+  };
+
+  /** Percent of pixels differing by >40 in any channel, computed in the page. */
+  const diffPct = async (aB64, bB64) =>
+    evalJs(`(async () => {
+      const load = (d) => new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i);
+        i.onerror = () => rej(new Error('image decode failed'));
+        i.src = 'data:image/png;base64,' + d;
+      });
+      const [ia, ib] = await Promise.all([load(${JSON.stringify(aB64)}), load(${JSON.stringify(bB64)})]);
+      const c = document.createElement('canvas');
+      c.width = ia.width; c.height = ia.height;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      g.drawImage(ia, 0, 0);
+      const da = g.getImageData(0, 0, c.width, c.height).data;
+      g.clearRect(0, 0, c.width, c.height);
+      g.drawImage(ib, 0, 0);
+      const db = g.getImageData(0, 0, c.width, c.height).data;
+      let changed = 0;
+      const total = da.length / 4;
+      for (let i = 0; i < da.length; i += 4) {
+        if (Math.abs(da[i] - db[i]) > 40 || Math.abs(da[i + 1] - db[i + 1]) > 40 || Math.abs(da[i + 2] - db[i + 2]) > 40) changed++;
+      }
+      return +(changed / total * 100).toFixed(3);
+    })()`);
+
+  /** One finger: touchStart, `steps` touchMoves, touchEnd. */
+  const drag = async (x0, y0, dx, dy, steps = 8) => {
+    await send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y: y0, id: 1 }] });
+    for (let i = 1; i <= steps; i++) {
+      await send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: x0 + (dx * i) / steps, y: y0 + (dy * i) / steps, id: 1 }],
+      });
+      await sleep(20);
+    }
+    await send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  };
+
+  const cx = phoneCanvas.x + phoneCanvas.w / 2;
+  const cyMid = phoneCanvas.y + phoneCanvas.h / 2;
+
+  // A tap first: it resets the viewer's lastInteraction clock so the diff below
+  // measures the DRAG, never an ambient camera movement.
+  await drag(cx, cyMid, 0, 0, 1);
+  await sleep(400);
+
+  const scrollBefore = await evalJs('window.scrollY');
+  const beforeOrbit = await shot();
+  await drag(cx, cyMid, 140, 4, 12);
+  await sleep(800);
+  const afterOrbit = await shot();
+  const orbitPct = await diffPct(beforeOrbit, afterOrbit);
+  expect('a one-finger HORIZONTAL drag orbits the 3D scene', orbitPct > 0.5,
+    `${orbitPct}% of the frame changed`);
+  const scrollAfterH = await evalJs('window.scrollY');
+  expect('a horizontal drag does not scroll the page', Math.abs(scrollAfterH - scrollBefore) < 4,
+    `scrollY ${scrollBefore} -> ${scrollAfterH}`);
+
+  // Vertical: `pan-y` hands this gesture to the page. Start low in the frame
+  // and drag up so the document scrolls down — the orbit must NOT eat it.
+  const scrollBeforeV = await evalJs('window.scrollY');
+  await drag(cx, phoneCanvas.y + phoneCanvas.h - 24, 2, -150, 12);
+  await sleep(700);
+  const scrollAfterV = await evalJs('window.scrollY');
+  expect('a one-finger VERTICAL drag still scrolls the page (pan-y honoured)',
+    scrollAfterV - scrollBeforeV > 40, `scrollY ${scrollBeforeV} -> ${scrollAfterV}`);
+
+  // ── 4. reduced motion, measured ─────────────────────────────────────────
+  const flipStyle = await evalJs(`(() => {
+    const flip = document.querySelector('div[style*="perspective"] > div');
+    if (!flip) return null;
+    const cs = getComputedStyle(flip);
+    return { property: cs.transitionProperty, duration: cs.transitionDuration };
+  })()`);
+  expect('under prefers-reduced-motion the flip has NO transition',
+    !!flipStyle && (flipStyle.property === 'none' || flipStyle.duration === '0s'),
+    JSON.stringify(flipStyle));
+
+  const idleA = await shot();
+  await sleep(1400);
+  const idleB = await shot();
+  const idlePct = await diffPct(idleA, idleB);
+  expect('under prefers-reduced-motion the idle camera drift stays off',
+    idlePct < 0.1, `${idlePct}% of the frame changed over 1.4s of idling`);
+
+  // ── report ──────────────────────────────────────────────────────────────
+  const failed = checks.filter((c) => !c.ok);
+  console.log(JSON.stringify({ passed: checks.length - failed.length, failed: failed.length, checks }, null, 2));
+  ws.close();
+  process.exit(failed.length ? 1 : 0);
 }
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

@@ -138,7 +138,10 @@ export function referenceTickValues(
   const out: number[] = [];
   for (const v of vals) {
     const rounded = Math.round(v * factor) / factor;
-    if (Math.abs(rounded) < epsilon) continue;
+    // Zero and negative ticks are retained: the axis must show the origin and
+    // the negative side even when they sit under `epsilon`. `epsilon` is kept
+    // in the signature for call-site compatibility but no longer filters values
+    // out — dropping the origin made the 3D view disagree with the 2D graph.
     if (seen.has(rounded)) continue;
     seen.add(rounded);
     out.push(rounded);
