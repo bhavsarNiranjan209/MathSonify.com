@@ -27,7 +27,28 @@ const BINARY_OPS: Record<string, (...args: number[]) => number> = {
   '!=': (a, b) => (a !== b ? 1 : 0),
   '&&': (a, b) => (a !== 0 && b !== 0 ? 1 : 0),
   '||': (a, b) => (a !== 0 || b !== 0 ? 1 : 0),
+  // The `and`/`or` KEYWORDS parse as OperatorNodes with these op strings
+  // (verified against mathjs's parser; `&&`/`||` keys above are never emitted
+  // but kept so a future emitter change degrades to the same semantics).
+  and: (a, b) => (a !== 0 && b !== 0 ? 1 : 0),
+  or: (a, b) => (a !== 0 || b !== 0 ? 1 : 0),
 };
+
+/**
+ * Logical FUNCTIONS (`not(x>1)`, `xor(a, b)`…). mathjs's typed signatures may
+ * insist on booleans while the app's evaluate contract is numeric, so these
+ * normalise 1/0 ⇄ truthiness here instead of delegating. Results are 1/0 like
+ * every other comparison.
+ *
+ * A `Map`, not an object literal: `record['constructor']` would silently find
+ * `Object.prototype.constructor` and CALL it.
+ */
+const LOGICAL_FUNCTIONS = new Map<string, (args: number[]) => number>([
+  ['not', (a) => (a[0] === 0 ? 1 : 0)],
+  ['and', (a) => (a[0] !== 0 && a[1] !== 0 ? 1 : 0)],
+  ['or', (a) => (a[0] !== 0 || a[1] !== 0 ? 1 : 0)],
+  ['xor', (a) => ((a[0] !== 0) !== (a[1] !== 0) ? 1 : 0)],
+]);
 
 export interface SamplePoint {
   x: number;
@@ -145,7 +166,7 @@ export function sanitizeEquationString(raw: string): string {
   let eq = raw.trim();
 
   // Strip leading "y=" or "f(x)="
-  eq = eq.replace(/^(y\s*=|f\s*\(\s*x\s*\)\s*=)/i, '').trim();
+  eq = eq.replace(/^(y\s*=|)/i, '').trim();
 
   // Replace ln with log
   eq = eq.replace(/\bln\b/g, 'log');
@@ -157,6 +178,12 @@ export function sanitizeEquationString(raw: string): string {
   eq = eq.replace(/(\d+)([a-zA-Z(])/g, '$1*$2');
   eq = eq.replace(/(\))([a-zA-Z0-9(])/g, '$1*$2');
   eq = eq.replace(/(x)(sin|cos|tan|exp|log|sqrt|abs)/gi, '$1*$2');
+  // Juxtaposition of the variable/constants with a parenthesised group is
+  // multiplication, not a call: mathjs parses `x(x-1)` as calling x, which
+  // then fails "x is not a function". `x` is the only variable and `pi` is a
+  // constant, so `x(`/`pi(` can only mean multiplication. \b keeps `max(`,
+  // `exp(` etc. untouched (no boundary inside an identifier).
+  eq = eq.replace(/\b(x|pi|PI)\(/g, '$1*(');
 
   return eq;
 }
@@ -221,6 +248,9 @@ type FunctionNodeLike = MathNode & {
 type OperatorNodeLike = MathNode & {
   type: 'OperatorNode';
   op: string;
+  /** mathjs's function name for the op — distinguishes postfix `x!` (fn
+   *  'factorial') from any other single-arg `!` node. */
+  fn?: string;
   args: MathNode[];
 };
 type ParenthesisNodeLike = MathNode & { type: 'ParenthesisNode'; content: MathNode };
@@ -229,6 +259,8 @@ type AssignmentNodeLike = MathNode & {
   object: MathNode;
   value: MathNode;
 };
+type AccessorNodeLike = MathNode & { type: 'AccessorNode'; object: MathNode; index: MathNode };
+type FunctionAssignmentNodeLike = MathNode & { type: 'FunctionAssignmentNode'; name: string; params: MathNode[]; body: MathNode };
 type ArrayNodeLike = MathNode & { type: 'ArrayNode'; items: MathNode[] };
 type ConditionalNodeLike = MathNode & {
   type: 'ConditionalNode';
@@ -247,6 +279,48 @@ type ConditionalNodeLike = MathNode & {
  * Walking the AST read-only here also avoids reconstructing mathjs nodes,
  * whose constructors reject plain objects.
  */
+
+/** Enforce the parsed-expression allowlist. Every live AST node must be one we
+ * explicitly accept. Anything else (property access, assignment, function
+ * assignment, the `this` identifier, unknown functions) is rejected without
+ * ever reaching the evaluator. */
+function validateAllowlist(node: MathNode): string | null {
+  switch (node.type) {
+    case 'AccessorNode': {
+      const a = node as AccessorNodeLike;
+      return `Property access (e.g. "x.constructor") is not allowed in an equation`;
+    }
+    case 'AssignmentNode': {
+      const a = node as AssignmentNodeLike;
+      return `Assignment (e.g. "a = 1") is not allowed in an equation`;
+    }
+    case 'FunctionAssignmentNode': {
+      const f = node as FunctionAssignmentNodeLike;
+      return `Function assignment (e.g. "f(x) = x") is not allowed in an equation`;
+    }
+    case 'SymbolNode': {
+      const s = node as SymbolNodeLike;
+      if (s.name === 'this') {
+        return `The identifier "this" is not allowed in an equation`;
+      }
+      return null;
+    }
+    case 'FunctionNode': {
+      const f = node as FunctionNodeLike;
+      if (
+        f.name === 'sum' ||
+        LOGICAL_FUNCTIONS.has(f.name) ||
+        typeof mathFn[f.name] === 'function'
+      ) {
+        return null;
+      }
+      return `The function "${f.name}" is not allowed in an equation`;
+    }
+    default:
+      return null;
+  }
+}
+
 function evaluateNode(node: MathNode, scope: Record<string, number>): number {
   switch (node.type) {
     case 'ConstantNode': {
@@ -280,6 +354,11 @@ function evaluateNode(node: MathNode, scope: Record<string, number>): number {
           return total;
         }
       }
+      // Logical functions: normalise to the numeric 1/0 contract (see above).
+      const logical = LOGICAL_FUNCTIONS.get(f.name);
+      if (logical) {
+        return logical(f.args.map((a) => evaluateNode(a, scope)));
+      }
       const fn = mathFn[f.name];
       if (typeof fn !== 'function') throw new Error(`Unknown function: ${f.name}`);
       return Number(fn(...f.args.map((a) => evaluateNode(a, scope))));
@@ -292,9 +371,15 @@ function evaluateNode(node: MathNode, scope: Record<string, number>): number {
         const value = evaluateNode(o.args[0], scope);
         return o.op === '-' ? -value : value;
       }
-      // Logical not: `!expr` — truth is "non-zero", matching the 1/0
-      // normalisation the comparison operators above produce.
-      if (o.args.length === 1 && o.op === '!') {
+      // Postfix factorial: mathjs emits op '!' with fn 'factorial' for `x!`.
+      // Dispatch on `fn` — a bare single-arg '!' has no other producer.
+      if (o.args.length === 1 && o.op === '!' && o.fn === 'factorial') {
+        return Number(mathFn.factorial(evaluateNode(o.args[0], scope)));
+      }
+      // The `not(...)` FUNCTION parses as a single-arg OperatorNode with op
+      // 'not' (mathjs folds it), so handle it here rather than only in the
+      // LOGICAL_FUNCTIONS map.
+      if (o.args.length === 1 && o.op === 'not') {
         return evaluateNode(o.args[0], scope) === 0 ? 1 : 0;
       }
       const fn = BINARY_OPS[o.op];
@@ -356,6 +441,21 @@ export function parseEquation(rawEquation: string): ParseResult {
       };
     }
 
+    // Security allowlist walk: reject nodes mathjs lets through but the
+    // evaluator should never see (property access, assignment, function
+    // assignment, the `this` identifier, unknown functions). The rejection
+    // wears the SAME normal "couldn't understand" error as any other bad
+    // input — the detailed reason stays internal — and comes with the same
+    // typo-suggestion flow, because `sinn(x)` lands here too.
+    const block = validateAllowlist(node);
+    if (block !== null) {
+      return {
+        success: false,
+        error: `We couldn't understand "${rawEquation}". Try something like sin(x) or x^2 + 3*x.`,
+        suggestion: findCorrection(rawEquation),
+      };
+    }
+
     const evaluateFn = (xVal: number): number => {
       try {
         const scope = {
@@ -364,6 +464,9 @@ export function parseEquation(rawEquation: string): ParseResult {
           PI: Math.PI,
           e: Math.E,
           E: Math.E,
+          // mathjs injects tau into its own evaluate scope; mirror it so
+          // `tau` means 2π here too instead of "unknown symbol".
+          tau: 2 * Math.PI,
         };
         const result = evaluateNode(node, scope);
 
