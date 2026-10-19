@@ -50,6 +50,49 @@ const LOGICAL_FUNCTIONS = new Map<string, (args: number[]) => number>([
   ['xor', (a) => ((a[0] !== 0) !== (a[1] !== 0) ? 1 : 0)],
 ]);
 
+/**
+ * Explicit allowlist of callable functions, built ONCE from this fixed name
+ * list — never from probing whatever happens to hang off the mathjs namespace.
+ * Depending on module interop the namespace can inherit `Object.prototype`,
+ * which would make `constructor(1)`, `toString(1)`, `hasOwnProperty("x")`,
+ * `valueOf(1)` or `evaluate(...)` look like functions we would CALL. Names not
+ * listed here (`eval`, `Function`, `import`, `parse`, `evaluate`…) are
+ * unreachable, no matter how the module presents itself. Names mathjs doesn't
+ * export are skipped silently; the differential equivalence sweep fails loudly
+ * if a shipped equation ever needs one.
+ */
+const ALLOWED_MATH_FUNCTION_NAMES = [
+  // trigonometry, inverses, hyperbolics
+  'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'atan2', 'sinh', 'cosh', 'tanh',
+  'asinh', 'acosh', 'atanh', 'sec', 'csc', 'cot',
+  // exponentials, logarithms, roots, powers
+  'exp', 'log', 'log2', 'log10', 'sqrt', 'cbrt', 'nthRoot', 'pow',
+  // sign, rounding, remainder
+  'abs', 'sign', 'floor', 'ceil', 'round', 'mod',
+  // aggregates and number theory
+  'min', 'max', 'hypot', 'gcd', 'lcm', 'factorial', 'gamma',
+  'combinations', 'permutations', 'isPrime',
+  // vectors
+  'dot', 'norm',
+] as const;
+
+const ALLOWED_FUNCTIONS = new Map<string, (...args: number[]) => number>();
+for (const name of ALLOWED_MATH_FUNCTION_NAMES) {
+  const fn = mathFn[name];
+  if (typeof fn === 'function') ALLOWED_FUNCTIONS.set(name, fn);
+}
+
+/**
+ * The complete set of free symbols an equation may reference. A `sum(k=lo, hi,
+ * body)` adds its index name only while the walk descends into `body` (see
+ * {@link walkAllowlist}), so the scope object can never grow an entry the AST
+ * didn't justify — and never one named `__proto__` or `this`.
+ */
+const SYMBOL_ALLOWLIST = new Set(['x', 'pi', 'PI', 'e', 'E', 'tau']);
+
+/** Identifiers refused wherever a symbol name could appear. */
+const SYMBOL_DENYLIST = new Set(['this', '__proto__']);
+
 export interface SamplePoint {
   x: number;
   y: number;
@@ -280,45 +323,116 @@ type ConditionalNodeLike = MathNode & {
  * whose constructors reject plain objects.
  */
 
-/** Enforce the parsed-expression allowlist. Every live AST node must be one we
- * explicitly accept. Anything else (property access, assignment, function
- * assignment, the `this` identifier, unknown functions) is rejected without
- * ever reaching the evaluator. */
-function validateAllowlist(node: MathNode): string | null {
+/** Enforce the parsed-expression allowlist, RECURSIVELY over the whole tree.
+ * Every live node must be one we explicitly accept, and every symbol must be
+ * in {@link SYMBOL_ALLOWLIST} or bound by an enclosing `sum()` index. Anything
+ * else — property access, assignment, function assignment, `this`,
+ * `__proto__`, unknown functions, unknown symbols — is rejected here, without
+ * ever reaching the evaluator. The returned string is the internal reason; it
+ * never reaches the user (the parse site wears the normal error message). */
+function walkAllowlist(node: MathNode, bound: Set<string>): string | null {
   switch (node.type) {
-    case 'AccessorNode': {
-      const a = node as AccessorNodeLike;
-      return `Property access (e.g. "x.constructor") is not allowed in an equation`;
-    }
-    case 'AssignmentNode': {
-      const a = node as AssignmentNodeLike;
-      return `Assignment (e.g. "a = 1") is not allowed in an equation`;
-    }
-    case 'FunctionAssignmentNode': {
-      const f = node as FunctionAssignmentNodeLike;
-      return `Function assignment (e.g. "f(x) = x") is not allowed in an equation`;
-    }
+    case 'ConstantNode':
+      return null;
     case 'SymbolNode': {
       const s = node as SymbolNodeLike;
-      if (s.name === 'this') {
-        return `The identifier "this" is not allowed in an equation`;
+      if (SYMBOL_DENYLIST.has(s.name)) {
+        return `The identifier "${s.name}" is not allowed in an equation`;
       }
-      return null;
+      if (SYMBOL_ALLOWLIST.has(s.name) || bound.has(s.name)) return null;
+      return `Unknown symbol "${s.name}" — only x, pi, e, tau and sum() indices are supported`;
     }
     case 'FunctionNode': {
       const f = node as FunctionNodeLike;
-      if (
-        f.name === 'sum' ||
-        LOGICAL_FUNCTIONS.has(f.name) ||
-        typeof mathFn[f.name] === 'function'
-      ) {
-        return null;
+      if (f.name === 'sum') {
+        // Only the symbolic series form sum(k=lo, hi, body) exists here; any
+        // other arity/shape would fall off the bounded iteration path in the
+        // evaluator, so it is refused up front.
+        const assign = f.args[0] as AssignmentNodeLike | undefined;
+        if (
+          f.args.length !== 3 ||
+          !assign ||
+          assign.type !== 'AssignmentNode' ||
+          assign.object.type !== 'SymbolNode'
+        ) {
+          return `sum() must look like sum(k=1, 10, k) in an equation`;
+        }
+        const index = (assign.object as SymbolNodeLike).name;
+        if (SYMBOL_DENYLIST.has(index)) {
+          return `The index "${index}" is not allowed in an equation`;
+        }
+        // Bounds are evaluated in the OUTER scope; only the body sees the
+        // index (a nested sum may shadow it — same semantics as the evaluator,
+        // which spreads the index into a fresh scope per iteration).
+        const loBlock = walkAllowlist(assign.value, bound);
+        if (loBlock !== null) return loBlock;
+        const hiBlock = walkAllowlist(f.args[1], bound);
+        if (hiBlock !== null) return hiBlock;
+        const inner = new Set(bound);
+        inner.add(index);
+        return walkAllowlist(f.args[2], inner);
       }
-      return `The function "${f.name}" is not allowed in an equation`;
+      if (!LOGICAL_FUNCTIONS.has(f.name) && !ALLOWED_FUNCTIONS.has(f.name)) {
+        return `The function "${f.name}" is not allowed in an equation`;
+      }
+      for (const arg of f.args) {
+        const argBlock = walkAllowlist(arg, bound);
+        if (argBlock !== null) return argBlock;
+      }
+      return null;
+    }
+    case 'OperatorNode': {
+      const o = node as OperatorNodeLike;
+      const allowedUnary =
+        o.args.length === 1 &&
+        (o.op === '-' ||
+          o.op === '+' ||
+          o.op === 'not' ||
+          (o.op === '!' && o.fn === 'factorial'));
+      if (!allowedUnary && !Object.hasOwn(BINARY_OPS, o.op)) {
+        return `The operator "${o.op}" is not allowed in an equation`;
+      }
+      for (const arg of o.args) {
+        const argBlock = walkAllowlist(arg, bound);
+        if (argBlock !== null) return argBlock;
+      }
+      return null;
+    }
+    case 'ParenthesisNode':
+      return walkAllowlist((node as ParenthesisNodeLike).content, bound);
+    case 'ConditionalNode': {
+      const c = node as ConditionalNodeLike;
+      return (
+        walkAllowlist(c.condition, bound) ??
+        walkAllowlist(c.trueExpr, bound) ??
+        walkAllowlist(c.falseExpr, bound)
+      );
+    }
+    case 'AssignmentNode':
+      // The ONLY assignment the walk ever accepts is a sum() index, and that
+      // is handled by the FunctionNode case above before it lands here.
+      return `Assignment (e.g. "a = 1") is not allowed in an equation`;
+    case 'AccessorNode':
+      return `Property access (e.g. "x.constructor") is not allowed in an equation`;
+    case 'FunctionAssignmentNode':
+      return `Function assignment (e.g. "f(x) = x") is not allowed in an equation`;
+    case 'ArrayNode': {
+      const arr = node as ArrayNodeLike;
+      for (const item of arr.items) {
+        const itemBlock = walkAllowlist(item, bound);
+        if (itemBlock !== null) return itemBlock;
+      }
+      return null;
     }
     default:
-      return null;
+      // ObjectNode, BlockNode, RangeNode … — nothing else can appear in an
+      // equation, and future mathjs node types are denied by default.
+      return `Unsupported expression node: ${(node as { type: string }).type}`;
   }
+}
+
+function validateAllowlist(node: MathNode): string | null {
+  return walkAllowlist(node, new Set<string>());
 }
 
 function evaluateNode(node: MathNode, scope: Record<string, number>): number {
@@ -329,7 +443,10 @@ function evaluateNode(node: MathNode, scope: Record<string, number>): number {
     }
     case 'SymbolNode': {
       const s = node as SymbolNodeLike;
-      const value = scope[s.name];
+      // `Object.hasOwn` as well as the parse-time allowlist: bound sum indices
+      // are spread in as own properties, so an inherited `__proto__`,
+      // `constructor` or `toString` value can never be read out of scope.
+      const value = Object.hasOwn(scope, s.name) ? scope[s.name] : undefined;
       if (value === undefined) throw new Error(`Unknown symbol: ${s.name}`);
       return Number(value);
     }
@@ -359,8 +476,8 @@ function evaluateNode(node: MathNode, scope: Record<string, number>): number {
       if (logical) {
         return logical(f.args.map((a) => evaluateNode(a, scope)));
       }
-      const fn = mathFn[f.name];
-      if (typeof fn !== 'function') throw new Error(`Unknown function: ${f.name}`);
+      const fn = ALLOWED_FUNCTIONS.get(f.name);
+      if (!fn) throw new Error(`Unknown function: ${f.name}`);
       return Number(fn(...f.args.map((a) => evaluateNode(a, scope))));
     }
     case 'OperatorNode': {
@@ -382,7 +499,7 @@ function evaluateNode(node: MathNode, scope: Record<string, number>): number {
       if (o.args.length === 1 && o.op === 'not') {
         return evaluateNode(o.args[0], scope) === 0 ? 1 : 0;
       }
-      const fn = BINARY_OPS[o.op];
+      const fn = Object.hasOwn(BINARY_OPS, o.op) ? BINARY_OPS[o.op] : undefined;
       if (typeof fn !== 'function') throw new Error(`Unsupported operator: ${o.op}`);
       return Number(fn(...o.args.map((a) => evaluateNode(a, scope))));
     }
