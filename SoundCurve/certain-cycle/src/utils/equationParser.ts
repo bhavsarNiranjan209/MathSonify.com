@@ -93,6 +93,26 @@ const SYMBOL_ALLOWLIST = new Set(['x', 'pi', 'PI', 'e', 'E', 'tau']);
 /** Identifiers refused wherever a symbol name could appear. */
 const SYMBOL_DENYLIST = new Set(['this', '__proto__']);
 
+/* ── Input guards ─────────────────────────────────────────────────────────
+ * Three caps so pathological input fails FAST with a friendly message instead
+ * of freezing the tab or blowing the stack:
+ *
+ *   - MAX_EQUATION_LENGTH: refused before the string is even parsed;
+ *   - MAX_EXPRESSION_DEPTH: the allowlist walk throws the moment nesting
+ *     exceeds the cap, which also keeps the walk's own recursion bounded;
+ *   - MAX_SUM_ITERATIONS: sum() checks its iteration count BEFORE looping,
+ *     so sum(k=0, 1e9, k) cannot start.
+ *
+ * A guard tripping at evaluation time surfaces as the parse error itself
+ * (see guardFailure in parseEquation) rather than a silent all-NaN curve.
+ */
+const MAX_EQUATION_LENGTH = 1000;
+const MAX_EXPRESSION_DEPTH = 64;
+const MAX_SUM_ITERATIONS = 10_000;
+
+/** A guard tripped — always a friendly, human message (never a stack trace). */
+class EquationGuardError extends Error {}
+
 export interface SamplePoint {
   x: number;
   y: number;
@@ -218,7 +238,10 @@ export function sanitizeEquationString(raw: string): string {
   eq = eq.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-').replace(/π/g, 'pi');
 
   // Handle implicit multiplication like 2x -> 2*x, 3sin(x) -> 3*sin(x), x(x+1) -> x*(x+1)
-  eq = eq.replace(/(\d+)([a-zA-Z(])/g, '$1*$2');
+  // …but NOT scientific notation: `1e9` / `2E-4` are single numbers, so the
+  // digit+letter rule must skip `e`/`E` that is followed by an optional sign
+  // and a digit (`3e` with no digits after the `e` is still 3*e).
+  eq = eq.replace(/(\d+)(?![eE][+-]?\d)([a-zA-Z(])/g, '$1*$2');
   eq = eq.replace(/(\))([a-zA-Z0-9(])/g, '$1*$2');
   eq = eq.replace(/(x)(sin|cos|tan|exp|log|sqrt|abs)/gi, '$1*$2');
   // Juxtaposition of the variable/constants with a parenthesised group is
@@ -330,7 +353,15 @@ type ConditionalNodeLike = MathNode & {
  * `__proto__`, unknown functions, unknown symbols — is rejected here, without
  * ever reaching the evaluator. The returned string is the internal reason; it
  * never reaches the user (the parse site wears the normal error message). */
-function walkAllowlist(node: MathNode, bound: Set<string>): string | null {
+function walkAllowlist(node: MathNode, bound: Set<string>, depth: number): string | null {
+  // Depth cap — checked FIRST, so neither this walk nor anything below it can
+  // recurse past the limit (the parser that just built this tree already did
+  // its own recursion; this keeps ours bounded regardless).
+  if (depth > MAX_EXPRESSION_DEPTH) {
+    throw new EquationGuardError(
+      `That equation nests deeper than ${MAX_EXPRESSION_DEPTH} levels — please simplify it.`,
+    );
+  }
   switch (node.type) {
     case 'ConstantNode':
       return null;
@@ -364,19 +395,19 @@ function walkAllowlist(node: MathNode, bound: Set<string>): string | null {
         // Bounds are evaluated in the OUTER scope; only the body sees the
         // index (a nested sum may shadow it — same semantics as the evaluator,
         // which spreads the index into a fresh scope per iteration).
-        const loBlock = walkAllowlist(assign.value, bound);
+        const loBlock = walkAllowlist(assign.value, bound, depth + 1);
         if (loBlock !== null) return loBlock;
-        const hiBlock = walkAllowlist(f.args[1], bound);
+        const hiBlock = walkAllowlist(f.args[1], bound, depth + 1);
         if (hiBlock !== null) return hiBlock;
         const inner = new Set(bound);
         inner.add(index);
-        return walkAllowlist(f.args[2], inner);
+        return walkAllowlist(f.args[2], inner, depth + 1);
       }
       if (!LOGICAL_FUNCTIONS.has(f.name) && !ALLOWED_FUNCTIONS.has(f.name)) {
         return `The function "${f.name}" is not allowed in an equation`;
       }
       for (const arg of f.args) {
-        const argBlock = walkAllowlist(arg, bound);
+        const argBlock = walkAllowlist(arg, bound, depth + 1);
         if (argBlock !== null) return argBlock;
       }
       return null;
@@ -393,19 +424,19 @@ function walkAllowlist(node: MathNode, bound: Set<string>): string | null {
         return `The operator "${o.op}" is not allowed in an equation`;
       }
       for (const arg of o.args) {
-        const argBlock = walkAllowlist(arg, bound);
+        const argBlock = walkAllowlist(arg, bound, depth + 1);
         if (argBlock !== null) return argBlock;
       }
       return null;
     }
     case 'ParenthesisNode':
-      return walkAllowlist((node as ParenthesisNodeLike).content, bound);
+      return walkAllowlist((node as ParenthesisNodeLike).content, bound, depth + 1);
     case 'ConditionalNode': {
       const c = node as ConditionalNodeLike;
       return (
-        walkAllowlist(c.condition, bound) ??
-        walkAllowlist(c.trueExpr, bound) ??
-        walkAllowlist(c.falseExpr, bound)
+        walkAllowlist(c.condition, bound, depth + 1) ??
+        walkAllowlist(c.trueExpr, bound, depth + 1) ??
+        walkAllowlist(c.falseExpr, bound, depth + 1)
       );
     }
     case 'AssignmentNode':
@@ -419,7 +450,7 @@ function walkAllowlist(node: MathNode, bound: Set<string>): string | null {
     case 'ArrayNode': {
       const arr = node as ArrayNodeLike;
       for (const item of arr.items) {
-        const itemBlock = walkAllowlist(item, bound);
+        const itemBlock = walkAllowlist(item, bound, depth + 1);
         if (itemBlock !== null) return itemBlock;
       }
       return null;
@@ -432,7 +463,7 @@ function walkAllowlist(node: MathNode, bound: Set<string>): string | null {
 }
 
 function validateAllowlist(node: MathNode): string | null {
-  return walkAllowlist(node, new Set<string>());
+  return walkAllowlist(node, new Set<string>(), 0);
 }
 
 function evaluateNode(node: MathNode, scope: Record<string, number>): number {
@@ -464,6 +495,14 @@ function evaluateNode(node: MathNode, scope: Record<string, number>): number {
           const lo = Math.floor(evaluateNode(assign.value, scope));
           const hi = Math.floor(evaluateNode(hiArg, scope));
           const index = (assign.object as SymbolNodeLike).name;
+          // Guard BEFORE the loop: sum(k=0, 1e9, k) must fail fast with a
+          // friendly message, not spin the tab for the tab's lifetime.
+          const iterations = hi - lo + 1;
+          if (iterations > MAX_SUM_ITERATIONS) {
+            throw new EquationGuardError(
+              `sum() would need ${Math.floor(iterations).toLocaleString('en-US')} iterations here — the limit is ${MAX_SUM_ITERATIONS.toLocaleString('en-US')} per sum. Please use smaller bounds.`,
+            );
+          }
           let total = 0;
           for (let k = lo; k <= hi; k++) {
             total += evaluateNode(bodyArg, { ...scope, [index]: k });
@@ -537,6 +576,14 @@ function evaluateNode(node: MathNode, scope: Record<string, number>): number {
  * Safely parses and validates a mathematical equation without ever using eval().
  */
 export function parseEquation(rawEquation: string): ParseResult {
+  // Length cap first: a 2 MB "equation" never reaches the parser at all.
+  if (rawEquation.length > MAX_EQUATION_LENGTH) {
+    return {
+      success: false,
+      error: `That equation is too long (${rawEquation.length.toLocaleString('en-US')} characters) — please keep it under ${MAX_EQUATION_LENGTH.toLocaleString('en-US')} characters.`,
+    };
+  }
+
   const sanitized = sanitizeEquationString(rawEquation);
 
   if (!sanitized) {
@@ -573,6 +620,11 @@ export function parseEquation(rawEquation: string): ParseResult {
       };
     }
 
+    // Set when an evaluation-time guard (the sum iteration cap) trips. Parse
+    // then fails with THAT friendly message instead of a misleading
+    // "unsupported variables" error or a silently empty graph.
+    let guardFailure: string | undefined;
+
     const evaluateFn = (xVal: number): number => {
       try {
         const scope = {
@@ -594,7 +646,10 @@ export function parseEquation(rawEquation: string): ParseResult {
           return result > 0 ? 1e6 : -1e6;
         }
         return result;
-      } catch {
+      } catch (err) {
+        if (err instanceof EquationGuardError) {
+          guardFailure ??= err.message;
+        }
         return NaN;
       }
     };
@@ -606,8 +661,17 @@ export function parseEquation(rawEquation: string): ParseResult {
       const res = evaluateFn(tp);
       if (typeof res === 'number' && !isNaN(res)) {
         validSampleFound = true;
-        break;
+        // Deliberately no `break`: probe EVERY point so an evaluation-time
+        // guard (e.g. a sum bound that explodes only at x=1) always gets its
+        // chance to record guardFailure below.
       }
+    }
+
+    // A guard that tripped while probing wins over every other diagnosis: the
+    // equation may be fine at some points, but shipping it would freeze
+    // sampling wherever the cap is exceeded.
+    if (guardFailure !== undefined) {
+      return { success: false, error: guardFailure };
     }
 
     if (!validSampleFound) {
