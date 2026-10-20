@@ -119,15 +119,21 @@ const LIGHT: ScenePalette = {
   fogFar: 82,
 
   floor: '#faf9f6',
-  // Cool grey on a warm ground: neutral lines recede, warm lines compete.
-  gridMinor: '#6e665e',
-  // Dark enough to read as drawn ink on paper: black grid rules on a white
-  // ground. Minor stays well under major so the page reads as paper first,
-  // graph paper second, and the floor itself stays the paper colour (no dark
-  // base competing with the curve).
-  gridMajor: '#2a2622',
-  gridMinorOpacity: 0.5,
-  gridMajorOpacity: 0.85,
+  // BLACK INK ON PAPER, by request. The owner asked for near-black grid lines
+  // on the light ground rather than the previous washed-out grey (#6e665e @0.5
+  // minor / brown @0.85 major), which read as faint smudges in the light-mode
+  // screenshot. Both line classes are now the same ink (#14161A) with the
+  // hierarchy carried by opacity instead of hue: 0.35 for the fine grid,
+  // 0.40 for every-Nth division. The distance fade (gridFadeEnd) takes the
+  // far/"back-wall" lines down to ~0.20 and below as they recede, so the deep
+  // grid stays quiet while the near grid reads as drawn graph paper. The
+  // floor itself stays the paper colour (no dark base competing with the
+  // curve).
+  gridMinor: '#14161A',
+  // Same ink as minor — hierarchy is opacity-only here, unlike dark mode.
+  gridMajor: '#14161A',
+  gridMinorOpacity: 0.35,
+  gridMajorOpacity: 0.4,
   gridFadeEnd: 58,
 
   // WHITE. The curve is the single most important colour in the scene, and it is

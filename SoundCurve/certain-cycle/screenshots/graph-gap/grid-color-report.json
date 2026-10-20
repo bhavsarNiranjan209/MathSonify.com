@@ -1,0 +1,14 @@
+{
+  "startedAt": "2026-10-20T13:10:12.680Z",
+  "checks": {
+    "lightClicked": "clicked",
+    "to3d": "clicked",
+    "lightShot": "screenshots/graph-gap/g2-01-light-3d-ink-grid.png",
+    "themeIn3d": "light",
+    "darkClicked": "clicked",
+    "darkShot": "screenshots/graph-gap/g2-02-dark-3d-unchanged.png",
+    "darkTheme": "dark"
+  },
+  "consoleErrors": [],
+  "finishedAt": "2026-10-20T13:10:24.267Z"
+}
