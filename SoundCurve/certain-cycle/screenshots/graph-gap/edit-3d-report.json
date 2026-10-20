@@ -1,0 +1,43 @@
+{
+  "startedAt": "2026-10-20T13:03:22.423Z",
+  "url": "http://localhost:4321/studio",
+  "checks": {
+    "to3d": "clicked",
+    "driftPct": 0.672,
+    "to2d": "clicked",
+    "editEntered": true,
+    "eqBeforeDrag": "sin(x)",
+    "ampBefore": "Amplitude: 1",
+    "handle": {
+      "x": 970.828125,
+      "y": 429.078125
+    },
+    "eqAfterDrag": "3.9132sin(x)",
+    "ampAfter": "Amplitude: 3.9132",
+    "diff2dBeforeAfterPct": 2.555,
+    "to3dAfterDrag": "clicked",
+    "diff3dAfterDragPct": 4.173,
+    "to2dForKeys": "clicked",
+    "eqAfterCtrlZ": "3.9132sin(x)",
+    "eqAfterCtrlShiftZ": "3.9132sin(x)",
+    "undoWorked": false,
+    "resetClicked": true,
+    "eqAfterReset": "sin(x)",
+    "to3dAfterReset": "clicked",
+    "diff3dAfterResetPct": 0.03
+  },
+  "page": {
+    "theme": "dark",
+    "eq": "sin(x)",
+    "startupError": false,
+    "canvases": 1
+  },
+  "verdict": {
+    "dragChanged2D": true,
+    "sceneChangedIn3D": true,
+    "sceneRestoredAfterReset": true,
+    "equationFollowsDrag": true
+  },
+  "consoleErrors": [],
+  "finishedAt": "2026-10-20T13:04:13.647Z"
+}
