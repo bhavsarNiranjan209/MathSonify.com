@@ -69,7 +69,7 @@ const shot = async (name) => {
 const clickPrimary = (exactText) =>
   evalJs(`(() => {
     const btns = [...document.querySelectorAll('button')];
-    const b = ${exactText ? `btns.find(x => (x.textContent || '').trim() === ${JSON.stringify(exactText)})` : `btns.find(x => /Play|Pause|Stop/i.test((x.textContent || '').trim()) && x.classList.contains('btn-primary'))`};
+    const b = ${exactText ? `btns.find(x => (x.textContent || '').trim() === ${JSON.stringify(exactText)})` : `btns.find(x => /^(play audio|pause|stop)$/i.test((x.textContent || '').replace(/[^a-z]/gi, '').trim()))`};
     if (!b) return { clicked: false, text: null };
     const before = (b.textContent || '').trim();
     b.click();
@@ -78,9 +78,9 @@ const clickPrimary = (exactText) =>
 
 const playbackState = () =>
   evalJs(`(() => {
-    const b = [...document.querySelectorAll('button')].find(x => /Play|Pause|Stop/i.test((x.textContent || '').trim()) && x.classList.contains('btn-primary'));
-    const pb = document.querySelector('[role="progressbar"]');
-    return { btn: b ? (b.textContent || '').trim() : null, pb: pb ? (pb.getAttribute('aria-valuenow') ?? null) : null };
+    const b = [...document.querySelectorAll('button')].find(x => /^(play audio|pause|stop)$/i.test((x.textContent || '').replace(/[^a-z]/gi, '').trim()));
+    const pct = [...document.querySelectorAll('span.tabular-nums')].map(x => (x.textContent || '').trim()).find(t => /^\\d{1,3}%$/.test(t));
+    return { btn: b ? (b.textContent || '').trim() : null, pct: pct ?? null };
   })()`);
 
 const setEquation = (eq) =>
@@ -91,7 +91,11 @@ const setEquation = (eq) =>
     setter.call(el, ${JSON.stringify(eq)});
     el.dispatchEvent(new Event('input', { bubbles: true }));
     el.dispatchEvent(new Event('change', { bubbles: true }));
-    const alert = [...document.querySelectorAll('[role="alert"]')].map(a => (a.textContent || '').trim()).filter(Boolean);
+    // VISIBLE alerts only — the always-present startup failsafe panel lives in
+    // the DOM with display:none and must not be mistaken for a live error.
+    const alert = [...document.querySelectorAll('[role="alert"]')]
+      .filter(a => a.getClientRects().length > 0)
+      .map(a => (a.textContent || '').trim()).filter(Boolean);
     return { ok: true, value: el.value, alerts: alert.slice(0, 3) };
   })()`);
 
@@ -130,7 +134,7 @@ report.page = await evalJs(`({
   await sleep(800);
   const state2 = await playbackState();
   report.checks.item2.at2500ms = state2;
-  report.checks.item2.progressAdvanced = state1.pb !== null && state2.pb !== null && state1.pb !== state2.pb;
+  report.checks.item2.progressAdvanced = state1.pct !== null && state2.pct !== null && state1.pct !== state2.pct;
   report.checks.item2.playing = state1.btn !== 'Play audio';
   report.checks.item2.stopped = await clickPrimary(null);
   await sleep(600);
