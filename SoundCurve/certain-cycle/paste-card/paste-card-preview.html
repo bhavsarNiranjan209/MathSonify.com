@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio — Paste equation card (preview)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B0B0D;--panel:#121215;--box:#17181B;--border:#2A2A30;--text:#F5F5F2;--muted:#9A9AA2;--ok:#3DD68C;--bad:#FF6B6B}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,sans-serif;padding:26px 16px 60px}
+.wrap{max-width:1020px;margin:0 auto}
+h1{font-family:"Instrument Serif",serif;font-weight:400;font-size:24px;margin:0 0 4px}
+.sub{font-size:12.5px;color:var(--muted);margin:0 0 20px}
+.grid{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;position:relative}
+.card+.card{margin-top:14px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.title{font-size:13.5px;font-weight:600}
+.pill{font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.06em;padding:3px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
+.pill.on{color:#0B0B0D;background:#fff;border-color:#fff}
+.btn{font:inherit;font-size:12px;border:1px solid var(--border);background:var(--box);color:var(--text);border-radius:8px;padding:7px 12px;cursor:pointer}
+.btn:hover{border-color:#555}.btn.solid{background:#E8E8E6;color:#080A0C;border-color:#E8E8E6;font-weight:600}
+textarea,input.eq{width:100%;background:var(--box);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:"JetBrains Mono",monospace;font-size:13px;padding:10px 12px;outline:none}
+textarea{resize:vertical;min-height:70px}textarea:focus,input.eq:focus{border-color:#666}
+.eqline{display:flex;align-items:center;gap:8px}.eqline span{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.chip{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);background:var(--box);border:1px solid var(--border);border-radius:7px;padding:5px 8px;cursor:pointer}
+.chip:hover{color:var(--text);border-color:#555}
+.shown{margin-top:12px;background:var(--box);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-family:"JetBrains Mono",monospace;font-size:12.5px;word-break:break-word}
+.shown small{display:block;color:var(--muted);font-size:10px;margin-bottom:3px;letter-spacing:.05em}
+.notes{margin-top:8px;display:flex;flex-direction:column;gap:4px}.notes div{font-size:11.5px;color:var(--muted)}
+.err{margin-top:12px;border:1px solid #5a2a2a;background:#1d1214;color:#ffb4b4;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.5}
+.params{margin-top:10px;display:grid;gap:8px}
+.prm{display:grid;grid-template-columns:34px 1fr 54px;gap:8px;align-items:center;font-family:"JetBrains Mono",monospace;font-size:12px}
+.prm input[type=range]{width:100%;accent-color:#fff}.prm output{text-align:right;color:var(--muted)}
+.off{opacity:.5;pointer-events:none;user-select:none}
+.veil{position:absolute;inset:0;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px;background:rgba(11,11,13,.78);backdrop-filter:blur(2px)}
+.veil p{margin:0;font-size:12.5px;color:var(--muted);max-width:280px}
+.collapsed .body{display:none}
+.stage{background:#0d0e10;border-radius:10px;overflow:hidden}
+canvas#g{display:block;width:100%;height:300px}
+.empty{height:300px;display:grid;place-items:center;color:var(--muted);font-size:13px;text-align:center;padding:20px}
+.bar{display:flex;align-items:center;gap:10px;margin-top:10px}
+.mono{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted)}
+</style></head><body><div class="wrap">
+<h1>Studio — equation area</h1>
+<p class="sub">Two separate cards. Only ONE is active at a time. The paste card accepts LaTeX, Σ, √, roots, plain text… try the examples.</p>
+<div class="grid">
+  <div id="left">
+    <div class="card" id="pasteCard">
+      <div class="head"><span class="title">Paste equation</span><span class="pill" id="pasteState">ACTIVE</span></div>
+      <div class="body">
+        <textarea id="pasteBox" spellcheck="false" placeholder="Paste any equation — LaTeX, Σ sums, √ roots, plain text…  e.g.  y = x^{2/3} + 0.9\sin(kx)\sqrt{3-x^2}"></textarea>
+        <div class="chips" id="examples"></div>
+        <div id="pasteOut"></div>
+        <div style="margin-top:12px;display:flex;gap:8px"><button class="btn" id="clearBtn">Clear</button><button class="btn" id="toBar">Use the equation bar instead</button></div>
+      </div>
+      <div class="veil" id="pasteVeil" hidden><p>The equation bar is active. Your pasted equation is kept.</p><button class="btn solid" id="toPaste">Use paste equation</button></div>
+    </div>
+    <div class="card" id="barCard">
+      <div class="head"><span class="title">Mathematical equation</span><span class="pill" id="barState">OFF</span></div>
+      <div class="body">
+        <div class="eqline"><span>f(x) =</span><input class="eq" id="barBox" value="sin(x)*cos(3*x)" spellcheck="false"></div>
+        <div class="chips" id="presets"></div>
+        <div id="barOut"></div>
+      </div>
+      <div class="veil" id="barVeil"><p>Paste mode is on. The equation bar is switched off and shows no equation.</p><button class="btn solid" id="toBar2">Use the equation bar</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="head"><span class="title" id="gTitle">Graph</span><span class="mono" id="gDomain"></span></div>
+    <div class="stage" id="stage"><canvas id="g"></canvas><div class="empty" id="empty" hidden>Nothing to graph yet.<br>Paste an equation on the left.</div></div>
+    <div class="bar"><button class="btn solid" id="play">▶ Play</button><span class="mono" id="status"></span></div>
+  </div>
+</div></div>
+<script>
+
+const PM=(()=>{ /** "Nice" tick values (1, 2 or 5 x 10^n) covering [min, max]. Exact for negatives; contains 0 when 0 is in range. */
+function niceTicks(min, max, target = 6) {
+    if (!Number.isFinite(min) || !Number.isFinite(max))
+        return { ticks: [], step: 1 };
+    if (min > max)
+        [min, max] = [max, min];
+    if (min === max) {
+        const d = Math.abs(min) || 1;
+        min -= d / 2;
+        max += d / 2;
+    }
+    const raw = (max - min) / Math.max(1, target);
+    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    const f = raw / pow;
+    const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * pow;
+    const first = Math.ceil(min / step - 1e-9);
+    const last = Math.floor(max / step + 1e-9);
+    const ticks = [];
+    for (let i = first; i <= last && ticks.length < 200; i++) {
+        const v = Number((i * step).toPrecision(12));
+        ticks.push(v === 0 ? 0 : v); // never "-0"
+    }
+    return { ticks, step };
+}
+function formatTick(v, step) {
+    if (v === 0)
+        return '0';
+    const a = Math.abs(v);
+    if (a >= 1e6 || a < 1e-4)
+        return v.toExponential(1).replace('+', '');
+    const decimals = step >= 1 ? 0 : Math.min(6, Math.ceil(-Math.log10(step) - 1e-9));
+    let s = v.toFixed(decimals);
+    if (s.indexOf('.') >= 0)
+        s = s.replace(/\.?0+$/, '');
+    return s === '-0' ? '0' : s;
+}
+/**
+ * y-range to display. Normally the true min..max (+4% padding). If a few extreme samples
+ * (tan, 1/x, sec...) would flatten everything else, trim to the 5th..95th percentile band.
+ */
+function robustRange(ys) {
+    const f = ys.filter(Number.isFinite);
+    if (f.length === 0)
+        return { lo: -1, hi: 1, clipped: false };
+    const s = f.slice().sort((a, b) => a - b);
+    let lo = s[0], hi = s[s.length - 1];
+    let clipped = false;
+    if (s.length >= 40) {
+        const q = (p) => s[Math.min(s.length - 1, Math.max(0, Math.round(p * (s.length - 1))))];
+        const p5 = q(0.05), p95 = q(0.95), band = p95 - p5;
+        // Measured on real curves: asymptotic ones (tan, 1/x, sec) have range/band of 30-80,
+        // ordinary ones (x^3, exp, x^10, ln|x|, damped sines) stay under 3. 10 separates them with margin.
+        if (band > 0 && hi - lo > 10 * band) {
+            lo = p5 - band * 0.5;
+            hi = p95 + band * 0.5;
+            clipped = true;
+        }
+    }
+    if (!(hi > lo)) {
+        const d = Math.abs(lo) || 1;
+        lo -= d;
+        hi += d;
+    }
+    if (!clipped) {
+        const pad = (hi - lo) * 0.04;
+        lo -= pad;
+        hi += pad;
+    }
+    return { lo, hi, clipped };
+}
+function splitSegments(points, range) {
+    const segs = [];
+    let start = -1;
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        const ok = Number.isFinite(p.x) && Number.isFinite(p.y) && p.y >= range.lo && p.y <= range.hi;
+        if (ok) {
+            if (start < 0)
+                start = i;
+        }
+        else if (start >= 0) {
+            if (i - 1 > start)
+                segs.push({ start, end: i - 1 });
+            start = -1;
+        }
+    }
+    if (start >= 0 && points.length - 1 > start)
+        segs.push({ start, end: points.length - 1 });
+    return segs;
+}
+function computeView(points, width, height) {
+    let xMin = Infinity, xMax = -Infinity;
+    for (const p of points)
+        if (Number.isFinite(p.x)) {
+            if (p.x < xMin)
+                xMin = p.x;
+            if (p.x > xMax)
+                xMax = p.x;
+        }
+    if (!Number.isFinite(xMin)) {
+        xMin = -1;
+        xMax = 1;
+    }
+    if (xMin === xMax) {
+        xMin -= 1;
+        xMax += 1;
+    }
+    const range = robustRange(points.map(p => p.y));
+    const { lo, hi } = range;
+    return {
+        xMin, xMax, yLo: lo, yHi: hi, width, height,
+        toX: (x) => ((x - xMin) / (xMax - xMin)) * width,
+        toY: (y) => ((y - lo) / (hi - lo)) * height,
+        xAxisY: Math.min(hi, Math.max(lo, 0)),
+        yAxisX: Math.min(xMax, Math.max(xMin, 0)),
+        xTicks: niceTicks(xMin, xMax, 8),
+        yTicks: niceTicks(lo, hi, 6),
+        segments: splitSegments(points, range),
+        clipped: range.clipped,
+    };
+}
+
+return {computeView,formatTick,niceTicks}; })();
+const NZ=(()=>{ class NormErr extends Error {
+}
+const SEP = '\u2063', GV = '\u2064', MO = '\u27e6', MC = '\u27e7', BO = '\u27ea', BC = '\u27eb';
+const HELP = 'Supported: plain text (sin(x)*cos(3x)), LaTeX (\\frac{1}{2}\\sin x, \\sqrt[3]{x}), symbols (√(3−x²), x², π, Σ with bounds) '
+    + 'and sum(k=0,12, …). Not supported yet: implicit curves like x²+y²=4, piecewise/cases, integrals, derivatives, inequalities.';
+const FN_NAMES = ['sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh',
+    'exp', 'ln', 'log', 'log10', 'log2', 'sqrt', 'cbrt', 'nthRoot', 'abs', 'sign', 'floor', 'ceil', 'round', 'min', 'max', 'mod'];
+const FN_ALIAS = { arcsin: 'asin', arccos: 'acos', arctan: 'atan', arsinh: 'asinh', arcosh: 'acosh', artanh: 'atanh', sgn: 'sign', lg: 'log10', cosec: 'csc', tg: 'tan', ctg: 'cot' };
+const CONSTS = ['pi', 'tau', 'e'];
+const GREEK_WORDS = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'theta', 'lambda', 'omega', 'sigma', 'kappa', 'zeta'];
+const NAMES = [...FN_NAMES, ...Object.keys(FN_ALIAS), ...CONSTS, ...GREEK_WORDS].sort((a, b) => b.length - a.length);
+const INVERSE = { sin: 'asin', cos: 'acos', tan: 'atan', sinh: 'asinh', cosh: 'acosh', tanh: 'atanh' };
+const SUP = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁺': '+', '⁻': '-', '⁼': '=', '⁽': '(', '⁾': ')', 'ⁿ': 'n', 'ⁱ': 'i', 'ˣ': 'x' };
+const SUB = { '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9', '₊': '+', '₋': '-', '₌': '=', '₍': '(', '₎': ')', 'ₐ': 'a', 'ₑ': 'e', 'ₒ': 'o', 'ₓ': 'x', 'ₕ': 'h', 'ₖ': 'k', 'ₗ': 'l', 'ₘ': 'm', 'ₙ': 'n', 'ₚ': 'p', 'ₛ': 's', 'ₜ': 't', 'ᵢ': 'i', 'ⱼ': 'j' };
+const GREEK_CHARS = { 'α': 'alpha', 'β': 'beta', 'γ': 'gamma', 'δ': 'delta', 'ε': 'epsilon', 'θ': 'theta', 'λ': 'lambda', 'ω': 'omega', 'σ': 'sigma', 'κ': 'kappa', 'ζ': 'zeta', 'φ': 'phi', 'ψ': 'psi', 'ρ': 'rho', 'μ': 'mu', 'ν': 'nu', 'η': 'eta', 'χ': 'chi' };
+const VULGAR = { '½': '(1/2)', '⅓': '(1/3)', '⅔': '(2/3)', '¼': '(1/4)', '¾': '(3/4)', '⅕': '(1/5)', '⅖': '(2/5)', '⅗': '(3/5)', '⅘': '(4/5)', '⅙': '(1/6)', '⅛': '(1/8)' };
+const SIMPLE = { '−': '-', '–': '-', '—': '-', '‒': '-', '×': '*', '·': '*', '⋅': '*', '∙': '*', '∗': '*', '÷': '/', '⁄': '/', 'π': 'pi', 'τ': 'tau', 'ℯ': 'e', '“': '"', '”': '"', '\u00a0': ' ', '\u200b': '', '\u200c': '', '\u200d': '', '\ufeff': '', '\u2009': ' ', '\u202f': ' ' };
+/* ---------------------------------------------------------------- guards */
+function unsupported(src) {
+    if (/[∫∮]|\\int\b|\\oint|\\iint/.test(src))
+        return "Integrals aren't supported — enter the function you want to graph instead.";
+    if (/\\lim\b|\blim\b/i.test(src))
+        return "Limits aren't supported — enter the function itself.";
+    if (/[∂]|\\partial|\bd\s*[xy]\s*\/\s*d\s*[xy]|\b[yf]\s*['′]/.test(src))
+        return "Derivatives and differential equations aren't supported — enter y = … directly.";
+    if (/\\begin\s*\{|\bcases\b/.test(src))
+        return "Piecewise (cases) isn't supported yet — enter each piece as its own equation.";
+    if (/∞|\\infty/.test(src))
+        return "∞ can't be graphed — use a finite number (e.g. 50 as the upper bound).";
+    if (/\\vec|\\binom|\\choose|\\nabla|\\det/.test(src))
+        return "That notation isn't supported.";
+    if (/<=|>=|[<>≤≥≠]|\\leq?\b|\\geq?\b|\\neq?\b/.test(src))
+        return "Inequalities can't be graphed — enter an equation like y = …";
+    return null;
+}
+/* ---------------------------------------------------------------- LaTeX -> plain */
+function readGroup(s, i) {
+    if (s[i] !== '{')
+        return null;
+    let d = 0;
+    for (let j = i; j < s.length; j++) {
+        if (s[j] === '{')
+            d++;
+        else if (s[j] === '}') {
+            d--;
+            if (d === 0)
+                return { body: s.slice(i + 1, j), end: j + 1 };
+        }
+    }
+    return null;
+}
+function skipSp(s, i) { while (i < s.length && /\s/.test(s[i]))
+    i++; return i; }
+/** one LaTeX argument: {group} | \command | single char */
+function readArg(s, i) {
+    i = skipSp(s, i);
+    const g = readGroup(s, i);
+    if (g)
+        return g;
+    if (s[i] === '\\') {
+        const m = /^\\([A-Za-z]+|.)/.exec(s.slice(i));
+        return { body: m[0], end: i + m[0].length };
+    }
+    if (i < s.length)
+        return { body: s[i], end: i + 1 };
+    throw new NormErr('A LaTeX command is missing its argument.');
+}
+function sigmaMarker(kind, lower, upper) {
+    const m = /^\s*([A-Za-z])\s*(?:=|:)\s*(.+?)\s*$/.exec(lower || '');
+    if (!m || !upper)
+        throw new NormErr(`Σ needs bounds like k=0 to 12. Type it as sum(k=0,12, …).`);
+    return `${MO}S${SEP}${kind}${SEP}${m[1]}${SEP}${m[2]}${SEP}${upper.trim()}${MC}`;
+}
+const LATEX_PLAIN_FN = new Set(['sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos', 'arctan', 'ln', 'log', 'exp', 'min', 'max', 'sgn', 'lg', 'arsinh', 'arcosh', 'artanh']);
+const LATEX_GREEK = new Set(['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'varepsilon', 'theta', 'vartheta', 'lambda', 'mu', 'nu', 'omega', 'sigma', 'rho', 'kappa', 'zeta', 'eta', 'phi', 'varphi', 'psi', 'chi']);
+function latexToPlain(s, depth = 0) {
+    if (depth > 12)
+        throw new NormErr('That formula is nested too deeply.');
+    let out = '', i = 0;
+    while (i < s.length) {
+        const c = s[i];
+        if (c === '\\') {
+            const m = /^\\([A-Za-z]+|.)/.exec(s.slice(i));
+            const cmd = m[1];
+            i += m[0].length;
+            if (/^[,;:! ]$/.test(cmd) || ['left', 'right', 'displaystyle', 'limits', 'nolimits', 'big', 'Big', 'bigg', 'Bigg', 'quad', 'qquad'].includes(cmd)) {
+                if ((cmd === 'left' || cmd === 'right') && s[i] === '.')
+                    i++;
+                continue;
+            }
+            if (cmd === 'frac' || cmd === 'dfrac' || cmd === 'tfrac') {
+                const a = readArg(s, i);
+                const b = readArg(s, a.end);
+                i = b.end;
+                out += `((${latexToPlain(a.body, depth + 1)})/(${latexToPlain(b.body, depth + 1)}))`;
+                continue;
+            }
+            if (cmd === 'sqrt') {
+                let n = null;
+                let j = skipSp(s, i);
+                if (s[j] === '[') {
+                    const k = s.indexOf(']', j);
+                    if (k < 0)
+                        throw new NormErr('\\sqrt[ is missing its ].');
+                    n = s.slice(j + 1, k);
+                    i = k + 1;
+                }
+                const a = readArg(s, i);
+                i = a.end;
+                out += n ? `nthRoot(${latexToPlain(a.body, depth + 1)},${latexToPlain(n, depth + 1)})` : `sqrt(${latexToPlain(a.body, depth + 1)})`;
+                continue;
+            }
+            if (cmd === 'sum' || cmd === 'prod') {
+                let lower = '', upper = '';
+                for (let k = 0; k < 2; k++) {
+                    let j = skipSp(s, i);
+                    if (s.slice(j, j + 7) === '\\limits')
+                        j = skipSp(s, j + 7);
+                    if (s[j] === '_') {
+                        const a = readArg(s, j + 1);
+                        lower = latexToPlain(a.body, depth + 1);
+                        i = a.end;
+                    }
+                    else if (s[j] === '^') {
+                        const a = readArg(s, j + 1);
+                        upper = latexToPlain(a.body, depth + 1);
+                        i = a.end;
+                    }
+                    else
+                        break;
+                }
+                out += sigmaMarker(cmd, lower, upper);
+                continue;
+            }
+            if (cmd === 'operatorname' || cmd === 'mathrm' || cmd === 'mathit' || cmd === 'text' || cmd === 'textbf' || cmd === 'mathbf') {
+                const a = readArg(s, i);
+                i = a.end;
+                out += latexToPlain(a.body, depth + 1);
+                continue;
+            }
+            if (cmd === 'cdot' || cmd === 'times' || cmd === 'ast' || cmd === 'bullet') {
+                out += '*';
+                continue;
+            }
+            if (cmd === 'div') {
+                out += '/';
+                continue;
+            }
+            if (cmd === 'pi') {
+                out += 'pi';
+                continue;
+            }
+            if (cmd === 'tau') {
+                out += 'tau';
+                continue;
+            }
+            if (cmd === 'lfloor') {
+                out += 'floor(';
+                continue;
+            }
+            if (cmd === 'rfloor') {
+                out += ')';
+                continue;
+            }
+            if (cmd === 'lceil') {
+                out += 'ceil(';
+                continue;
+            }
+            if (cmd === 'rceil') {
+                out += ')';
+                continue;
+            }
+            if (cmd === 'circ' || cmd === 'degree') {
+                out += '*(pi/180)';
+                continue;
+            }
+            if (cmd === '{' || cmd === '(') {
+                out += '(';
+                continue;
+            }
+            if (cmd === '}' || cmd === ')') {
+                out += ')';
+                continue;
+            }
+            if (cmd === '|') {
+                out += '|';
+                continue;
+            }
+            if (LATEX_GREEK.has(cmd)) {
+                out += `${GV}${cmd.replace(/^var/, '')}${GV}`;
+                continue;
+            }
+            if (cmd === 'log' && s[skipSp(s, i)] === '_') {
+                const a = readArg(s, skipSp(s, i) + 1);
+                i = a.end;
+                const b = a.body.trim();
+                if (b === '10')
+                    out += 'log10';
+                else if (b === '2')
+                    out += 'log2';
+                else
+                    throw new NormErr('log with a base other than 10 or 2: write log(x, base).');
+                continue;
+            }
+            if (LATEX_PLAIN_FN.has(cmd)) {
+                out += cmd;
+                continue;
+            }
+            throw new NormErr(`The LaTeX command \\${cmd} isn't supported.`);
+        }
+        if (c === '^') {
+            const a = readArg(s, i + 1);
+            i = a.end;
+            const body = a.body.trim();
+            if (body === '\\circ' || body === '°') {
+                out += '*(pi/180)';
+                continue;
+            }
+            out += `^(${latexToPlain(a.body, depth + 1)})`;
+            continue;
+        }
+        if (c === '_')
+            throw new NormErr("Subscripts (like x₁) aren't supported — use a plain letter such as a or b.");
+        if (c === '{') {
+            const g = readGroup(s, i);
+            if (!g)
+                throw new NormErr('Unbalanced { } in the LaTeX.');
+            out += `(${latexToPlain(g.body, depth + 1)})`;
+            i = g.end;
+            continue;
+        }
+        if (c === '}')
+            throw new NormErr('Unbalanced { } in the LaTeX.');
+        out += c;
+        i++;
+    }
+    return out;
+}
+/* ---------------------------------------------------------------- Unicode -> plain */
+function mapRun(s, i, table) {
+    let j = i, t = '';
+    while (j < s.length && table[s[j]] !== undefined) {
+        t += table[s[j]];
+        j++;
+    }
+    return { text: t, end: j };
+}
+function matching(s, i, open, close) {
+    let d = 0;
+    for (let j = i; j < s.length; j++) {
+        if (s[j] === open)
+            d++;
+        else if (s[j] === close) {
+            d--;
+            if (d === 0)
+                return j;
+        }
+    }
+    return -1;
+}
+function parseHeader(h) {
+    const m = /^\s*([A-Za-z])\s*(?:=|:|\bfrom\b)\s*(.+?)\s*(?:\.\.\.?|…|\bto\b|→|\bthrough\b)\s*(.+?)\s*$/i.exec(h);
+    return m ? { idx: m[1], lo: m[2], hi: m[3] } : null;
+}
+function unicodeToPlain(s) {
+    let out = '', i = 0;
+    while (i < s.length) {
+        const c = s[i];
+        if (c === '∑' || c === 'Σ' || c === '∏') {
+            const kind = c === '∏' ? 'prod' : 'sum';
+            let j = i + 1, lower = '', upper = '', header = null;
+            for (let k = 0; k < 3; k++) {
+                j = skipSp(s, j);
+                if (SUB[s[j]] !== undefined) {
+                    const r = mapRun(s, j, SUB);
+                    lower = r.text;
+                    j = r.end;
+                }
+                else if (s[j] === '_') {
+                    const a = readArg(s, j + 1);
+                    lower = a.body;
+                    j = a.end;
+                }
+                else if (SUP[s[j]] !== undefined) {
+                    const r = mapRun(s, j, SUP);
+                    upper = r.text;
+                    j = r.end;
+                }
+                else if (s[j] === '^') {
+                    const a = readArg(s, j + 1);
+                    upper = a.body;
+                    j = a.end;
+                }
+                else if (s[j] === '(' && !lower && !upper) {
+                    const e = matching(s, j, '(', ')');
+                    if (e > 0) {
+                        header = parseHeader(s.slice(j + 1, e));
+                        if (header) {
+                            j = e + 1;
+                        }
+                    }
+                    break;
+                }
+                else
+                    break;
+            }
+            if (header)
+                out += `${MO}S${SEP}${kind}${SEP}${header.idx}${SEP}${header.lo}${SEP}${header.hi}${MC}`;
+            else
+                out += sigmaMarker(kind, lower, upper);
+            i = j;
+            continue;
+        }
+        if (c === '√' || c === '∛' || c === '∜') {
+            const fn = c === '√' ? 'sqrt' : c === '∛' ? 'cbrt' : 'nthRoot';
+            let j = skipSp(s, i + 1), inner = '';
+            if (s[j] === '(') {
+                const e = matching(s, j, '(', ')');
+                if (e < 0)
+                    throw new NormErr('Unbalanced ( ) after √.');
+                inner = unicodeToPlain(s.slice(j + 1, e));
+                j = e + 1;
+            }
+            else {
+                const m = /^(\d+(?:\.\d+)?|[A-Za-z]|π|τ)/.exec(s.slice(j));
+                if (!m)
+                    throw new NormErr('√ needs a number, a letter or (…) after it.');
+                j += m[0].length;
+                const sup = mapRun(s, j, SUP);
+                j = sup.end;
+                inner = unicodeToPlain(m[0]) + (sup.text ? `^(${sup.text})` : '');
+            }
+            out += fn === 'nthRoot' ? `nthRoot(${inner},4)` : `${fn}(${inner})`;
+            i = j;
+            continue;
+        }
+        if (SUP[c] !== undefined) {
+            const r = mapRun(s, i, SUP);
+            out += `^(${r.text})`;
+            i = r.end;
+            continue;
+        }
+        if (SUB[c] !== undefined)
+            throw new NormErr("Subscripts (like x₁) aren't supported — use a plain letter such as a or b.");
+        if (VULGAR[c]) {
+            out += VULGAR[c];
+            i++;
+            continue;
+        }
+        if (GREEK_CHARS[c]) {
+            out += `${GV}${GREEK_CHARS[c]}${GV}`;
+            i++;
+            continue;
+        }
+        if (c === '°') {
+            out += '*(pi/180)';
+            i++;
+            continue;
+        }
+        if (SIMPLE[c] !== undefined) {
+            out += SIMPLE[c];
+            i++;
+            continue;
+        }
+        out += c;
+        i++;
+    }
+    return out;
+}
+/* ---------------------------------------------------------------- word-form sums: sum(k=0 to 12)[…] / sum(k=0,12, …) */
+function asciiSums(s) {
+    let out = '', i = 0;
+    const re = /\b(sum|prod)\s*(?=[(_])/gi;
+    while (i < s.length) {
+        re.lastIndex = i;
+        const m = re.exec(s);
+        if (!m) {
+            out += s.slice(i);
+            break;
+        }
+        out += s.slice(i, m.index);
+        const kind = m[1].toLowerCase();
+        let j = m.index + m[0].length;
+        if (s[j] === '_') { // sum_{k=0}^{12} or sum_(k=0)^(12)
+            const rd = (k) => { k = skipSp(s, k); if (s[k] === '{') {
+                const g = readGroup(s, k);
+                if (!g)
+                    throw new NormErr('Unbalanced { }.');
+                return { body: g.body, end: g.end };
+            } if (s[k] === '(') {
+                const e = matching(s, k, '(', ')');
+                if (e < 0)
+                    throw new NormErr('Unbalanced ( ).');
+                return { body: s.slice(k + 1, e), end: e + 1 };
+            } const mm = /^[A-Za-z0-9=+\-]+/.exec(s.slice(k)); if (!mm)
+                throw new NormErr('Σ bounds are missing.'); return { body: mm[0], end: k + mm[0].length }; };
+            const a = rd(j + 1);
+            let k = skipSp(s, a.end);
+            if (s[k] !== '^')
+                throw new NormErr('Σ needs an upper bound after ^.');
+            const b = rd(k + 1);
+            out += sigmaMarker(kind, a.body, b.body);
+            i = b.end;
+            continue;
+        }
+        // sum( … )
+        const e = matching(s, j, '(', ')');
+        if (e < 0)
+            throw new NormErr('Unbalanced ( ) in sum(…).');
+        const inside = s.slice(j + 1, e);
+        const parts = [];
+        let d = 0, last = 0;
+        for (let k = 0; k < inside.length; k++) {
+            const ch = inside[k];
+            if ('([{'.includes(ch))
+                d++;
+            else if (')]}'.includes(ch))
+                d--;
+            else if (ch === ',' && d === 0) {
+                parts.push(inside.slice(last, k));
+                last = k + 1;
+            }
+        }
+        parts.push(inside.slice(last));
+        if (parts.length === 3) { // canonical: sum(k=0,12, body)
+            const h = /^\s*([A-Za-z])\s*=\s*(.+?)\s*$/.exec(parts[0]);
+            if (!h)
+                throw new NormErr('sum(…) must start with the index, e.g. sum(k=0,12, …).');
+            out += `${MO}S${SEP}${kind}${SEP}${h[1]}${SEP}${h[2]}${SEP}${parts[1].trim()}${MC}${BO}${asciiSums(parts[2])}${BC}`;
+            i = e + 1;
+            continue;
+        }
+        const h = parseHeader(inside);
+        if (!h)
+            throw new NormErr('Could not read the Σ bounds. Type it as sum(k=0,12, …).');
+        const marker = `${MO}S${SEP}${kind}${SEP}${h.idx}${SEP}${h.lo}${SEP}${h.hi}${MC}`;
+        let k = skipSp(s, e + 1);
+        if (s[k] === '*')
+            k = skipSp(s, k + 1);
+        const open = s[k], close = open === '[' ? ']' : open === '{' ? '}' : open === '(' ? ')' : '';
+        if (close) {
+            const ce = matching(s, k, open, close);
+            if (ce < 0)
+                throw new NormErr('Unbalanced brackets after Σ.');
+            out += `${marker}${BO}${asciiSums(s.slice(k + 1, ce))}${BC}`;
+            i = ce + 1;
+        }
+        else {
+            out += marker;
+            i = e + 1;
+        }
+    }
+    return out;
+}
+function splitRun(run, nextIsLP, notes) {
+    const low = run.toLowerCase();
+    if (low === 'sum' || low === 'prod')
+        throw new NormErr('Σ needs bounds. Type it as sum(k=0,12, …).');
+    if (nextIsLP && run.length > 2 && !NAMES.some(n => n.toLowerCase() === low))
+        throw new NormErr(`"${run}(" isn't a function MathSonify knows.`);
+    const toks = [];
+    let i = 0, singles = 0;
+    while (i < run.length) {
+        const rest = run.slice(i), lo = rest.toLowerCase();
+        let hit = null;
+        for (const n of NAMES) {
+            const nl = n.toLowerCase();
+            if (lo.startsWith(nl) && (n.length > 1 || rest[0] === 'e')) {
+                hit = n;
+                break;
+            }
+        }
+        if (hit) {
+            if (FN_ALIAS[hit])
+                toks.push({ t: 'fn', v: FN_ALIAS[hit] });
+            else if (FN_NAMES.includes(hit)) {
+                if (hit === 'log')
+                    notes.push('log is read as the natural logarithm (ln). Use log10(x) for base 10.');
+                toks.push({ t: 'fn', v: hit });
+            }
+            else if (CONSTS.includes(hit))
+                toks.push({ t: 'const', v: hit });
+            else
+                toks.push({ t: 'var', v: hit });
+            i += hit.length;
+        }
+        else {
+            toks.push({ t: 'var', v: rest[0] });
+            singles++;
+            i++;
+        }
+    }
+    if (run.length >= 4 && singles === run.length)
+        throw new NormErr(`"${run}" isn't a known function or constant.`);
+    return toks;
+}
+function tokenize(s, notes) {
+    const toks = [];
+    let i = 0;
+    while (i < s.length) {
+        const c = s[i];
+        if (/\s/.test(c)) {
+            i++;
+            continue;
+        }
+        if (c === MO) {
+            const e = s.indexOf(MC, i);
+            const f = s.slice(i + 2, e).split(SEP);
+            const explicit = s[e + 1] === BO;
+            toks.push({ t: 'sum', kind: f[1], idx: f[2], lo: f[3], hi: f[4], explicit });
+            i = e + 1;
+            continue;
+        }
+        if (c === BO) {
+            toks.push({ t: 'lp' });
+            i++;
+            continue;
+        }
+        if (c === BC) {
+            toks.push({ t: 'rp' });
+            i++;
+            continue;
+        }
+        if (c === GV) {
+            const e = s.indexOf(GV, i + 1);
+            toks.push({ t: 'var', v: s.slice(i + 1, e) });
+            i = e + 1;
+            continue;
+        }
+        const num = /^(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+(?![A-Za-z(]))?/.exec(s.slice(i));
+        if (num) {
+            toks.push({ t: 'num', v: num[0] });
+            i += num[0].length;
+            continue;
+        }
+        const run = /^[A-Za-z]+/.exec(s.slice(i));
+        if (run) {
+            let word = run[0];
+            i += word.length;
+            if (/log$/i.test(word)) {
+                const d = /^(10|2)(?!\d)/.exec(s.slice(i));
+                if (d) {
+                    word += d[1];
+                    i += d[1].length;
+                }
+            }
+            toks.push(...splitRun(word, s[skipSp(s, i)] === '(', notes));
+            continue;
+        }
+        if (c === '*' && s[i + 1] === '*') {
+            toks.push({ t: 'op', v: '^' });
+            i += 2;
+            continue;
+        }
+        if ('+-*/^!='.includes(c)) {
+            toks.push({ t: 'op', v: c });
+            i++;
+            continue;
+        }
+        if ('([{'.includes(c)) {
+            toks.push({ t: 'lp' });
+            i++;
+            continue;
+        }
+        if (')]}'.includes(c)) {
+            toks.push({ t: 'rp' });
+            i++;
+            continue;
+        }
+        if (c === '_')
+            throw new NormErr("Subscripts (like x₁) aren't supported — use a plain letter such as a or b.");
+        if (c === ',') {
+            toks.push({ t: 'comma' });
+            i++;
+            continue;
+        }
+        if (c === '|') {
+            toks.push({ t: 'bar' });
+            i++;
+            continue;
+        }
+        throw new NormErr(`The character "${c}" isn't supported.`);
+    }
+    return toks;
+}
+const isOp = (t, v) => !!t && t.t === 'op' && t.v === v;
+function matchGroup(toks, i) {
+    let d = 0;
+    for (let j = i; j < toks.length; j++) {
+        if (toks[j].t === 'lp')
+            d++;
+        else if (toks[j].t === 'rp') {
+            d--;
+            if (d === 0)
+                return j;
+        }
+    }
+    throw new NormErr("The brackets don't match.");
+}
+const endsAtom = (t) => t.t === 'num' || t.t === 'var' || t.t === 'const' || t.t === 'rp' || isOp(t, '!');
+const startsAtom = (t) => t.t === 'num' || t.t === 'var' || t.t === 'const' || t.t === 'lp' || t.t === 'fn';
+function resolveBars(toks) {
+    const out = [];
+    let open = 0;
+    for (const t of toks) {
+        if (t.t !== 'bar') {
+            out.push(t);
+            continue;
+        }
+        const prev = out[out.length - 1];
+        const closer = open > 0 && !!prev && endsAtom(prev);
+        if (closer) {
+            out.push({ t: 'rp' });
+            open--;
+        }
+        else {
+            out.push({ t: 'fn', v: 'abs' }, { t: 'lp' });
+            open++;
+        }
+    }
+    if (open !== 0)
+        throw new NormErr("The | | bars don't match.");
+    return out;
+}
+function readExponent(toks, k) {
+    let j = k;
+    if (isOp(toks[j], '-') || isOp(toks[j], '+'))
+        j++;
+    const t = toks[j];
+    if (!t)
+        throw new NormErr('An exponent is missing after ^.');
+    if (t.t === 'lp')
+        j = matchGroup(toks, j) + 1;
+    else if (t.t === 'num' || t.t === 'var' || t.t === 'const')
+        j++;
+    else if (t.t === 'fn' && toks[j + 1]?.t === 'lp')
+        j = matchGroup(toks, j + 1) + 1;
+    else
+        throw new NormErr('That exponent is not supported.');
+    return { toks: toks.slice(k, j), next: j };
+}
+function readChain(toks, j) {
+    const start = j;
+    while (j < toks.length) {
+        const t = toks[j];
+        if (!(t.t === 'num' || t.t === 'var' || t.t === 'const' || t.t === 'lp'))
+            break;
+        j = t.t === 'lp' ? matchGroup(toks, j) + 1 : j + 1;
+        while (isOp(toks[j], '!'))
+            j++;
+        if (isOp(toks[j], '^'))
+            j = readExponent(toks, j + 1).next;
+    }
+    return { toks: toks.slice(start, j), next: j };
+}
+function argify(toks) {
+    const out = [];
+    let i = 0;
+    while (i < toks.length) {
+        const t = toks[i];
+        if (t.t === 'fn') {
+            let j = i + 1, expo = null;
+            if (isOp(toks[j], '^')) {
+                const r = readExponent(toks, j + 1);
+                expo = r.toks;
+                j = r.next;
+            }
+            let arg;
+            if (toks[j]?.t === 'lp') {
+                const e = matchGroup(toks, j);
+                arg = argify(toks.slice(j + 1, e));
+                j = e + 1;
+            }
+            else {
+                const r = readChain(toks, j);
+                if (!r.toks.length)
+                    throw new NormErr(`"${t.v}" needs something to apply to, e.g. ${t.v}(x).`);
+                arg = argify(r.toks);
+                j = r.next;
+            }
+            let name = t.v;
+            if (expo && expo.length === 2 && isOp(expo[0], '-') && expo[1].t === 'num' && expo[1].v === '1') {
+                if (!INVERSE[name])
+                    throw new NormErr(`${name}^-1 is only supported for trig functions.`);
+                name = INVERSE[name];
+                expo = null;
+            }
+            const call = [{ t: 'fn', v: name }, { t: 'lp' }, ...arg, { t: 'rp' }];
+            if (expo)
+                out.push({ t: 'lp' }, ...call, { t: 'rp' }, { t: 'op', v: '^' }, { t: 'lp' }, ...argify(expo), { t: 'rp' });
+            else
+                out.push(...call);
+            i = j;
+            continue;
+        }
+        if (t.t === 'lp') {
+            const e = matchGroup(toks, i);
+            out.push(t, ...argify(toks.slice(i + 1, e)), toks[e]);
+            i = e + 1;
+            continue;
+        }
+        out.push(t);
+        i++;
+    }
+    return out;
+}
+function resolveSums(toks, depth = 0) {
+    if (depth > 8)
+        throw new NormErr('Σ is nested too deeply.');
+    const out = [];
+    let i = 0;
+    while (i < toks.length) {
+        const t = toks[i];
+        if (t.t !== 'sum') {
+            out.push(t);
+            i++;
+            continue;
+        }
+        let body;
+        const bs = i + 1;
+        if (t.explicit) {
+            if (toks[bs]?.t !== 'lp')
+                throw new NormErr('The Σ body is missing.');
+            const e = matchGroup(toks, bs);
+            body = toks.slice(bs + 1, e);
+            i = e + 1;
+        }
+        else {
+            let d = 0, j = bs;
+            for (; j < toks.length; j++) {
+                const u = toks[j];
+                if (u.t === 'lp')
+                    d++;
+                else if (u.t === 'rp') {
+                    if (d === 0)
+                        break;
+                    d--;
+                }
+                else if (d === 0 && (u.t === 'comma' || ((isOp(u, '+') || isOp(u, '-')) && j > bs)))
+                    break;
+            }
+            body = toks.slice(bs, j);
+            i = j;
+        }
+        if (!body.length)
+            throw new NormErr('The Σ has no term after it.');
+        const inner = resolveSums(body, depth + 1).map(b => (b.t === 'var' && b.v === t.idx ? { ...b, bound: true } : b));
+        const lo = finishTokens(t.lo, [], depth + 1), hi = finishTokens(t.hi, [], depth + 1);
+        out.push({ t: 'fn', v: t.kind }, { t: 'lp' }, { t: 'var', v: t.idx, bound: true }, { t: 'op', v: '=' }, ...lo, { t: 'comma' }, ...hi, { t: 'comma' }, ...inner, { t: 'rp' });
+    }
+    return out;
+}
+function implicitMul(toks) {
+    const out = [];
+    for (let i = 0; i < toks.length; i++) {
+        const a = toks[i], b = toks[i + 1];
+        out.push(a);
+        if (b && endsAtom(a) && startsAtom(b))
+            out.push({ t: 'op', v: '*' });
+    }
+    return out;
+}
+function finishTokens(plain, notes, depth = 0) {
+    return implicitMul(resolveSums(argify(resolveBars(tokenize(toPlain(plain), notes))), depth));
+}
+function toPlain(s) {
+    const a = /\\/.test(s) ? latexToPlain(s) : s;
+    return asciiSums(unicodeToPlain(a));
+}
+function render(toks) {
+    return toks.map(t => t.t === 'num' || t.t === 'var' || t.t === 'const' || t.t === 'fn' || t.t === 'op' ? t.v : t.t === 'lp' ? '(' : t.t === 'rp' ? ')' : t.t === 'comma' ? ',' : '').join('');
+}
+function pretty(toks) {
+    let s = '';
+    toks.forEach((t, i) => {
+        const prev = toks[i - 1];
+        const binary = prev && endsAtom(prev);
+        if (t.t === 'op' && (t.v === '+' || t.v === '-') && binary)
+            s += ` ${t.v} `;
+        else if (t.t === 'op' && (t.v === '*' || t.v === '/'))
+            s += t.v === '*' ? '·' : '/';
+        else if (t.t === 'comma')
+            s += ', ';
+        else
+            s += render([t]);
+    });
+    return s;
+}
+/* ---------------------------------------------------------------- public API */
+function normalizePasted(raw) {
+    const fail = (error) => ({ ok: false, expr: '', display: '', notes: [], params: [], xVar: 'x', error });
+    try {
+        let src = (raw ?? '').replace(/[\u200b-\u200d\ufeff]/g, '').replace(/\s+/g, ' ').trim();
+        if (!src)
+            return fail('Paste an equation to graph it.');
+        if (src.length > 1000)
+            return fail('That is too long to graph (limit 1000 characters).');
+        src = src.replace(/^\${1,2}|\${1,2}$/g, '').replace(/^\\\(|\\\)$/g, '').replace(/^\\\[|\\\]$/g, '').replace(/[.;]\s*$/, '').trim();
+        const un = unsupported(src);
+        if (un)
+            return fail(un);
+        const lhs = /^\s*(?:(?:y|f|g|h|Y|F)\s*(?:\(\s*[A-Za-z]\s*\))?)\s*(?:=|:=)\s*/.exec(src);
+        if (lhs)
+            src = src.slice(lhs[0].length);
+        else if (/^\s*(?:x|r|ρ|θ|t)\s*(?:\(\s*[A-Za-z]\s*\))?\s*=/i.test(src))
+            return fail('Only y = f(x) style equations can be graphed (not x = f(y), polar, or parametric ones). Solve for y first.');
+        const plain = toPlain(src);
+        if (plain.replace(/\u27e6[^\u27e7]*\u27e7/g, '').includes('='))
+            return fail('That looks like an implicit equation (it has = in the middle). Rewrite it as y = f(x).');
+        const notes = [];
+        let toks = tokenize(plain, notes);
+        toks = implicitMul(resolveSums(argify(resolveBars(toks))));
+        // brackets must balance
+        let d = 0;
+        for (const t of toks) {
+            if (t.t === 'lp')
+                d++;
+            else if (t.t === 'rp') {
+                d--;
+                if (d < 0)
+                    break;
+            }
+        }
+        if (d !== 0)
+            return fail("The brackets don't match.");
+        if (!toks.length)
+            return fail('Paste an equation to graph it.');
+        // which symbol is x, which are parameters
+        const unbound = [];
+        for (const t of toks)
+            if (t.t === 'var' && !t.bound && !unbound.includes(t.v))
+                unbound.push(t.v);
+        let xVar = 'x';
+        if (!unbound.includes('x')) {
+            const pref = ['t', 'theta', 'u', 's', 'z', 'w'].find(v => unbound.includes(v));
+            if (pref)
+                xVar = pref;
+            else if (unbound.length === 1)
+                xVar = unbound[0];
+            if (xVar !== 'x')
+                notes.push(`Treated ${xVar} as the horizontal variable x.`);
+        }
+        const params = unbound.filter(v => v !== xVar);
+        if (params.length > 6)
+            return fail('Too many unknown constants (' + params.join(', ') + '). Put numbers in for some of them.');
+        if (xVar !== 'x')
+            toks = toks.map(t => (t.t === 'var' && !t.bound && t.v === xVar ? { ...t, v: 'x' } : t));
+        if (params.length)
+            notes.push(`Unknown constants found: ${params.join(', ')}. Use the sliders to set them.`);
+        if (toks.length > 4000)
+            return fail('That formula is too large to graph.');
+        return { ok: true, expr: render(toks), display: pretty(toks), notes: Array.from(new Set(notes)), params, xVar };
+    }
+    catch (e) {
+        return fail(e instanceof NormErr ? `${e.message} ${HELP}` : `We couldn't read that equation. ${HELP}`);
+    }
+}
+
+return {normalizePasted}; })();
+const ME=(()=>{ const CONSTS = { pi: Math.PI, tau: 2 * Math.PI, e: Math.E };
+function lex(src) {
+    const out = [];
+    let i = 0;
+    while (i < src.length) {
+        const c = src[i];
+        if (/\s/.test(c)) {
+            i++;
+            continue;
+        }
+        const n = /^(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/.exec(src.slice(i));
+        if (n) {
+            out.push(n[0]);
+            i += n[0].length;
+            continue;
+        }
+        const w = /^[A-Za-z][A-Za-z0-9]*/.exec(src.slice(i));
+        if (w) {
+            out.push(w[0]);
+            i += w[0].length;
+            continue;
+        }
+        if ('+-*/^!(),='.includes(c)) {
+            out.push(c);
+            i++;
+            continue;
+        }
+        throw new Error(`bad character ${c}`);
+    }
+    return out;
+}
+function parseExpr(src) {
+    const t = lex(src);
+    let p = 0;
+    const peek = () => t[p], next = () => t[p++];
+    const expect = (s) => { if (next() !== s)
+        throw new Error(`expected ${s}`); };
+    function expr() { let a = term(); while (peek() === '+' || peek() === '-') {
+        const op = next();
+        a = { t: 'bin', op, a, b: term() };
+    } return a; }
+    function term() { let a = unary(); while (peek() === '*' || peek() === '/') {
+        const op = next();
+        a = { t: 'bin', op, a, b: unary() };
+    } return a; }
+    function unary() { if (peek() === '-') {
+        next();
+        return { t: 'neg', a: unary() };
+    } if (peek() === '+') {
+        next();
+        return unary();
+    } return power(); }
+    function power() { const a = postfix(); if (peek() === '^') {
+        next();
+        return { t: 'bin', op: '^', a, b: unary() };
+    } return a; }
+    function postfix() { let a = primary(); while (peek() === '!') {
+        next();
+        a = { t: 'fact', a };
+    } return a; }
+    function primary() {
+        const k = next();
+        if (k === undefined)
+            throw new Error('unexpected end');
+        if (k === '(') {
+            const e = expr();
+            expect(')');
+            return e;
+        }
+        if (/^[\d.]/.test(k))
+            return { t: 'num', v: parseFloat(k) };
+        if (/^[A-Za-z]/.test(k)) {
+            if (peek() === '(') {
+                next();
+                if (k === 'sum' || k === 'prod') {
+                    const idx = next();
+                    expect('=');
+                    const lo = expr();
+                    expect(',');
+                    const hi = expr();
+                    expect(',');
+                    const body = expr();
+                    expect(')');
+                    return { t: 'sum', prod: k === 'prod', idx, lo, hi, body };
+                }
+                const args = [];
+                if (peek() !== ')') {
+                    args.push(expr());
+                    while (peek() === ',') {
+                        next();
+                        args.push(expr());
+                    }
+                }
+                expect(')');
+                return { t: 'call', fn: k, args };
+            }
+            return { t: 'var', n: k };
+        }
+        throw new Error(`unexpected ${k}`);
+    }
+    const r = expr();
+    if (p !== t.length)
+        throw new Error(`unexpected ${t[p]}`);
+    return r;
+}
+function realPow(a, b) {
+    if (a >= 0 || Number.isInteger(b))
+        return Math.pow(a, b);
+    for (let q = 1; q <= 99; q += 2) {
+        const pq = b * q;
+        if (Math.abs(pq - Math.round(pq)) < 1e-9) {
+            const r = Math.pow(-a, b);
+            return Math.round(pq) % 2 === 0 ? r : -r;
+        }
+    }
+    return NaN;
+}
+const fact = (n) => { if (!Number.isInteger(n) || n < 0 || n > 170)
+    return NaN; let r = 1; for (let i = 2; i <= n; i++)
+    r *= i; return r; };
+const FN = {
+    sin: Math.sin, cos: Math.cos, tan: Math.tan, sec: x => 1 / Math.cos(x), csc: x => 1 / Math.sin(x), cot: x => 1 / Math.tan(x),
+    asin: Math.asin, acos: Math.acos, atan: Math.atan, sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh, asinh: Math.asinh, acosh: Math.acosh, atanh: Math.atanh,
+    exp: Math.exp, ln: Math.log, log: (x, b) => (b === undefined ? Math.log(x) : Math.log(x) / Math.log(b)), log10: Math.log10, log2: Math.log2,
+    sqrt: Math.sqrt, cbrt: Math.cbrt, abs: Math.abs, sign: Math.sign, floor: Math.floor, ceil: Math.ceil, round: Math.round,
+    min: Math.min, max: Math.max, mod: (x, y) => x - y * Math.floor(x / y),
+    nthRoot: (x, n) => (Number.isInteger(n) && n % 2 === 1 ? Math.sign(x) * Math.pow(Math.abs(x), 1 / n) : x < 0 ? NaN : Math.pow(x, 1 / n)),
+};
+function evalNode(n, s) {
+    switch (n.t) {
+        case 'num': return n.v;
+        case 'var': {
+            if (n.n in s)
+                return s[n.n];
+            if (n.n in CONSTS)
+                return CONSTS[n.n];
+            throw new Error(`unknown symbol ${n.n}`);
+        }
+        case 'neg': return -evalNode(n.a, s);
+        case 'fact': return fact(evalNode(n.a, s));
+        case 'bin': {
+            const a = evalNode(n.a, s), b = evalNode(n.b, s);
+            return n.op === '+' ? a + b : n.op === '-' ? a - b : n.op === '*' ? a * b : n.op === '/' ? a / b : realPow(a, b);
+        }
+        case 'call': {
+            const f = FN[n.fn];
+            if (!f)
+                throw new Error(`unknown function ${n.fn}`);
+            return f(...n.args.map(a => evalNode(a, s)));
+        }
+        case 'sum': {
+            const lo = Math.round(evalNode(n.lo, s)), hi = Math.round(evalNode(n.hi, s));
+            if (!Number.isFinite(lo) || !Number.isFinite(hi))
+                return NaN;
+            if (hi - lo + 1 > 10000)
+                throw new Error('sum is limited to 10,000 terms');
+            let acc = n.prod ? 1 : 0;
+            for (let k = lo; k <= hi; k++) {
+                const v = evalNode(n.body, { ...s, [n.idx]: k });
+                acc = n.prod ? acc * v : acc + v;
+            }
+            return acc;
+        }
+    }
+}
+function compile(src, params = {}) {
+    const ast = parseExpr(src);
+    return (x) => evalNode(ast, { ...params, x });
+}
+
+return {parseExpr,evalNode}; })();
+const P2=((computeView,formatTick)=>{ /**
+ * plot2d.ts — 2D graph renderer where the tick numbers CANNOT vanish during playback.
+ *
+ * Root cause of "readings disappear when I press play": the per-frame redraw clears the
+ * canvas and repaints only the curve + playhead, so anything drawn once (axes, tick numbers)
+ * is wiped on the first animation frame.
+ *
+ * Fix: grid + axes + ghost curve + tick numbers are painted ONCE into an offscreen layer
+ * (only when data / theme / size changes). Every frame does clear -> drawImage(layer) ->
+ * bright curve -> head dot. No code path clears the canvas without compositing the layer back.
+ */
+
+const FONT = '11px "JetBrains Mono", ui-monospace, Menlo, monospace';
+const PALETTE = {
+    dark: { grid: 'rgba(255,255,255,0.07)', frame: 'rgba(255,255,255,0.14)', axis: 'rgba(255,255,255,0.55)', text: '#C3C6CD', curve: '#FFFFFF', ghost: 'rgba(255,255,255,0.16)', glow: 'rgba(255,255,255,0.55)' },
+    light: { grid: 'rgba(20,22,26,0.10)', frame: 'rgba(20,22,26,0.22)', axis: 'rgba(20,22,26,0.75)', text: '#2b2e35', curve: '#14161A', ghost: 'rgba(20,22,26,0.16)', glow: 'rgba(20,22,26,0.22)' },
+};
+function createPlot2D(canvas) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx)
+        throw new Error('2D canvas unavailable');
+    const layer = document.createElement('canvas');
+    const lctx = layer.getContext('2d');
+    const PAD = { l: 46, r: 14, t: 12, b: 28 };
+    let points = [];
+    let theme = 'dark';
+    let view = computeView([], 1, 1);
+    let cssW = 0, cssH = 0, dpr = 1, dirty = true;
+    let lastProgress = null;
+    const plotW = () => Math.max(1, cssW - PAD.l - PAD.r);
+    const plotH = () => Math.max(1, cssH - PAD.t - PAD.b);
+    const px = (x) => PAD.l + view.toX(x);
+    const py = (y) => PAD.t + view.height - view.toY(y);
+    function rebuild() {
+        view = computeView(points, plotW(), plotH());
+        lctx.font = FONT; // left padding grows with the widest y label, so big/negative numbers never clip
+        let widest = 0;
+        for (const t of view.yTicks.ticks)
+            widest = Math.max(widest, lctx.measureText(formatTick(t, view.yTicks.step)).width);
+        PAD.l = Math.max(36, Math.ceil(widest) + 14);
+        view = computeView(points, plotW(), plotH());
+        dirty = true;
+    }
+    function resize() {
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        if (w < 2 || h < 2)
+            return;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        cssW = w;
+        cssH = h;
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        layer.width = canvas.width;
+        layer.height = canvas.height;
+        rebuild();
+        draw(lastProgress); // resizing wipes the canvas — repaint immediately
+    }
+    /** Trace all segments up to float sample index `upTo`; returns the head position if it sits on the curve. */
+    function trace(c, upTo) {
+        let head = null;
+        for (const seg of view.segments) {
+            if (upTo < seg.start)
+                break;
+            const last = Math.min(seg.end, Math.floor(upTo));
+            c.moveTo(px(points[seg.start].x), py(points[seg.start].y));
+            for (let i = seg.start + 1; i <= last; i++)
+                c.lineTo(px(points[i].x), py(points[i].y));
+            let hx = px(points[last].x), hy = py(points[last].y);
+            if (upTo < seg.end && last < seg.end) {
+                const f = upTo - last, a = points[last], b = points[last + 1];
+                hx = px(a.x + (b.x - a.x) * f);
+                hy = py(a.y + (b.y - a.y) * f);
+                c.lineTo(hx, hy);
+            }
+            if (upTo <= seg.end)
+                head = { x: hx, y: hy };
+        }
+        return head;
+    }
+    function renderLayer() {
+        const p = PALETTE[theme];
+        const x0 = PAD.l, y0 = PAD.t, w = plotW(), h = plotH();
+        lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        lctx.clearRect(0, 0, cssW, cssH);
+        lctx.lineWidth = 1;
+        lctx.strokeStyle = p.grid;
+        lctx.beginPath(); // gridlines sit exactly on tick values
+        for (const t of view.xTicks.ticks) {
+            const X = Math.round(px(t)) + 0.5;
+            lctx.moveTo(X, y0);
+            lctx.lineTo(X, y0 + h);
+        }
+        for (const t of view.yTicks.ticks) {
+            const Y = Math.round(py(t)) + 0.5;
+            lctx.moveTo(x0, Y);
+            lctx.lineTo(x0 + w, Y);
+        }
+        lctx.stroke();
+        lctx.strokeStyle = p.frame;
+        lctx.strokeRect(x0 + 0.5, y0 + 0.5, w - 1, h - 1);
+        lctx.strokeStyle = p.axis;
+        lctx.lineWidth = 1.25;
+        lctx.beginPath(); // axes through data zero
+        const ax = Math.round(px(view.yAxisX)) + 0.5, ay = Math.round(py(view.xAxisY)) + 0.5;
+        lctx.moveTo(ax, y0);
+        lctx.lineTo(ax, y0 + h);
+        lctx.moveTo(x0, ay);
+        lctx.lineTo(x0 + w, ay);
+        lctx.stroke();
+        if (points.length > 1 && view.segments.length) { // faint full curve for context
+            lctx.save();
+            lctx.beginPath();
+            lctx.rect(x0, y0, w, h);
+            lctx.clip();
+            lctx.beginPath();
+            trace(lctx, points.length - 1);
+            lctx.strokeStyle = p.ghost;
+            lctx.lineWidth = 1.4;
+            lctx.lineJoin = 'round';
+            lctx.stroke();
+            lctx.restore();
+        }
+        lctx.font = FONT;
+        lctx.fillStyle = p.text; // tick numbers last, in the padding
+        lctx.textAlign = 'center';
+        lctx.textBaseline = 'top';
+        for (const t of view.xTicks.ticks) {
+            const X = px(t), s = formatTick(t, view.xTicks.step), tw = lctx.measureText(s).width;
+            if (X - tw / 2 < 2 || X + tw / 2 > cssW - 2)
+                continue;
+            lctx.fillText(s, X, y0 + h + 7);
+        }
+        lctx.textAlign = 'right';
+        lctx.textBaseline = 'middle';
+        for (const t of view.yTicks.ticks)
+            lctx.fillText(formatTick(t, view.yTicks.step), x0 - 7, py(t));
+        lctx.textAlign = 'left';
+        lctx.textBaseline = 'alphabetic';
+        lctx.fillText('x', x0 + w - 8, Math.min(y0 + h - 6, ay - 6));
+        lctx.fillText('y', Math.min(x0 + w - 12, ax + 6), y0 + 11);
+        dirty = false;
+    }
+    function draw(progress) {
+        lastProgress = progress;
+        if (!cssW)
+            resize();
+        if (!cssW)
+            return;
+        if (dirty)
+            renderLayer();
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cssW, cssH);
+        ctx.drawImage(layer, 0, 0, cssW, cssH); // grid + axes + ghost + NUMBERS: composited on EVERY frame
+        if (points.length < 2 || !view.segments.length)
+            return;
+        const p = PALETTE[theme];
+        const upTo = progress == null ? points.length - 1 : Math.max(0, Math.min(1, progress)) * (points.length - 1);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(PAD.l, PAD.t, plotW(), plotH());
+        ctx.clip();
+        ctx.beginPath();
+        const head = trace(ctx, upTo);
+        ctx.strokeStyle = p.curve;
+        ctx.lineWidth = 2.4;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.shadowColor = p.glow;
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+        ctx.restore();
+        if (progress != null && head) {
+            ctx.beginPath();
+            ctx.arc(head.x, head.y, 4.5, 0, Math.PI * 2);
+            ctx.fillStyle = p.curve;
+            ctx.shadowColor = p.glow;
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+    return {
+        setPoints(next) { points = next; if (cssW)
+            rebuild();
+        else
+            dirty = true; draw(lastProgress); },
+        setTheme(t) { theme = t; dirty = true; draw(lastProgress); },
+        resize, draw,
+        destroy() { layer.width = layer.height = 0; points = []; },
+    };
+}
+
+return {createPlot2D}; })(PM.computeView,PM.formatTick);
+
+(()=>{
+const $=s=>document.querySelector(s);
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e;};
+const EXAMPLES=[
+ ['Heart (LaTeX)','y = x^{\\frac{2}{3}} + 0.9\\sin(kx)\\sqrt{3-x^2}',{k:7}],
+ ['Heart (plain + √)','y = x^(2/3) + 0.9 sin(kx) √(3 − x²)',{k:12}],
+ ['Σ square wave (LaTeX)','\\frac{4}{\\pi}\\sum_{k=0}^{20}\\frac{\\sin((2k+1)x)}{2k+1}',{}],
+ ['Σ symbols','y = 5∑ₖ₌₀¹² 1/(k+1) sin((4k+1)x)',{}],
+ ['Σ words','y = 5 * sum(k=0 to 12) [1/(k+1) * sin((4k+1)x)]',{}],
+ ['Roots','y = ∛x + √(x+3)',{}],
+ ['Abs bars','|x − 1| + |x + 1| − 2|x|',{}],
+ ['sin without brackets','sin 2x · cos x + sin²x',{}],
+ ['Not supported: circle','x² + y² = 4',{}],
+];
+const PRESETS=['sin(x)*cos(3*x)','x^2-2','abs(sin(x))','e^(-x^2)*cos(5*x)'];
+let mode='paste', params={}, preset={};
+const plot=P2.createPlot2D($('#g')); plot.setTheme('dark');
+let points=[], hasGraph=false, playing=false, t0=0, actx=null, osc=null, gain=null, yMin=0, yMax=1;
+
+function evaluate(text){
+  const r=NZ.normalizePasted(text);
+  if(!r.ok) return {r};
+  try{
+    const ast=ME.parseExpr(r.expr);
+    for(const p of r.params) if(!(p in params)) params[p]=(preset[p]!==undefined?preset[p]:1);
+    return {r,ast};
+  }catch(e){ r.ok=false; r.error='That formula could not be evaluated. '+e.message; return {r}; }
+}
+function sample(ast){
+  const f=(x)=>{try{return ME.evalNode(ast,{...params,x});}catch(e){return NaN;}};
+  const N=800; let a=-6.28,b=6.28;
+  const run=(a,b)=>Array.from({length:N},(_,i)=>{const x=a+(b-a)*i/(N-1);return {x,y:f(x)};});
+  let pts=run(a,b);
+  const fin=pts.filter(p=>Number.isFinite(p.y));
+  let note='';
+  if(fin.length&&fin.length<N*0.6){ const lo=fin[0].x,hi=fin[fin.length-1].x,pad=(hi-lo)*0.06; a=lo-pad;b=hi+pad; pts=run(a,b); note='domain auto-fitted'; }
+  return {pts,a,b,note,finite:pts.filter(p=>Number.isFinite(p.y)).length};
+}
+function setGraph(label,pts,a,b,extra){
+  points=pts; hasGraph=pts.some(p=>Number.isFinite(p.y));
+  $('#empty').hidden=hasGraph; $('#g').style.display=hasGraph?'block':'none';
+  $('#gTitle').textContent=label?('Equation: '+label):'Graph';
+  $('#gDomain').textContent=hasGraph?('Domain: ['+a.toFixed(2)+', '+b.toFixed(2)+']'+(extra?' · '+extra:'') ):'';
+  if(hasGraph){ const ys=pts.map(p=>p.y).filter(Number.isFinite); yMin=Math.min(...ys); yMax=Math.max(...ys); plot.setPoints(pts); plot.resize(); plot.draw(playing?0:null); }
+}
+function renderPaste(){
+  const out=$('#pasteOut'); out.replaceChildren();
+  const text=$('#pasteBox').value;
+  if(!text.trim()){ setGraph('',[],0,0); return; }
+  const {r,ast}=evaluate(text);
+  if(!r.ok){ out.append(el('div','err',r.error)); setGraph('',[],0,0); return; }
+  const s=el('div','shown'); s.append(el('small',null,'EQUATION'),document.createTextNode('y = '+r.display)); out.append(s);
+  if(r.notes.length){ const n=el('div','notes'); r.notes.forEach(t=>n.append(el('div',null,'• '+t))); out.append(n); }
+  if(r.params.length){
+    const box=el('div','params');
+    r.params.forEach(p=>{
+      const row=el('div','prm'); const lab=el('span',null,p+' ='); const rng=document.createElement('input'); rng.type='range'; rng.min=-20; rng.max=60; rng.step=0.1; rng.value=params[p];
+      const o=el('output',null,String(params[p])); rng.oninput=()=>{params[p]=parseFloat(rng.value);o.textContent=rng.value;redraw();};
+      row.append(lab,rng,o); box.append(row);
+    }); out.append(box);
+  }
+  const sm=sample(ast); setGraph('y = '+r.display,sm.pts,sm.a,sm.b,sm.note);
+  window.__ast=ast;
+}
+function redraw(){ if(mode!=='paste'||!window.__ast) return; const sm=sample(window.__ast); const r=NZ.normalizePasted($('#pasteBox').value); setGraph('y = '+r.display,sm.pts,sm.a,sm.b,sm.note); }
+function renderBar(){
+  const out=$('#barOut'); out.replaceChildren();
+  const text=$('#barBox').value; const {r,ast}=evaluate(text);
+  if(!r.ok){ out.append(el('div','err','We couldn\u2019t understand that equation. Try something like sin(x) or x^2 + 3x + 2.')); setGraph('',[],0,0); return; }
+  const sm=sample(ast); setGraph('y = '+r.display,sm.pts,sm.a,sm.b,sm.note); window.__ast=null;
+}
+function setMode(m){
+  mode=m; stop();
+  const paste=m==='paste';
+  $('#pasteVeil').hidden=paste; $('#barVeil').hidden=!paste;
+  $('#pasteCard').classList.toggle('off',!paste); $('#barCard').classList.toggle('off',paste);
+  $('#pasteVeil').parentElement.querySelector('.body').style.visibility=paste?'visible':'hidden';
+  $('#barCard').querySelector('.body').style.visibility=paste?'hidden':'visible';
+  $('#pasteState').textContent=paste?'ACTIVE':'OFF'; $('#pasteState').className='pill'+(paste?' on':'');
+  $('#barState').textContent=paste?'OFF':'ACTIVE'; $('#barState').className='pill'+(paste?'':' on');
+  $('#pasteVeil').style.pointerEvents='auto'; $('#barVeil').style.pointerEvents='auto';
+  paste?renderPaste():renderBar();
+}
+// examples + presets
+EXAMPLES.forEach(([n,t,p])=>{const c=el('span','chip',n);c.onclick=()=>{params={};preset=p;$('#pasteBox').value=t;if(mode!=='paste')setMode('paste');else renderPaste();};$('#examples').append(c);});
+PRESETS.forEach(t=>{const c=el('span','chip',t);c.onclick=()=>{$('#barBox').value=t;renderBar();};$('#presets').append(c);});
+$('#pasteBox').addEventListener('input',()=>{params={};preset={};renderPaste();});
+$('#barBox').addEventListener('input',renderBar);
+$('#clearBtn').onclick=()=>{$('#pasteBox').value='';params={};renderPaste();};
+$('#toBar').onclick=$('#toBar2').onclick=()=>setMode('bar'); $('#toPaste').onclick=()=>setMode('paste');
+// play
+function stop(){playing=false;$('#play').textContent='▶ Play';$('#status').textContent='';if(osc){try{gain.gain.setTargetAtTime(0.0001,actx.currentTime,0.05);osc.stop(actx.currentTime+0.1);}catch(e){}osc=null;} if(hasGraph)plot.draw(null);}
+function loop(ts){ if(!playing)return; if(!t0)t0=ts; const p=((ts-t0)%3800)/3800; plot.draw(p);
+  const i=Math.min(points.length-1,Math.floor(p*(points.length-1))); const y=points[i].y;
+  if(osc&&Number.isFinite(y)){ const n=(y-yMin)/((yMax-yMin)||1); osc.frequency.setTargetAtTime(220*Math.pow(4,n),actx.currentTime,0.02); gain.gain.setTargetAtTime(0.1,actx.currentTime,0.03);} else if(gain){gain.gain.setTargetAtTime(0.0001,actx.currentTime,0.03);}
+  requestAnimationFrame(loop);}
+$('#play').onclick=()=>{ if(!hasGraph)return; if(playing){stop();return;}
+  actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended')actx.resume();
+  osc=actx.createOscillator();gain=actx.createGain();osc.type='sine';gain.gain.value=0.0001;osc.connect(gain).connect(actx.destination);osc.start();
+  playing=true;t0=0;$('#play').textContent='❚❚ Pause';$('#status').textContent='numbers stay visible while playing'; requestAnimationFrame(loop);};
+new ResizeObserver(()=>{plot.resize();}).observe($('#stage'));
+$('#pasteBox').value=EXAMPLES[0][1]; preset=EXAMPLES[0][2];
+setMode('paste');
+})();
+</script></body></html>
