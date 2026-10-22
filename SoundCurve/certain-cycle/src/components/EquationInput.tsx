@@ -196,7 +196,6 @@ export default function EquationInput() {
               caretRef.current = e.target.selectionStart;
               handleChange(e.target.value);
             }}
-            onPaste={handlePaste}
             onSelect={trackCaret}
             onClick={trackCaret}
             onKeyUp={trackCaret}
@@ -421,3 +420,4 @@ export default function EquationInput() {
     </div>
   );
 }
+

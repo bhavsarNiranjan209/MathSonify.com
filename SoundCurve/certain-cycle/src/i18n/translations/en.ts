@@ -58,6 +58,14 @@ const en = {
   'studio.spaceHint': 'play or stop',
   'studio.howMathTitle': 'How math creates sound:',
   'studio.howMathDesc': 'as the playhead scans along x, the vertical elevation y(x) controls oscillator frequency while the slope dy/dx modulates filter brightness and timbre.',
+  'studio.undo': 'Undo',
+  'studio.redo': 'Redo',
+  'studio.cannotUndo': 'No undo available',
+  'studio.cannotRedo': 'No redo available',
+  'studio.pasteEquation': 'Paste equation',
+  'studio.useEquationBar': 'Type an equation — e.g. sin(x) * cos(3*x)',
+  'studio.use': 'Use',
+  'studio.clear': 'Clear',
 
   // Guess — the listening game
   'guess.round': 'Round',
@@ -372,3 +380,4 @@ const en = {
 
 export default en;
 export type TranslationKey = keyof typeof en;
+
