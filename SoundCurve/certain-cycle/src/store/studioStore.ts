@@ -51,6 +51,8 @@ export interface StudioState {
   originalEquation: string;
   minX: number;
   maxX: number;
+  /** Active input source: 'bar' (equation bar) or 'paste' (paste card) */
+  inputMode: 'bar' | 'paste';
 
   // Direct Curve Sculpting / Editing state
   isEditingCurve: boolean;
@@ -59,6 +61,10 @@ export interface StudioState {
   brushRadius: number; // Normalized [0.05, 0.8], default 0.35 (Tight ↔ Broad)
   fitResult: FitResult | null;
   isFitting: boolean;
+
+  // Undo/redo history for freehand curve editing
+  splineHistory: SplineControlPoint[][];
+  splineHistoryIndex: number;
 
   // Visualizer settings
   visualizerMode: VisualizerMode;
@@ -98,6 +104,11 @@ export interface StudioActions {
   setLoop: (loop: boolean) => void;
   setMinFreq: (freq: number) => void;
   setMaxFreq: (freq: number) => void;
+
+  // Undo/redo for freehand curve editing
+  pushSplineHistory: (points: SplineControlPoint[]) => void;
+  undoSpline: () => void;
+  redoSpline: () => void;
 
   setEquation: (equation: string) => void;
   setOriginalEquation: (originalEquation: string) => void;
@@ -171,6 +182,7 @@ const initialState: StudioState = {
 
   equation: 'sin(x)',
   originalEquation: 'sin(x)',
+  inputMode: 'bar',  // Active input source: 'bar' (equation bar) or 'paste' (paste card)
   minX: -6.28,
   maxX: 6.28,
 
@@ -180,6 +192,8 @@ const initialState: StudioState = {
   brushRadius: 0.35,
   fitResult: null,
   isFitting: false,
+      splineHistory: [],
+      splineHistoryIndex: -1,
 
   visualizerMode: '2d-graph',
   showGrid: true,
@@ -265,9 +279,50 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
     }),
   setSplineControlPoints: (splineControlPoints) =>
     set({ splineControlPoints, isCustomCurve: true, fitResult: null }),
+  pushSplineHistory: (points) =>
+    set((state) => {
+      // Auto-initialise history if it hasn't been seeded yet.
+      if (state.splineHistory.length === 0) {
+        return {
+          splineHistory: [state.splineControlPoints],
+          splineHistoryIndex: 0,
+        };
+      }
+      // Append the new state, dropping any redo history ahead of the cursor.
+      const next = state.splineHistory.slice(0, state.splineHistoryIndex + 1);
+      next.push(points);
+      if (next.length > 50) next.shift();
+      return {
+        splineHistory: next,
+        splineHistoryIndex: next.length - 1,
+      };
+    }),
+  undoSpline: () =>
+    set((state) => {
+      if (state.splineHistoryIndex <= 0) return state;
+      const idx = state.splineHistoryIndex - 1;
+      return {
+        splineHistoryIndex: idx,
+        splineControlPoints: state.splineHistory[idx],
+        isCustomCurve: true,
+      };
+    }),
+  redoSpline: () =>
+    set((state) => {
+      if (state.splineHistoryIndex >= state.splineHistory.length - 1) return state;
+      const idx = state.splineHistoryIndex + 1;
+      return {
+        splineHistoryIndex: idx,
+        splineControlPoints: state.splineHistory[idx],
+        isCustomCurve: true,
+      };
+    }),
+
   deformSplinePoint: (targetIndex, deltaY) =>
     set((state) => {
       if (state.splineControlPoints.length === 0) return state;
+      // Snapshot the current shape before deforming so it can be undone.
+      getState().pushSplineHistory(state.splineControlPoints);
       const updated = deformControlPointsWithBrush(
         state.splineControlPoints,
         targetIndex,
@@ -285,12 +340,14 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
   setBrushRadius: (brushRadius) =>
     set({ brushRadius: Math.max(0.05, Math.min(0.8, brushRadius)) }),
   fitCurrentCurve: () =>
-    set((state) => {
+    set((state, getState) => {
       if (state.splineControlPoints.length === 0) {
         return { fitResult: null, isFitting: false };
       }
+      // Fit commits to the current shape, so clear undo history.
+      getState().pushSplineHistory(state.splineControlPoints);
       const result = fitClosestEquation(state.splineControlPoints);
-      return { fitResult: result, isFitting: false };
+      return { fitResult: result, isFitting: false, splineHistory: [], splineHistoryIndex: -1 };
     }),
   setFitResult: (fitResult) => set({ fitResult }),
   resetSplineCurve: () =>
@@ -305,6 +362,8 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
         fitResult: null,
         isPlaying: false,
         progress: 0,
+        splineHistory: [],
+        splineHistoryIndex: -1,
       };
     }),
 
@@ -352,6 +411,8 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
       fitResult: null,
       isPlaying: false,
       progress: 0,
+      splineHistory: [],
+      splineHistoryIndex: -1,
     })),
 
   resetToDefault: () => set(initialState),

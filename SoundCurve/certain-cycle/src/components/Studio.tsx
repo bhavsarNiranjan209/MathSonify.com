@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useStudioStore, type InstrumentType, type SonificationMode } from '../store/studioStore';
 import { useTranslation } from '../i18n/index';
 import EquationInput from './EquationInput';
+import PasteCard from './paste-card/PasteCard';
 import Visualizer from './Visualizer';
 import GraphPanel from './GraphPanel';
 import AudioControls from './AudioControls';
@@ -59,6 +60,13 @@ function StudioInner() {
   const scale = useStudioStore((s) => s.scale);
   const isCustomCurve = useStudioStore((s) => s.isCustomCurve);
   const splineControlPoints = useStudioStore((s) => s.splineControlPoints);
+  const splineHistory = useStudioStore((s) => s.splineHistory);
+  const splineHistoryIndex = useStudioStore((s) => s.splineHistoryIndex);
+  const canUndo = useStudioStore((s) => s.splineHistoryIndex > 0);
+  const canRedo = useStudioStore((s) => s.splineHistoryIndex < s.splineHistory.length - 1);
+  const undoSpline = useStudioStore((s) => s.undoSpline);
+  const redoSpline = useStudioStore((s) => s.redoSpline);
+  const inputMode = useStudioStore((s) => s.inputMode);
 
   const graphSectionRef = useRef<HTMLDivElement>(null);
   const wasPlayingRef = useRef(false);
@@ -261,6 +269,24 @@ function StudioInner() {
             <span>{t('studio.spaceHint')}</span>
             <kbd className="px-1.5 py-0.5 rounded bg-sc-surface border text-sc-text-faint font-mono hidden sm:inline-block">?</kbd>
             <span className="hidden sm:inline text-xs text-sc-text-faint">{t('studio.shortcutsHint') || 'Shortcuts'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => undoSpline()}
+              className="rounded-md bg-sc-surface hover:bg-sc-surface-active transition-colors disabled:opacity-50 disabled:pointer-events-none px-3 py-1.5 text-xs font-mono text-sc-text"
+              disabled={!canUndo}
+              aria-label={canUndo ? t('studio.undo') : t('studio.cannotUndo')}
+            >
+              {t('studio.undo')}
+            </button>
+            <button
+              onClick={() => redoSpline()}
+              className="rounded-md bg-sc-surface hover:bg-sc-surface-active transition-colors disabled:opacity-50 disabled:pointer-events-none px-3 py-1.5 text-xs font-mono text-sc-text"
+              disabled={!canRedo}
+              aria-label={canRedo ? t('studio.redo') : t('studio.cannotRedo')}
+            >
+              {t('studio.redo')}
+            </button>
           </div>
         </div>
       </motion.div>

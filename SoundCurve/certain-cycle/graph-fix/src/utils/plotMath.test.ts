@@ -41,6 +41,27 @@ describe('computeView', () => {
     expect(v.xAxisY).toBe(0);
     expect(v.yTicks.ticks).toContain(0);
   });
+  it('ZERO RULE: positive values sit above the x-axis, negative values below it', () => {
+    const v = computeView(sample(Math.sin, -6.28, 6.28), 8, 4);
+    for (const p of sample(Math.sin, -6.28, 6.28)) {
+      if (p.y > 1e-9) expect(v.toY(p.y)).toBeGreaterThan(v.toY(v.xAxisY));
+      if (p.y < -1e-9) expect(v.toY(p.y)).toBeLessThan(v.toY(v.xAxisY));
+    }
+  });
+  it('all-negative curve: axis goes to the TOP edge (nearest to zero), whole curve below it', () => {
+    const v = computeView(sample(x => -x * x - 1, -3, 3), 8, 4);
+    expect(v.xAxisY).toBe(v.yHi);
+    for (const p of sample(x => -x * x - 1, -3, 3)) expect(v.toY(p.y)).toBeLessThan(v.toY(v.xAxisY) + 1e-9);
+  });
+  it('all-positive curve: axis at the BOTTOM edge, whole curve above it', () => {
+    const v = computeView(sample(x => x * x + 1, -3, 3), 8, 4);
+    expect(v.xAxisY).toBe(v.yLo);
+  });
+  it('vertical axis: at x = 0 when in range, else the nearest x edge', () => {
+    expect(computeView(sample(Math.sin, -3, 3), 8, 4).yAxisX).toBe(0);
+    expect(computeView(sample(Math.sin, 2, 8), 8, 4).yAxisX).toBe(2);
+    expect(computeView(sample(Math.sin, -8, -2), 8, 4).yAxisX).toBe(-2);
+  });
   it('draws the axis at the bottom edge when 0 is out of range', () => {
     const v = computeView(sample(x => 5 + Math.sin(x), -3, 3), 8, 4);
     expect(v.xAxisY).toBe(v.yLo);

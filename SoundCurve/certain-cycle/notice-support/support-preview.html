@@ -1,0 +1,110 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Support MathSonify (preview)</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B0B0D;--panel:#121215;--box:#17181B;--border:#2A2A30;--text:#F5F5F2;--muted:#9A9AA2;--amber:#F5A623}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,sans-serif;overflow-x:hidden}
+.glow{position:absolute;left:50%;top:60px;width:760px;height:520px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(245,166,35,.16),rgba(245,166,35,.05) 55%,transparent 75%);pointer-events:none;filter:blur(10px)}
+.wrap{position:relative;max-width:980px;margin:0 auto;padding:54px 20px 70px}
+.hero{text-align:center;position:relative}
+.badge{display:inline-flex;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:6px 14px;margin-bottom:20px}
+h1{font-family:"Instrument Serif",serif;font-weight:400;font-size:clamp(38px,6.4vw,64px);line-height:1.04;margin:0 0 14px;letter-spacing:-.01em}
+h1 em{font-style:italic}
+.lead{color:var(--muted);font-size:clamp(15px,2vw,17px);line-height:1.65;max-width:50ch;margin:0 auto}
+.cupwrap{position:relative;width:240px;height:250px;margin:30px auto 8px}
+.cupwrap canvas{position:absolute;left:0;top:0;width:240px;height:170px}
+.cupwrap svg{position:absolute;left:30px;top:120px;width:180px;height:124px;overflow:visible}
+.ctas{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.btn{font:inherit;font-weight:600;font-size:14.5px;border-radius:12px;padding:14px 22px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:transform .2s,border-color .2s,box-shadow .2s}
+.btn:hover{transform:translateY(-2px);border-color:#666}
+.btn.main{background:#F2EFE8;color:#0B0B0D;border-color:#F2EFE8;box-shadow:0 0 0 0 rgba(245,166,35,.0),0 10px 30px -12px rgba(245,166,35,.55)}
+.btn.main:hover{box-shadow:0 0 0 4px rgba(245,166,35,.18),0 14px 36px -12px rgba(245,166,35,.7)}
+.btn:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.btn.off{opacity:.5;pointer-events:none}
+.note{font-size:12px;color:var(--muted);margin-top:12px}
+h2{font-family:"Instrument Serif",serif;font-weight:400;font-size:30px;margin:56px 0 6px;text-align:center}
+.sub{color:var(--muted);font-size:14px;text-align:center;margin:0 auto 24px;max-width:52ch;line-height:1.6}
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.tier{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid var(--border);border-radius:16px;padding:22px 18px;text-align:center;text-decoration:none;color:inherit;transition:transform .25s,border-color .25s,box-shadow .25s}
+.tier:hover{transform:translateY(-4px);border-color:rgba(245,166,35,.55);box-shadow:0 18px 40px -22px rgba(245,166,35,.55)}
+.tier .e{font-size:30px;display:block;margin-bottom:8px}.tier b{display:block;font-family:"Instrument Serif",serif;font-weight:400;font-size:22px}
+.tier span.p{display:block;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--amber);margin:4px 0 8px}.tier small{color:var(--muted);font-size:12.5px;line-height:1.5;display:block}
+.tier.pop::before{content:"most picked";position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:10px;background:var(--amber);color:#0B0B0D;border-radius:999px;padding:3px 10px;font-weight:600}
+.goes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px}
+.card .ic{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--box);display:grid;place-items:center;font-size:18px;margin-bottom:12px}
+.card b{display:block;font-size:14.5px;margin-bottom:4px}.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}
+.promise{margin:18px auto 0;max-width:640px;border:1px dashed var(--border);border-radius:14px;padding:14px 16px;text-align:center;font-size:13px;color:var(--muted);line-height:1.6}
+.promise b{color:var(--text)}
+.free{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.free .btn{justify-content:center;width:100%}
+.upi{display:flex;gap:18px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;max-width:520px;margin:0 auto}
+.qr{flex:0 0 96px;height:96px;border-radius:10px;background:repeating-conic-gradient(#fff 0 25%,#0B0B0D 0 50%) 0 0/16px 16px;opacity:.9;border:6px solid #fff}
+.upi b{display:block;margin-bottom:4px}.upi code{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:13px;background:var(--box);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:6px 8px 0 0}
+.small{margin:46px auto 0;max-width:640px;text-align:center;font-size:12px;line-height:1.7;color:var(--muted)}
+.small a{color:var(--text)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:#F2EFE8;color:#0B0B0D;font-weight:600;font-size:13px;border-radius:10px;padding:10px 16px;opacity:0;pointer-events:none;transition:.25s}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:760px){.tiers,.goes,.free{grid-template-columns:1fr}.upi{flex-direction:column;text-align:center}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></head><body>
+<div class="glow"></div>
+<div class="wrap">
+ <section class="hero">
+  <span class="badge">support</span>
+  <h1>Help keep the <em>music</em> playing</h1>
+  <p class="lead">MathSonify started with one question: what does an equation sound like? Everything here is free. If it changed how you hear maths, a coffee helps keep it that way.</p>
+  <div class="cupwrap"><canvas id="steam" width="480" height="340" aria-hidden="true"></canvas>
+   <svg viewBox="0 0 180 124" aria-hidden="true"><ellipse cx="90" cy="112" rx="84" ry="10" fill="#1b1c20" stroke="#2A2A30"/><path d="M26 28h112v38a44 44 0 0 1-44 44h-24a44 44 0 0 1-44-44z" fill="#17181B" stroke="#3a3b42" stroke-width="2"/><path d="M138 40h10a16 16 0 0 1 0 32h-14" fill="none" stroke="#3a3b42" stroke-width="2"/><ellipse cx="82" cy="28" rx="56" ry="7" fill="#2a1d0c" stroke="#F5A623" stroke-opacity=".5"/><text x="82" y="78" text-anchor="middle" fill="#9A9AA2" font-family="JetBrains Mono,monospace" font-size="11">y = sin(x)</text></svg></div>
+  <div class="ctas"><a class="btn main" id="coffee" href="#" onclick="return false">☕ Buy me a coffee</a><button class="btn" id="hear">♪ Hear a thank-you</button></div>
+  <p class="note">Opens a third-party site in a new tab. No account needed on MathSonify, ever.</p>
+ </section>
+
+ <h2>Pick a size</h2><p class="sub">All three go to the same place — these are just friendly suggestions. (Amounts are examples; you set the real ones.)</p>
+ <div class="tiers">
+  <a class="tier" href="#" onclick="return false"><span class="e">🍵</span><b>A chai</b><span class="p">₹49</span><small>Covers a day of hosting.</small></a>
+  <a class="tier pop" href="#" onclick="return false"><span class="e">☕</span><b>A coffee</b><span class="p">₹99</span><small>Keeps the domain and email running.</small></a>
+  <a class="tier" href="#" onclick="return false"><span class="e">🥪</span><b>A long night</b><span class="p">₹249</span><small>Pays for time to build the next feature.</small></a>
+ </div>
+
+ <h2>Where it goes</h2><p class="sub">No ads, no tracking, no paywall on the core experience. Support goes to three honest things:</p>
+ <div class="goes">
+  <div class="card"><div class="ic">🌐</div><b>The domain</b><p>mathsonify.com renews every year.</p></div>
+  <div class="card"><div class="ic">🖥</div><b>Hosting and email</b><p>The servers, and the service that tells you when SoundLab, Music Lab and Draw open.</p></div>
+  <div class="card"><div class="ic">🛠</div><b>Time to build</b><p>New equations, new instruments, and fixes — shaped by what people ask for.</p></div>
+ </div>
+ <div class="promise"><b>A coffee does not unlock anything.</b> Donations are voluntary gifts, not purchases. Everything you can use today stays free.</div>
+
+ <h2>Can't donate? These help just as much</h2><p class="sub">Honestly, they might help more.</p>
+ <div class="free"><button class="btn" id="share">↗ Share MathSonify</button><a class="btn" href="#" onclick="return false">∑ Suggest an equation</a><a class="btn" href="#" onclick="return false">🎧 Challenge a friend in Guess</a></div>
+
+ <h2>Prefer UPI?</h2><p class="sub">Shown only when you add your UPI details.</p>
+ <div class="upi"><div class="qr" role="img" aria-label="UPI QR code placeholder"></div><div><b>Pay with any UPI app</b><span style="color:var(--muted);font-size:13px">Scan the code, or copy the ID.</span><br><code id="upiid">yourname@bank</code><button class="btn" id="copy" style="padding:7px 12px;font-size:12px">Copy</button></div></div>
+
+ <p class="small">Support is voluntary and does not unlock features. The button opens a service run by someone else; their privacy policy applies there, and we never see your card or bank details. Questions? <a href="#" onclick="return false">hello@mathsonify.com</a> · <a href="#" onclick="return false">Privacy</a> · <a href="#" onclick="return false">Terms</a></p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+const $=s=>document.querySelector(s);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),1800);};
+// steam: three sine curves rising from the cup — the maths IS the steam
+const cv=$('#steam'),ctx=cv.getContext('2d');const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let vis=true;new IntersectionObserver(e=>vis=e[0].isIntersecting).observe(cv);
+function frame(t){
+  if(vis||RM){ctx.clearRect(0,0,480,340);
+    [[170,0,0.9],[240,2.1,1.15],[310,4.2,0.8]].forEach(([cx,ph,sp],i)=>{
+      const g=ctx.createLinearGradient(0,320,0,0);g.addColorStop(0,'rgba(245,166,35,.0)');g.addColorStop(.25,'rgba(245,166,35,.55)');g.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.strokeStyle=g;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();
+      for(let y=320;y>=10;y-=4){const k=(320-y)/310,a=10+k*14;const x=cx+Math.sin(y*0.045+ph+(RM?0:t/1000*sp*2.2))*a*k;y===320?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+      ctx.stroke();});}
+  if(!RM)requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+// thank-you chord: only on click, quiet
+let ac;$('#hear').onclick=()=>{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();
+ [523.25,659.25,783.99,1046.5].forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain(),s=ac.currentTime+i*.13;o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.08,s+.03);g.gain.exponentialRampToValueAtTime(.0001,s+.9);o.connect(g).connect(ac.destination);o.start(s);o.stop(s+1);});
+ toast('Thank you for being here ♥');};
+$('#share').onclick=async()=>{const u='https://mathsonify.com';try{if(navigator.share){await navigator.share({title:'MathSonify',text:'Type an equation, hear it.',url:u});}else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}};
+$('#copy').onclick=async()=>{try{await navigator.clipboard.writeText($('#upiid').textContent);toast('UPI ID copied');}catch(e){toast('Press and hold the ID to copy');}};
+$('#coffee').onclick=()=>{toast('In the real page this opens your donation link');return false;};
+</script></body></html>

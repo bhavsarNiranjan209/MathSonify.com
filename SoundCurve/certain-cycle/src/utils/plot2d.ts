@@ -31,7 +31,6 @@ export interface Plot2D {
 export function createPlot2D(canvas: HTMLCanvasElement): Plot2D {
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('2D canvas unavailable');
-  const g: CanvasRenderingContext2D = ctx;
   const layer = document.createElement('canvas');
   const lctx = layer.getContext('2d')!;
   const PAD = { l: 46, r: 14, t: 12, b: 28 };
@@ -75,12 +74,13 @@ export function createPlot2D(canvas: HTMLCanvasElement): Plot2D {
       const last = Math.min(seg.end, Math.floor(upTo));
       c.moveTo(px(points[seg.start].x), py(points[seg.start].y));
       for (let i = seg.start + 1; i <= last; i++) c.lineTo(px(points[i].x), py(points[i].y));
-      if (upTo > last && upTo <= seg.end) {
-        const a = points[last], b = points[last + 1], f = upTo - last;
-        const hx = px(a.x + (b.x - a.x) * f), hy = py(a.y + (b.y - a.y) * f);
+      let hx = px(points[last].x), hy = py(points[last].y);
+      if (upTo < seg.end && last < seg.end) {
+        const f = upTo - last, a = points[last], b = points[last + 1];
+        hx = px(a.x + (b.x - a.x) * f); hy = py(a.y + (b.y - a.y) * f);
         c.lineTo(hx, hy);
-        head = { x: hx, y: hy };
       }
+      if (upTo <= seg.end) head = { x: hx, y: hy };
     }
     return head;
   }
@@ -125,21 +125,21 @@ export function createPlot2D(canvas: HTMLCanvasElement): Plot2D {
     if (!cssW) resize();
     if (!cssW) return;
     if (dirty) renderLayer();
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, cssW, cssH);
-    g.drawImage(layer, 0, 0, cssW, cssH); // grid + axes + ghost + NUMBERS: composited on EVERY frame
+    ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx!.clearRect(0, 0, cssW, cssH);
+    ctx!.drawImage(layer, 0, 0, cssW, cssH); // grid + axes + ghost + NUMBERS: composited on EVERY frame
     if (points.length < 2 || !view.segments.length) return;
     const p = PALETTE[theme];
     const upTo = progress == null ? points.length - 1 : Math.max(0, Math.min(1, progress)) * (points.length - 1);
-    g.save(); g.beginPath(); g.rect(PAD.l, PAD.t, plotW(), plotH()); g.clip();
-    g.beginPath();
-    const head = trace(g, upTo);
-    g.strokeStyle = p.curve; g.lineWidth = 2.4; g.lineJoin = 'round'; g.lineCap = 'round';
-    g.shadowColor = p.glow; g.shadowBlur = 8; g.stroke();
-    g.restore();
+    ctx!.save(); ctx!.beginPath(); ctx!.rect(PAD.l, PAD.t, plotW(), plotH()); ctx!.clip();
+    ctx!.beginPath();
+    const head = trace(ctx!, upTo);
+    ctx!.strokeStyle = p.curve; ctx!.lineWidth = 2.4; ctx!.lineJoin = 'round'; ctx!.lineCap = 'round';
+    ctx!.shadowColor = p.glow; ctx!.shadowBlur = 8; ctx!.stroke();
+    ctx!.restore();
     if (progress != null && head) {
-      g.beginPath(); g.arc(head.x, head.y, 4.5, 0, Math.PI * 2);
-      g.fillStyle = p.curve; g.shadowColor = p.glow; g.shadowBlur = 12; g.fill(); g.shadowBlur = 0;
+      ctx!.beginPath(); ctx!.arc(head.x, head.y, 4.5, 0, Math.PI * 2);
+      ctx!.fillStyle = p.curve; ctx!.shadowColor = p.glow; ctx!.shadowBlur = 12; ctx!.fill(); ctx!.shadowBlur = 0;
     }
   }
 

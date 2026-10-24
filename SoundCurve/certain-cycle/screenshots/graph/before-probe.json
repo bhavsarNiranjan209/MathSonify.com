@@ -1,0 +1,114 @@
+[
+  {
+    "name": "sin(x)",
+    "eq": "sin(x)",
+    "minX": -6.28,
+    "maxX": 6.28,
+    "theme": "dark",
+    "flipped": "clicked",
+    "file": "screenshots/graph/before-sin-x--dark.png",
+    "equation": "sin(x)",
+    "errors": [
+      "no frame captured"
+    ],
+    "equal": false
+  },
+  {
+    "name": "x^3",
+    "eq": "x^3",
+    "minX": -10,
+    "maxX": 10,
+    "theme": "dark",
+    "flipped": "clicked",
+    "file": "screenshots/graph/before-x-3-dark.png",
+    "equation": "x^3",
+    "errors": [
+      "no frame captured"
+    ],
+    "equal": false
+  },
+  {
+    "name": "e^x",
+    "eq": "e^x",
+    "minX": -3,
+    "maxX": 3,
+    "theme": "dark",
+    "flipped": "clicked",
+    "file": "screenshots/graph/before-e-x-dark.png",
+    "equation": "e^x",
+    "errors": [
+      "no frame captured"
+    ],
+    "equal": false
+  },
+  {
+    "name": "-x^2-1",
+    "eq": "-x^2-1",
+    "minX": -6,
+    "maxX": 6,
+    "theme": "dark",
+    "flipped": "clicked",
+    "file": "screenshots/graph/before--x-2-1-dark.png",
+    "equation": "-x^2-1",
+    "errors": [
+      "no frame captured"
+    ],
+    "equal": false
+  },
+  {
+    "name": "sin(x)",
+    "eq": "sin(x)",
+    "minX": -6.28,
+    "maxX": 6.28,
+    "theme": "light",
+    "flipped": "clicked",
+    "file": "screenshots/graph/before-sin-x--light.png",
+    "equation": "sin(x)",
+    "errors": [
+      "no frame captured"
+    ],
+    "equal": false
+  },
+  {
+    "name": "x^3",
+    "eq": "x^3",
+    "minX": -10,
+    "maxX": 10,
+    "theme": "light",
+    "flipped": "clicked",
+    "file": "screenshots/graph/before-x-3-light.png",
+    "equation": "x^3",
+    "errors": [
+      "no frame captured"
+    ],
+    "equal": false
+  },
+  {
+    "name": "e^x",
+    "eq": "e^x",
+    "minX": -3,
+    "maxX": 3,
+    "theme": "light",
+    "flipped": "clicked",
+    "file": "screenshots/graph/before-e-x-light.png",
+    "equation": "e^x",
+    "errors": [
+      "no frame captured"
+    ],
+    "equal": false
+  },
+  {
+    "name": "-x^2-1",
+    "eq": "-x^2-1",
+    "minX": -6,
+    "maxX": 6,
+    "theme": "light",
+    "flipped": "clicked",
+    "file": "screenshots/graph/before--x-2-1-light.png",
+    "equation": "-x^2-1",
+    "errors": [
+      "no frame captured"
+    ],
+    "equal": false
+  }
+]

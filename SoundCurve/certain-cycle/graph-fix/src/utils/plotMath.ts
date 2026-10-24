@@ -14,9 +14,9 @@ export interface View {
   toX: (x: number) => number;
   /** data y -> 0..height (bottom to top). Negative data sits below the zero line. */
   toY: (y: number) => number;
-  /** data y where the horizontal axis is drawn: 0 if 0 is in range, else the bottom edge */
+  /** data y where the horizontal axis is drawn: 0 if 0 is in range, else the edge NEAREST to zero (top edge for an all-negative curve, bottom for all-positive) */
   xAxisY: number;
-  /** data x where the vertical axis is drawn: 0 if 0 is in range, else the left edge */
+  /** data x where the vertical axis is drawn: 0 if 0 is in range, else the edge nearest to zero */
   yAxisX: number;
   xTicks: Ticks; yTicks: Ticks;
   /** continuous drawable runs (breaks at NaN / Infinity / trimmed asymptotes) */
@@ -100,8 +100,8 @@ export function computeView(points: XY[], width: number, height: number): View {
     xMin, xMax, yLo: lo, yHi: hi, width, height,
     toX: (x) => ((x - xMin) / (xMax - xMin)) * width,
     toY: (y) => ((y - lo) / (hi - lo)) * height,
-    xAxisY: lo <= 0 && 0 <= hi ? 0 : lo,
-    yAxisX: xMin <= 0 && 0 <= xMax ? 0 : xMin,
+    xAxisY: Math.min(hi, Math.max(lo, 0)),
+    yAxisX: Math.min(xMax, Math.max(xMin, 0)),
     xTicks: niceTicks(xMin, xMax, 8),
     yTicks: niceTicks(lo, hi, 6),
     segments: splitSegments(points, range),
