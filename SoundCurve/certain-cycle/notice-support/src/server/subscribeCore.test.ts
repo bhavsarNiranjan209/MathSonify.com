@@ -38,8 +38,16 @@ describe('subscribe: bots look successful but store nothing', () => {
 
 describe('subscribe: rejects bad input', () => {
   for (const bad of [null, undefined, 'x', 42, [], true]) test(`body ${JSON.stringify(bad)}`, async () => { assert.equal((await handleSubscribe(bad, 'ip', deps().d)).status, 400); });
-  for (const topic of ['', 'other', 'soundlab;drop', 'SOUNDLAB', 'soundlab ', 42, null, undefined, ['soundlab']]) test(`topic ${JSON.stringify(topic)}`, async () => { assert.equal((await handleSubscribe(good({ topic }), 'ip', deps().d)).status, 400); });
-  test('missing timestamp', async () => { assert.equal((await handleSubscribe({ email: 'a@b.co', topic: 'draw', website: '' }, 'ip', deps().d)).status, 400); });
+  for (const topic of ['', 'other', 'draw', 'soundlab;drop', 'SOUNDLAB', 'soundlab ', 42, null, undefined, ['soundlab']]) test(`topic ${JSON.stringify(topic)}`, async () => { assert.equal((await handleSubscribe(good({ topic }), 'ip', deps().d)).status, 400); });
+  test('bad email returns a specific code + message the page can show', async () => {
+    const r = await handleSubscribe(good({ email: 'ada.example.com' }), 'ip', deps().d);
+    assert.equal(r.status, 400); assert.equal(r.body.code, 'NO_AT'); assert.match(r.body.message, /missing an @/);
+  });
+  test('typo domains are NOT blocked on the server (browser nudges, server only checks shape)', async () => {
+    const { d, calls } = deps(); const r = await handleSubscribe(good({ email: 'ada@gmial.com' }), 'ip', d);
+    assert.equal(r.status, 200); assert.equal(calls.length, 1);
+  });
+  test('missing timestamp', async () => { assert.equal((await handleSubscribe({ email: 'a@b.co', topic: 'soundlab', website: '' }, 'ip', deps().d)).status, 400); });
   for (const email of ['', 'a', 'a@b', 'a@b.c', '@b.com', 'a@@b.com', 'a b@c.com', 'a@b..com', 'a@-b.com', 'a@b-.com', '.a@b.com', 'a.@b.com', 'a@b.com\nBcc: x@y.com', 'a@b.com,c@d.com', '<a@b.com>', 'a"b@c.com', 'x'.repeat(65) + '@b.com', 'a@' + 'x'.repeat(64) + '.com', 'a@' + 'x'.repeat(250) + '.com', 'a@b.123', 42 as unknown as string, null as unknown as string])
     test(`invalid email ${JSON.stringify(email)}`, async () => { const { d, calls } = deps(); const r = await handleSubscribe(good({ email }), 'ip', d); assert.equal(r.status, 400); assert.equal(calls.length, 0); });
   for (const email of ['a.b+tag@example.com', "o'brien@example.co.in", 'x@sub.domain.example.org', 'user_name@my-site.io']) test(`valid email ${email}`, () => assert.equal(isValidEmail(email), true));

@@ -24,7 +24,7 @@ button.go{font:inherit;font-size:14px;font-weight:600;background:#E8E8E6;color:#
 button.go[disabled]{opacity:.55;cursor:default}
 .fine{font-size:11.5px;color:var(--muted);line-height:1.55}.fine a{color:var(--text)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
-.msg{font-size:13px;margin-top:2px;min-height:18px}.msg.err{color:#ff9a9a}.msg.ok{color:#7be3a8}
+.sugg{display:flex;gap:8px;flex-wrap:wrap}.tbtn{font:inherit;font-size:12.5px;border:1px solid var(--border);background:var(--box);color:var(--text);border-radius:8px;padding:8px 12px;cursor:pointer}.tbtn:hover{border-color:#777}input[aria-invalid=true]{border-color:#d86a6a!important}.msg{font-size:13px;margin-top:2px;min-height:18px}.msg.err{color:#ff9a9a}.msg.ok{color:#7be3a8}
 .done{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;max-width:420px;margin:0 auto}
 .done b{display:block;font-family:"Instrument Serif",serif;font-weight:400;font-size:24px;margin-bottom:6px}
 .back{margin-top:26px;font-size:13px}.back a{color:var(--muted)}
@@ -37,22 +37,95 @@ button.go[disabled]{opacity:.55;cursor:default}
 <p class="hint" id="hint"></p>
 <div id="view"></div>
 <script>
+const MSG = {
+    EMPTY: 'Please enter your email address.',
+    SPACES: "Email addresses can't contain spaces.",
+    TOO_LONG: 'That email address is too long.',
+    NO_AT: 'That email is missing an @ — it should look like name@example.com.',
+    MANY_AT: 'That email has more than one @.',
+    NO_LOCAL: 'Add the part before the @ (for example name@…).',
+    NO_DOMAIN: 'Add the part after the @ (for example …@gmail.com).',
+    NO_DOT: 'The part after the @ needs a dot, like example.com.',
+    DOTS: "A dot can't be at the start or end of a part, or appear twice in a row.",
+    BAD_CHARS: "That email has a character that isn't allowed.",
+    BAD_TLD: 'The ending looks wrong — it should be something like .com or .org.',
+};
+const DOMAIN_TYPOS = {
+    'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gmal.com': 'gmail.com', 'gamil.com': 'gmail.com', 'gnail.com': 'gmail.com', 'gmail.con': 'gmail.com', 'gmail.co': 'gmail.com', 'gmail.cm': 'gmail.com', 'gmaill.com': 'gmail.com',
+    'yahho.com': 'yahoo.com', 'yaho.com': 'yahoo.com', 'yahoo.con': 'yahoo.com', 'yahooo.com': 'yahoo.com',
+    'hotmial.com': 'hotmail.com', 'hotmal.com': 'hotmail.com', 'hotmail.con': 'hotmail.com',
+    'outlok.com': 'outlook.com', 'outlook.con': 'outlook.com', 'iclod.com': 'icloud.com', 'icloud.con': 'icloud.com',
+};
+const TLD_TYPOS = { con: 'com', cmo: 'com', vom: 'com', comm: 'com', coom: 'com', ocm: 'com', cim: 'com' };
+function checkEmail(raw, opts = {}) {
+    const typoCheck = opts.typoCheck !== false;
+    const bad = (code, email = '') => ({ ok: false, email, code, message: MSG[code] });
+    if (typeof raw !== 'string')
+        return bad('EMPTY');
+    const email = raw.trim().toLowerCase();
+    if (!email)
+        return bad('EMPTY');
+    if (/\s/.test(email))
+        return bad('SPACES', email);
+    if (email.length > 254)
+        return bad('TOO_LONG', email);
+    if (/[<>()\[\]\\,;:"\u0000-\u001f]/.test(email))
+        return bad('BAD_CHARS', email);
+    const at = email.split('@').length - 1;
+    if (at === 0)
+        return bad('NO_AT', email);
+    if (at > 1)
+        return bad('MANY_AT', email);
+    const [local, domain] = email.split('@');
+    if (!local)
+        return bad('NO_LOCAL', email);
+    if (!domain)
+        return bad('NO_DOMAIN', email);
+    if (local.length > 64)
+        return bad('TOO_LONG', email);
+    if (local.startsWith('.') || local.endsWith('.') || local.includes('..'))
+        return bad('DOTS', email);
+    if (!/^[a-z0-9._%+'\-]+$/.test(local))
+        return bad('BAD_CHARS', email);
+    if (!domain.includes('.'))
+        return bad('NO_DOT', email);
+    const labels = domain.split('.');
+    if (labels.some(l => l === ''))
+        return bad('DOTS', email);
+    if (labels.some(l => l.length > 63))
+        return bad('TOO_LONG', email);
+    if (!labels.every(l => /^[a-z0-9-]+$/.test(l) && !l.startsWith('-') && !l.endsWith('-')))
+        return bad('BAD_CHARS', email);
+    const tld = labels[labels.length - 1];
+    if (!/^[a-z]{2,}$/.test(tld))
+        return bad('BAD_TLD', email);
+    if (typoCheck) {
+        let fixed = DOMAIN_TYPOS[domain] ?? null;
+        if (!fixed && TLD_TYPOS[tld])
+            fixed = [...labels.slice(0, -1), TLD_TYPOS[tld]].join('.');
+        if (fixed) {
+            const s = `${local}@${fixed}`;
+            return { ok: false, email, code: 'TYPO', suggestion: s, message: `Did you mean ${s}?` };
+        }
+    }
+    return { ok: true, email };
+}
+
 const FEATURES={
  soundlab:{badge:'coming after launch',title:'SoundLab is on its way',lead:'Layer several equations, shape their rhythm and build a whole piece of music from mathematics. Leave your email and we will tell you the day it opens.',topic:'soundlab'},
  'music-lab':{badge:'being built',title:'Music Lab is being built',lead:'A full studio with mathematical instruments and a piano roll. Leave your email and we will tell you when it is ready.',topic:'music-lab'},
- draw:{badge:'being built',title:'Draw is being built',lead:'Draw a line in colour and hear it — each colour becomes an instrument. Leave your email and we will tell you when it opens.',topic:'draw'},
  maintenance:{badge:'back soon',title:'We are making this page better',lead:'This page is down for a little while. Leave your email and we will tell you the moment it is back.',topic:'maintenance',eta:'Expected back in about 2 hours.'},
 };
 const $=s=>document.querySelector(s);
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e;};
-const TABS=[['soundlab','SoundLab'],['music-lab','Music Lab'],['draw','Draw'],['maintenance','Maintenance'],['support','Support page']];
+const TABS=[['soundlab','SoundLab'],['music-lab','Music Lab'],['maintenance','Maintenance'],];
 let cur='soundlab';
 TABS.forEach(([k,n])=>{const b=el('button','tab',n);b.dataset.k=k;b.onclick=()=>show(k);$('#tabs').append(b);});
 const okEmail=s=>/^[^\s@<>(),;:"]{1,64}@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/.test(s)&&s.length<=254;
 function show(k){
   cur=k;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.k===k));
   const v=$('#view');v.replaceChildren();
-  $('#hint').textContent=k==='support'?'Footer link: "Support MathSonify" in the About column. Button stays disabled until you choose a platform.':'Simulated sign-up (nothing is sent). Try: a bad email, then a good one.';
+  $('#hint').textContent=k==='support'?'Footer link: "Support MathSonify" in the About column. Button stays disabled until you choose a platform.':'Simulated sign-up (nothing is sent). Try: ada.example.com, ada@gmial.com, then a good one.';
   if(k==='support'){
     const p=el('div','page');p.append(el('span','badge','support'),el('h1',null,'Support MathSonify'));
     p.append(el('p','lead','Everything on MathSonify is free. If it made you smile and you would like to help, a coffee covers the domain and hosting.'));
@@ -71,14 +144,20 @@ function show(k){
   const lab=el('label','hp','Leave this field empty');const hp=document.createElement('input');hp.type='text';hp.name='website';hp.tabIndex=-1;hp.autocomplete='off';lab.append(hp);
   const row=el('div','row');const em=document.createElement('input');em.type='email';em.placeholder='you@example.com';em.autocomplete='email';em.setAttribute('aria-label','Your email address');
   const go=el('button','go','Notify me');go.type='submit';row.append(em,go);
-  const msg=el('div','msg');msg.setAttribute('aria-live','polite');
+  const msg=el('div','msg');msg.setAttribute('aria-live','polite');const sug=el('div','sugg');
   const fine=el('p','fine');fine.append('We use your email only to tell you about this page, with a confirmation first. One click unsubscribes. ');
   const pl=el('a',null,'Privacy');pl.href='#';fine.append(pl,el('br'),'Under 18? Please ask a parent or guardian to enter their email.');
-  form.append(lab,row,msg,fine);p.append(form);
+  form.append(lab,row,msg,sug,fine);p.append(form);
+  let force=false;
   const t0=Date.now();
   form.onsubmit=async e=>{e.preventDefault();msg.className='msg';
-    const val=em.value.trim().toLowerCase();
-    if(!okEmail(val)){msg.className='msg err';msg.textContent='Please enter a valid email address.';return;}
+    sug.replaceChildren();
+    const chk=checkEmail(em.value,{typoCheck:!force});
+    if(!chk.ok){msg.className='msg err';msg.textContent=chk.message;em.setAttribute('aria-invalid','true');
+      if(chk.code==='TYPO'){const y=el('button','tbtn','Yes, use '+chk.suggestion);y.type='button';y.onclick=()=>{em.value=chk.suggestion;msg.textContent='';sug.replaceChildren();form.requestSubmit();};
+        const n=el('button','tbtn','No, keep mine');n.type='button';n.onclick=()=>{force=true;sug.replaceChildren();msg.textContent='';form.requestSubmit();};sug.append(y,n);}
+      em.focus();return;}
+    em.removeAttribute('aria-invalid');const val=chk.email;
     go.disabled=true;go.textContent='Saving…';
     await new Promise(r=>setTimeout(r,700)); // real page: fetch('/api/subscribe',{method:'POST',body:JSON.stringify({email,topic,website,t})})
     form.hidden=true;const d=el('div','done');d.setAttribute('role','status');

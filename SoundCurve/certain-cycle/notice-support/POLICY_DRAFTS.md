@@ -41,7 +41,7 @@ After the email sign-up and donations exist, (a), (b) and (d) become false, and 
 ### New section: "Support and donations"
 > MathSonify is free. If you choose to support it, the Support page sends you to [DONATION PLATFORM], a separate service run by someone else. When you donate, [PLATFORM] collects your payment details and any name or message you choose to share. **We never see your card or bank details.** [PLATFORM] tells us [your name, the amount and your message, if you provide them] so we can thank you and keep our accounts. What [PLATFORM] collects is covered by its own privacy policy.
 >
-> If you pay by UPI, the payment is handled by your bank or UPI app; we only see what they report to us (for example the amount and the sender's UPI ID).
+> If you pay with a card, Apple Pay, Google Pay or PayPal, that payment is handled by the payment service you choose; we only see what [PLATFORM] reports to us (for example the amount and, if you share it, your name). Amounts are in US dollars.
 >
 > Donations are voluntary gifts. They do not unlock features and are not purchases.
 

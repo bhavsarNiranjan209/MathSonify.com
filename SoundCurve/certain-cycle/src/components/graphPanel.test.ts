@@ -697,10 +697,10 @@ test('a hidden tab does not keep rendering', () => {
 
 test('resources are disposed, including textures', () => {
   const viewer = read(VIEWER);
-  assert.match(viewer, /rendererRef\.current\.dispose\(\)/);
-  assert.match(viewer, /clearGroup\(curveGroup\)/);
+  assert.match(viewer, /renderer\.dispose\(\)/);
+  assert.match(viewer, /clearData/);
   // An axis label's CanvasTexture leaks on every rebuild unless disposed too.
-  assert.match(viewer, /map\?\.dispose\?\.\(\)/);
+  assert.match(viewer, /if \(m\.map\) m\.map\.dispose\(\)/);
   assert.match(viewer, /cancelAnimationFrame/);
   assert.match(viewer, /observer\.disconnect\(\)/);
 });

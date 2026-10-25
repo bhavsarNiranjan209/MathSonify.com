@@ -1,110 +1,174 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Support MathSonify (preview)</title>
+<title>Support MathSonify (preview, USD)</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0B0B0D;--panel:#121215;--box:#17181B;--border:#2A2A30;--text:#F5F5F2;--muted:#9A9AA2;--amber:#F5A623}
-*{box-sizing:border-box}html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,sans-serif;overflow-x:hidden}
-.glow{position:absolute;left:50%;top:60px;width:760px;height:520px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(245,166,35,.16),rgba(245,166,35,.05) 55%,transparent 75%);pointer-events:none;filter:blur(10px)}
-.wrap{position:relative;max-width:980px;margin:0 auto;padding:54px 20px 70px}
-.hero{text-align:center;position:relative}
-.badge{display:inline-flex;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:6px 14px;margin-bottom:20px}
-h1{font-family:"Instrument Serif",serif;font-weight:400;font-size:clamp(38px,6.4vw,64px);line-height:1.04;margin:0 0 14px;letter-spacing:-.01em}
-h1 em{font-style:italic}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,sans-serif;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+.glow{position:absolute;left:50%;top:40px;width:820px;height:560px;max-width:100vw;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(245,166,35,.17),rgba(245,166,35,.05) 55%,transparent 75%);pointer-events:none}
+.wrap{position:relative;max-width:980px;margin:0 auto;padding:46px 18px 110px}
+.hero{text-align:center}
+.badge{display:inline-flex;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:6px 14px;margin-bottom:18px}
+h1{font-family:"Instrument Serif",serif;font-weight:400;font-size:clamp(36px,6.4vw,62px);line-height:1.04;margin:0 0 14px}h1 em{font-style:italic}
 .lead{color:var(--muted);font-size:clamp(15px,2vw,17px);line-height:1.65;max-width:50ch;margin:0 auto}
-.cupwrap{position:relative;width:240px;height:250px;margin:30px auto 8px}
-.cupwrap canvas{position:absolute;left:0;top:0;width:240px;height:170px}
-.cupwrap svg{position:absolute;left:30px;top:120px;width:180px;height:124px;overflow:visible}
-.ctas{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
-.btn{font:inherit;font-weight:600;font-size:14.5px;border-radius:12px;padding:14px 22px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:transform .2s,border-color .2s,box-shadow .2s}
-.btn:hover{transform:translateY(-2px);border-color:#666}
-.btn.main{background:#F2EFE8;color:#0B0B0D;border-color:#F2EFE8;box-shadow:0 0 0 0 rgba(245,166,35,.0),0 10px 30px -12px rgba(245,166,35,.55)}
-.btn.main:hover{box-shadow:0 0 0 4px rgba(245,166,35,.18),0 14px 36px -12px rgba(245,166,35,.7)}
-.btn:focus-visible{outline:2px solid #fff;outline-offset:3px}
-.btn.off{opacity:.5;pointer-events:none}
-.note{font-size:12px;color:var(--muted);margin-top:12px}
-h2{font-family:"Instrument Serif",serif;font-weight:400;font-size:30px;margin:56px 0 6px;text-align:center}
-.sub{color:var(--muted);font-size:14px;text-align:center;margin:0 auto 24px;max-width:52ch;line-height:1.6}
-.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.tier{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid var(--border);border-radius:16px;padding:22px 18px;text-align:center;text-decoration:none;color:inherit;transition:transform .25s,border-color .25s,box-shadow .25s}
-.tier:hover{transform:translateY(-4px);border-color:rgba(245,166,35,.55);box-shadow:0 18px 40px -22px rgba(245,166,35,.55)}
-.tier .e{font-size:30px;display:block;margin-bottom:8px}.tier b{display:block;font-family:"Instrument Serif",serif;font-weight:400;font-size:22px}
-.tier span.p{display:block;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--amber);margin:4px 0 8px}.tier small{color:var(--muted);font-size:12.5px;line-height:1.5;display:block}
-.tier.pop::before{content:"most picked";position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:10px;background:var(--amber);color:#0B0B0D;border-radius:999px;padding:3px 10px;font-weight:600}
-.goes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px}
+.cupwrap{position:relative;width:260px;height:262px;margin:22px auto 0}
+.cupwrap canvas{position:absolute;left:0;top:0;width:260px;height:190px;pointer-events:none}
+.cupwrap svg{position:absolute;left:36px;top:130px;width:188px;height:128px;overflow:visible}
+#coffee{transition:transform .7s cubic-bezier(.3,1.35,.5,1)}
+.pay{margin:6px auto 0;max-width:640px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.012));border:1px solid var(--border);border-radius:22px;padding:22px;box-shadow:0 30px 80px -40px rgba(245,166,35,.45)}
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tier{position:relative;font:inherit;color:inherit;text-align:center;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px 8px 14px;cursor:pointer;transition:transform .22s,border-color .22s,box-shadow .22s,background .22s}
+.tier:hover{transform:translateY(-3px);border-color:#666}.tier:active{transform:scale(.97)}
+.tier[aria-pressed=true]{border-color:var(--amber);background:rgba(245,166,35,.08);box-shadow:0 14px 34px -18px rgba(245,166,35,.7)}
+.tier .e{font-size:28px;display:block;margin-bottom:4px;transition:transform .35s cubic-bezier(.3,1.6,.5,1)}.tier[aria-pressed=true] .e{transform:scale(1.2) rotate(-6deg)}
+.tier b{display:block;font-family:"Instrument Serif",serif;font-weight:400;font-size:20px}.tier .p{display:block;font-family:"JetBrains Mono",monospace;color:var(--amber);font-size:14px;margin-top:2px}
+.tier.pop::before{content:"most picked";position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:9.5px;background:var(--amber);color:#0B0B0D;border-radius:999px;padding:2px 9px;font-weight:600;white-space:nowrap}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:18px 0 12px}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--border)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chip{font:inherit;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--text);background:var(--box);border:1px solid var(--border);border-radius:999px;padding:9px 16px;cursor:pointer;min-height:42px;transition:.2s}
+.chip:hover{border-color:#777}.chip[aria-pressed=true]{background:#F2EFE8;color:#0B0B0D;border-color:#F2EFE8;font-weight:600}
+.custom{margin-top:14px;display:flex;align-items:center;background:var(--box);border:1px solid var(--border);border-radius:14px;padding:0 14px;transition:border-color .2s,box-shadow .2s}
+.custom:focus-within{border-color:var(--amber);box-shadow:0 0 0 4px rgba(245,166,35,.14)}.custom.bad{border-color:#d86a6a;box-shadow:0 0 0 4px rgba(216,106,106,.12)}
+.custom span{font-family:"JetBrains Mono",monospace;color:var(--muted);font-size:20px}
+.custom input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font-family:"JetBrains Mono",monospace;font-size:22px;padding:15px 8px}
+.custom small{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.err{min-height:20px;font-size:12.5px;margin:7px 4px 0;color:#ff9a9a}.err.note{color:var(--muted)}
+.total{display:flex;justify-content:space-between;align-items:baseline;margin:10px 4px 12px}.total span{color:var(--muted);font-size:13px}
+.total b{font-family:"Instrument Serif",serif;font-weight:400;font-size:44px;line-height:1;font-variant-numeric:tabular-nums}
+.cta{width:100%;font:inherit;font-weight:600;font-size:16px;border:0;border-radius:14px;padding:17px;cursor:pointer;background:#F2EFE8;color:#0B0B0D;display:flex;justify-content:center;align-items:center;gap:10px;box-shadow:0 12px 36px -14px rgba(245,166,35,.7);transition:transform .2s,box-shadow .2s,opacity .2s}
+.cta:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 0 4px rgba(245,166,35,.2),0 16px 40px -14px rgba(245,166,35,.85)}
+.cta:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}.cta:focus-visible,.chip:focus-visible,.tier:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.methods{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:14px}
+.methods span{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:4px 9px;background:var(--panel)}
+.secure{text-align:center;font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.55}
+h2{font-family:"Instrument Serif",serif;font-weight:400;font-size:30px;margin:54px 0 6px;text-align:center}
+.sub{color:var(--muted);font-size:14px;text-align:center;margin:0 auto 22px;max-width:52ch;line-height:1.6}
+.goes,.free{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;transition:transform .25s,border-color .25s}.card:hover{transform:translateY(-3px);border-color:#555}
 .card .ic{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--box);display:grid;place-items:center;font-size:18px;margin-bottom:12px}
 .card b{display:block;font-size:14.5px;margin-bottom:4px}.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}
-.promise{margin:18px auto 0;max-width:640px;border:1px dashed var(--border);border-radius:14px;padding:14px 16px;text-align:center;font-size:13px;color:var(--muted);line-height:1.6}
-.promise b{color:var(--text)}
-.free{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.free .btn{justify-content:center;width:100%}
-.upi{display:flex;gap:18px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px;max-width:520px;margin:0 auto}
-.qr{flex:0 0 96px;height:96px;border-radius:10px;background:repeating-conic-gradient(#fff 0 25%,#0B0B0D 0 50%) 0 0/16px 16px;opacity:.9;border:6px solid #fff}
-.upi b{display:block;margin-bottom:4px}.upi code{display:inline-block;font-family:"JetBrains Mono",monospace;font-size:13px;background:var(--box);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin:6px 8px 0 0}
-.small{margin:46px auto 0;max-width:640px;text-align:center;font-size:12px;line-height:1.7;color:var(--muted)}
-.small a{color:var(--text)}
-.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:#F2EFE8;color:#0B0B0D;font-weight:600;font-size:13px;border-radius:10px;padding:10px 16px;opacity:0;pointer-events:none;transition:.25s}
-.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-@media(max-width:760px){.tiers,.goes,.free{grid-template-columns:1fr}.upi{flex-direction:column;text-align:center}}
+.promise{margin:16px auto 0;max-width:640px;border:1px dashed var(--border);border-radius:14px;padding:14px 16px;text-align:center;font-size:13px;color:var(--muted);line-height:1.6}.promise b{color:var(--text)}
+.btn{font:inherit;font-weight:600;font-size:14.5px;border-radius:12px;padding:14px 18px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;text-decoration:none;display:inline-flex;justify-content:center;align-items:center;gap:8px;width:100%;transition:.2s}.btn:hover{transform:translateY(-2px);border-color:#777}
+.small{margin:44px auto 0;max-width:640px;text-align:center;font-size:12px;line-height:1.7;color:var(--muted)}.small a{color:var(--text)}
+.sticky{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(11,11,13,.9);backdrop-filter:blur(14px);border-top:1px solid var(--border);display:none;gap:12px;align-items:center;z-index:5;transform:translateY(110%);transition:transform .3s}
+.sticky.on{transform:none}.sticky b{font-family:"Instrument Serif",serif;font-weight:400;font-size:28px;min-width:76px}.sticky .cta{padding:14px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:#F2EFE8;color:#0B0B0D;font-weight:600;font-size:13px;border-radius:10px;padding:10px 16px;opacity:0;pointer-events:none;transition:.25s;z-index:9;max-width:90vw;text-align:center}.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:760px){.goes,.free{grid-template-columns:1fr}.sticky{display:flex}.pay{padding:16px}.tier b{font-size:18px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-</style></head><body>
-<div class="glow"></div>
-<div class="wrap">
- <section class="hero">
-  <span class="badge">support</span>
-  <h1>Help keep the <em>music</em> playing</h1>
-  <p class="lead">MathSonify started with one question: what does an equation sound like? Everything here is free. If it changed how you hear maths, a coffee helps keep it that way.</p>
-  <div class="cupwrap"><canvas id="steam" width="480" height="340" aria-hidden="true"></canvas>
-   <svg viewBox="0 0 180 124" aria-hidden="true"><ellipse cx="90" cy="112" rx="84" ry="10" fill="#1b1c20" stroke="#2A2A30"/><path d="M26 28h112v38a44 44 0 0 1-44 44h-24a44 44 0 0 1-44-44z" fill="#17181B" stroke="#3a3b42" stroke-width="2"/><path d="M138 40h10a16 16 0 0 1 0 32h-14" fill="none" stroke="#3a3b42" stroke-width="2"/><ellipse cx="82" cy="28" rx="56" ry="7" fill="#2a1d0c" stroke="#F5A623" stroke-opacity=".5"/><text x="82" y="78" text-anchor="middle" fill="#9A9AA2" font-family="JetBrains Mono,monospace" font-size="11">y = sin(x)</text></svg></div>
-  <div class="ctas"><a class="btn main" id="coffee" href="#" onclick="return false">☕ Buy me a coffee</a><button class="btn" id="hear">♪ Hear a thank-you</button></div>
-  <p class="note">Opens a third-party site in a new tab. No account needed on MathSonify, ever.</p>
- </section>
+</style></head><body><div class="glow"></div><div class="wrap">
+<section class="hero"><span class="badge">support</span>
+<h1>Help keep the <em>music</em> playing</h1>
+<p class="lead">MathSonify started with one question: what does an equation sound like? Everything here is free. If it changed how you hear maths, a coffee keeps it that way.</p>
+<div class="cupwrap"><canvas id="steam" width="520" height="380" aria-hidden="true"></canvas>
+<svg viewBox="0 0 188 128" aria-hidden="true"><defs><clipPath id="inner"><path d="M30 24h116v42a46 46 0 0 1-46 46h-24a46 46 0 0 1-46-46z"/></clipPath></defs>
+<ellipse cx="94" cy="118" rx="88" ry="9" fill="#1b1c20" stroke="#2A2A30"/>
+<g clip-path="url(#inner)"><rect id="coffee" x="20" y="24" width="140" height="100" fill="#3b2410" style="transform:translateY(70px)"/><rect x="20" y="24" width="140" height="6" fill="#F5A623" opacity=".35" id="crema" style="transform:translateY(70px);transition:transform .7s cubic-bezier(.3,1.35,.5,1)"/></g>
+<path d="M30 24h116v42a46 46 0 0 1-46 46h-24a46 46 0 0 1-46-46z" fill="none" stroke="#4a4b53" stroke-width="2"/><path d="M146 38h10a17 17 0 0 1 0 34h-14" fill="none" stroke="#4a4b53" stroke-width="2"/>
+<text x="88" y="78" text-anchor="middle" fill="#cfcfd6" fill-opacity=".75" font-family="JetBrains Mono,monospace" font-size="11">y = sin(x)</text></svg></div></section>
 
- <h2>Pick a size</h2><p class="sub">All three go to the same place — these are just friendly suggestions. (Amounts are examples; you set the real ones.)</p>
- <div class="tiers">
-  <a class="tier" href="#" onclick="return false"><span class="e">🍵</span><b>A chai</b><span class="p">₹49</span><small>Covers a day of hosting.</small></a>
-  <a class="tier pop" href="#" onclick="return false"><span class="e">☕</span><b>A coffee</b><span class="p">₹99</span><small>Keeps the domain and email running.</small></a>
-  <a class="tier" href="#" onclick="return false"><span class="e">🥪</span><b>A long night</b><span class="p">₹249</span><small>Pays for time to build the next feature.</small></a>
- </div>
-
- <h2>Where it goes</h2><p class="sub">No ads, no tracking, no paywall on the core experience. Support goes to three honest things:</p>
- <div class="goes">
-  <div class="card"><div class="ic">🌐</div><b>The domain</b><p>mathsonify.com renews every year.</p></div>
-  <div class="card"><div class="ic">🖥</div><b>Hosting and email</b><p>The servers, and the service that tells you when SoundLab, Music Lab and Draw open.</p></div>
-  <div class="card"><div class="ic">🛠</div><b>Time to build</b><p>New equations, new instruments, and fixes — shaped by what people ask for.</p></div>
- </div>
- <div class="promise"><b>A coffee does not unlock anything.</b> Donations are voluntary gifts, not purchases. Everything you can use today stays free.</div>
-
- <h2>Can't donate? These help just as much</h2><p class="sub">Honestly, they might help more.</p>
- <div class="free"><button class="btn" id="share">↗ Share MathSonify</button><a class="btn" href="#" onclick="return false">∑ Suggest an equation</a><a class="btn" href="#" onclick="return false">🎧 Challenge a friend in Guess</a></div>
-
- <h2>Prefer UPI?</h2><p class="sub">Shown only when you add your UPI details.</p>
- <div class="upi"><div class="qr" role="img" aria-label="UPI QR code placeholder"></div><div><b>Pay with any UPI app</b><span style="color:var(--muted);font-size:13px">Scan the code, or copy the ID.</span><br><code id="upiid">yourname@bank</code><button class="btn" id="copy" style="padding:7px 12px;font-size:12px">Copy</button></div></div>
-
- <p class="small">Support is voluntary and does not unlock features. The button opens a service run by someone else; their privacy policy applies there, and we never see your card or bank details. Questions? <a href="#" onclick="return false">hello@mathsonify.com</a> · <a href="#" onclick="return false">Privacy</a> · <a href="#" onclick="return false">Terms</a></p>
+<div class="pay" id="pay">
+ <div class="tiers" role="group" aria-label="Choose a size" id="tiers"></div>
+ <div class="or">or choose your own amount</div>
+ <div class="chips" id="chips" role="group" aria-label="Quick amounts"></div>
+ <label class="custom" id="customBox"><span>$</span><input id="amt" inputmode="decimal" autocomplete="off" aria-label="Amount in US dollars" placeholder="Any amount"><small>USD · $5 – $1,000,000</small></label>
+ <div class="err" id="err" role="status" aria-live="polite"></div>
+ <div class="total"><span>Your support</span><b id="total">$10</b></div>
+ <button class="cta" id="cta">Continue to secure payment <span aria-hidden="true">→</span></button>
+ <div class="methods" id="methods"></div>
+ <div class="secure">🔒 Payment is handled by our payment partner — we never see your card or bank details.</div>
 </div>
+
+<h2>Where it goes</h2><p class="sub">No ads, no tracking, no paywall on the core experience. Support goes to three honest things:</p>
+<div class="goes"><div class="card"><div class="ic">🌐</div><b>The domain</b><p>mathsonify.com renews every year.</p></div><div class="card"><div class="ic">🖥</div><b>Hosting and email</b><p>The servers, and the service that tells you when SoundLab and Music Lab open.</p></div><div class="card"><div class="ic">🛠</div><b>Time to build</b><p>New equations, new instruments and fixes — shaped by what people ask for.</p></div></div>
+<div class="promise"><b>Support does not unlock anything.</b> Donations are voluntary gifts, not purchases. Everything you can use today stays free.</div>
+
+<h2>Can't donate? These help just as much</h2><p class="sub">Honestly, they might help more.</p>
+<div class="free"><button class="btn" id="share">↗ Share MathSonify</button><a class="btn" href="#" onclick="return false">∑ Suggest an equation</a><a class="btn" href="#" onclick="return false">🎧 Challenge a friend in Guess</a></div>
+<p class="small">Support is voluntary and does not unlock features. Payment is processed by a third party whose privacy policy applies there. Questions? <a href="#" onclick="return false">hello@mathsonify.com</a> · <a href="#" onclick="return false">Privacy</a> · <a href="#" onclick="return false">Terms</a></p>
+</div>
+<div class="sticky" id="sticky"><b id="stTotal">$10</b><button class="cta" id="stCta">Continue to payment →</button></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
-const $=s=>document.querySelector(s);
-const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),1800);};
-// steam: three sine curves rising from the cup — the maths IS the steam
-const cv=$('#steam'),ctx=cv.getContext('2d');const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
-let vis=true;new IntersectionObserver(e=>vis=e[0].isIntersecting).observe(cv);
-function frame(t){
-  if(vis||RM){ctx.clearRect(0,0,480,340);
-    [[170,0,0.9],[240,2.1,1.15],[310,4.2,0.8]].forEach(([cx,ph,sp],i)=>{
-      const g=ctx.createLinearGradient(0,320,0,0);g.addColorStop(0,'rgba(245,166,35,.0)');g.addColorStop(.25,'rgba(245,166,35,.55)');g.addColorStop(1,'rgba(255,255,255,0)');
-      ctx.strokeStyle=g;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();
-      for(let y=320;y>=10;y-=4){const k=(320-y)/310,a=10+k*14;const x=cx+Math.sin(y*0.045+ph+(RM?0:t/1000*sp*2.2))*a*k;y===320?ctx.moveTo(x,y):ctx.lineTo(x,y);}
-      ctx.stroke();});}
-  if(!RM)requestAnimationFrame(frame);}
+/** supportAmount.ts — the Support page's money rules, in US dollars. Min $5, max $1,000,000. */
+const MIN_USD = 5;
+const MAX_USD = 1000000;
+function parseAmount(input) {
+    if (typeof input === 'number')
+        input = String(input);
+    if (typeof input !== 'string')
+        return { ok: false, error: 'Enter an amount.' };
+    const s = input.replace(/[$\s,]/g, '');
+    if (!s)
+        return { ok: false, error: 'Enter an amount.' };
+    if (/^-/.test(s))
+        return { ok: false, error: 'Enter a positive amount.' };
+    if (!/^\d+(\.\d*)?$|^\.\d+$/.test(s))
+        return { ok: false, error: 'Enter a number, like 25.' };
+    if ((s.split('.')[1] ?? '').length > 2)
+        return { ok: false, error: 'Use at most 2 decimals.' };
+    const cents = Math.round(parseFloat(s) * 100);
+    if (!Number.isFinite(cents))
+        return { ok: false, error: 'Enter a number, like 25.' };
+    if (cents < MIN_USD * 100)
+        return { ok: false, error: `The minimum is $${MIN_USD}.` };
+    if (cents > MAX_USD * 100)
+        return { ok: false, error: `The maximum is $${MAX_USD.toLocaleString('en-US')}.` };
+    return { ok: true, dollars: cents / 100, cents };
+}
+function formatUSD(dollars) {
+    const whole = Number.isInteger(dollars);
+    return '$' + dollars.toLocaleString('en-US', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2 });
+}
+/** Only https links; {amount} is replaced with the dollars (platforms differ: some accept it in the URL, some don't). */
+function buildDonateUrl(template, dollars) {
+    try {
+        const filled = template.replace('{amount}', encodeURIComponent(String(dollars)));
+        const u = new URL(filled);
+        return u.protocol === 'https:' ? u.toString() : null;
+    }
+    catch {
+        return null;
+    }
+}
+/** 0..1 "how full is the cup" for the animation: log scale, so $5 -> $15 -> $500 -> $1M all look different. */
+function cupLevel(dollars) {
+    const d = Math.min(MAX_USD, Math.max(MIN_USD, dollars));
+    return 0.22 + 0.78 * (Math.log10(d / MIN_USD) / Math.log10(MAX_USD / MIN_USD));
+}
+
+const $=s=>document.querySelector(s);const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TIERS=[['🍵','A chai',5],['☕','A coffee',10,1],['🥪','A long night',15]],QUICK=[5,10,50,200,500],METHODS=['Visa','Mastercard','American Express','Apple Pay','Google Pay','PayPal'];
+let amount=10,shown=10,anim=0;
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e;};
+TIERS.forEach(([e,n,p,pop])=>{const b=el('button','tier'+(pop?' pop':''));b.type='button';b.dataset.v=p;b.append(el('span','e',e),el('b',null,n),el('span','p',formatUSD(p)));b.onclick=()=>pick(p,'tier');$('#tiers').append(b);});
+QUICK.forEach(v=>{const b=el('button','chip',formatUSD(v));b.type='button';b.dataset.v=v;b.onclick=()=>pick(v,'chip');$('#chips').append(b);});
+METHODS.forEach(m=>$('#methods').append(el('span',null,m)));
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2200);};
+let tgtLevel=cupLevel(10),parts=[];
+function setCup(){const l=cupLevel(Math.min(Math.max(amount||5,5),1e6));tgtLevel=l;const y=100*(1-l)+6;$('#coffee').style.transform='translateY('+y+'px)';$('#crema').style.transform='translateY('+y+'px)';}
+function burst(n){if(RM)return;for(let i=0;i<n;i++)parts.push({x:130+(Math.random()-.5)*90,y:190,vx:(Math.random()-.5)*1.2,vy:-1.2-Math.random()*2.4,l:1,s:2+Math.random()*3});}
+function render(){const ok=amount!==null;const v=ok?amount:null;
+ document.querySelectorAll('.tier').forEach(b=>b.setAttribute('aria-pressed',String(ok&&+b.dataset.v===v)));
+ document.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(ok&&+b.dataset.v===v)));
+ $('#cta').disabled=!ok;$('#stCta').disabled=!ok;
+ const to=ok?v:shown;cancelAnimationFrame(anim);const from=shown,t0=performance.now();
+ const step=t=>{const k=RM?1:Math.min(1,(t-t0)/450),e=1-Math.pow(1-k,3);shown=from+(to-from)*e;const txt=ok?formatUSD(Math.round(shown*100)/100):'—';$('#total').textContent=txt;$('#stTotal').textContent=txt;if(k<1)anim=requestAnimationFrame(step);};anim=requestAnimationFrame(step);
+ if(ok)setCup();}
+function note(){if(amount>=1000){$('#err').className='err note';$('#err').textContent='Thank you — that is generous. Large gifts may need extra verification from your payment provider.';}}
+function pick(v,from){const r=parseAmount(v);amount=r.ok?r.dollars:null;$('#amt').value=String(v);
+ $('#err').textContent='';$('#err').className='err';$('#customBox').classList.remove('bad');
+ note();burst(10+Math.round(cupLevel(v)*30));render();}
+$('#amt').addEventListener('input',e=>{const raw=e.target.value;if(!raw.trim()){amount=null;$('#err').textContent='Enter an amount, or pick one above.';$('#err').className='err';$('#customBox').classList.remove('bad');render();return;}
+ const r=parseAmount(raw);if(r.ok){amount=r.dollars;$('#err').textContent='';$('#err').className='err';$('#customBox').classList.remove('bad');note();burst(4);}else{amount=null;$('#err').textContent=r.error;$('#err').className='err';$('#customBox').classList.add('bad');}render();});
+const go=()=>{if(amount===null)return;toast('In the real page this opens secure payment for '+formatUSD(amount));};
+$('#cta').onclick=$('#stCta').onclick=go;
+$('#share').onclick=async()=>{const u='https://mathsonify.com';try{if(navigator.share)await navigator.share({title:'MathSonify',text:'Type an equation, hear it.',url:u});else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}};
+new IntersectionObserver(e=>$('#sticky').classList.toggle('on',!e[0].isIntersecting),{threshold:0}).observe($('#pay'));
+const cv=$('#steam'),ctx=cv.getContext('2d');let vis=true;new IntersectionObserver(e=>vis=e[0].isIntersecting).observe(cv);let cur=cupLevel(10);
+function frame(t){if(vis||RM){cur+=(tgtLevel-cur)*.06;ctx.clearRect(0,0,520,380);const amp=.7+cur*1.1,n=cur>.8?5:3;
+ for(let i=0;i<n;i++){const cx=190+i*(140/(n-1||1))+(n===5?0:30),ph=i*2.1,sp=.9+i*.12;const g=ctx.createLinearGradient(0,360,0,0);g.addColorStop(0,'rgba(245,166,35,0)');g.addColorStop(.25,'rgba(245,166,35,'+(.35+cur*.4)+')');g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.strokeStyle=g;ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();for(let y=360;y>=10;y-=4){const k=(360-y)/350,a=(10+k*16)*amp;const x=cx+Math.sin(y*.045+ph+(RM?0:t/1000*sp*2.2))*a*k;y===360?ctx.moveTo(x,y):ctx.lineTo(x,y);}ctx.stroke();}
+ parts=parts.filter(p=>p.l>0);for(const p of parts){p.x+=p.vx;p.y+=p.vy;p.vy+=.012;p.l-=.012;ctx.fillStyle='rgba(245,166,35,'+Math.max(0,p.l)+')';ctx.beginPath();ctx.arc(p.x,p.y,p.s,0,6.283);ctx.fill();}}
+ if(!RM)requestAnimationFrame(frame);}
 requestAnimationFrame(frame);
-// thank-you chord: only on click, quiet
-let ac;$('#hear').onclick=()=>{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();
- [523.25,659.25,783.99,1046.5].forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain(),s=ac.currentTime+i*.13;o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.08,s+.03);g.gain.exponentialRampToValueAtTime(.0001,s+.9);o.connect(g).connect(ac.destination);o.start(s);o.stop(s+1);});
- toast('Thank you for being here ♥');};
-$('#share').onclick=async()=>{const u='https://mathsonify.com';try{if(navigator.share){await navigator.share({title:'MathSonify',text:'Type an equation, hear it.',url:u});}else{await navigator.clipboard.writeText(u);toast('Link copied');}}catch(e){}};
-$('#copy').onclick=async()=>{try{await navigator.clipboard.writeText($('#upiid').textContent);toast('UPI ID copied');}catch(e){toast('Press and hold the ID to copy');}};
-$('#coffee').onclick=()=>{toast('In the real page this opens your donation link');return false;};
+pick(10,'tier');
 </script></body></html>

@@ -3,13 +3,15 @@
  * so it can be tested exhaustively. api/subscribe.ts only wires it to Vercel + the real list provider.
  *
  * Rules:
- *  - topic must be on an allowlist (soundlab | music-lab | draw | maintenance)
+ *  - topic must be on an allowlist (soundlab | music-lab | maintenance)
  *  - honeypot field filled, or form submitted < 2 s after it rendered  -> pretend success, store nothing (bots learn nothing)
  *  - per-IP rate limit
  *  - the reply NEVER reveals whether an address was already subscribed
  *  - errors from the provider are never shown to the visitor; the email is never logged
  */
-export const TOPICS = ['soundlab', 'music-lab', 'draw', 'maintenance'] as const;
+import { checkEmail } from '../lib/emailCheck';
+
+export const TOPICS = ['soundlab', 'music-lab', 'maintenance'] as const;
 export type Topic = (typeof TOPICS)[number];
 
 export interface Provider { subscribe(email: string, topic: Topic): Promise<void> }
@@ -20,7 +22,7 @@ export interface Deps {
   rateLimit: (key: string) => boolean;
 }
 export interface Body { email?: unknown; topic?: unknown; website?: unknown; t?: unknown }
-export interface Result { status: number; body: { ok: boolean; message: string } }
+export interface Result { status: number; body: { ok: boolean; message: string; code?: string } }
 
 export const MSG_OK = 'Thanks! Check your inbox and confirm your email — then we will let you know.';
 const MSG_BAD_EMAIL = 'Please enter a valid email address.';
@@ -29,22 +31,10 @@ const MSG_RATE = 'Too many attempts. Please try again in a little while.';
 const MSG_FAIL = "We couldn't save that right now. Please try again later.";
 const MIN_FILL_MS = 2000;
 
-export function isValidEmail(raw: string): boolean {
-  if (raw.length < 6 || raw.length > 254) return false;
-  if (/[\s<>()\[\]\\,;:"\u0000-\u001f]/.test(raw)) return false; // no spaces, control chars, header-injection characters
-  const parts = raw.split('@');
-  if (parts.length !== 2) return false;
-  const [local, domain] = parts;
-  if (!local || local.length > 64 || local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false;
-  if (!/^[A-Za-z0-9._%+'\-]+$/.test(local)) return false;
-  const labels = domain.split('.');
-  if (labels.length < 2) return false;
-  if (!labels.every(l => l.length >= 1 && l.length <= 63 && /^[A-Za-z0-9-]+$/.test(l) && !l.startsWith('-') && !l.endsWith('-'))) return false;
-  return /^[A-Za-z]{2,}$/.test(labels[labels.length - 1]);
-}
+export function isValidEmail(raw: string): boolean { return checkEmail(raw, { typoCheck: false }).ok; }
 
 export async function handleSubscribe(body: unknown, ip: string, deps: Deps): Promise<Result> {
-  const reply = (status: number, ok: boolean, message: string): Result => ({ status, body: { ok, message } });
+  const reply = (status: number, ok: boolean, message: string, code?: string): Result => ({ status, body: code ? { ok, message, code } : { ok, message } });
   if (!body || typeof body !== 'object' || Array.isArray(body)) return reply(400, false, MSG_BAD_REQUEST);
   const b = body as Body;
 
@@ -58,9 +48,9 @@ export async function handleSubscribe(body: unknown, ip: string, deps: Deps): Pr
 
   if (!deps.rateLimit(ip || 'unknown')) return reply(429, false, MSG_RATE);
 
-  if (typeof b.email !== 'string') return reply(400, false, MSG_BAD_EMAIL);
-  const email = b.email.trim().toLowerCase();
-  if (!isValidEmail(email)) return reply(400, false, MSG_BAD_EMAIL);
+  const chk = checkEmail(b.email, { typoCheck: false }); // typos are only a browser-side nudge; the server just checks the shape
+  if (!chk.ok) return reply(400, false, chk.message ?? MSG_BAD_EMAIL, chk.code);
+  const email = chk.email;
 
   try {
     await deps.provider.subscribe(email, topic);

@@ -11,7 +11,6 @@ export interface FeatureConfig { status: Status; maintenance?: { note?: string; 
 export const FEATURES: Record<string, FeatureConfig> = {
   soundlab: { status: 'coming-soon' },
   'music-lab': { status: 'coming-soon' },
-  draw: { status: 'coming-soon' },
   // To take any page down for a while, change e.g.:
   //   guess: { status: 'maintenance', maintenance: { note: 'We are fixing a bug.', eta: 'about 2 hours', collectEmail: false } },
 };
