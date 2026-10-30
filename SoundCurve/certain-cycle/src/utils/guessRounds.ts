@@ -14,7 +14,7 @@
  * purely for forward-compatibility (a future family of 2, or an option count
  * raised above 5) and should never trigger with the current 30.
  */
-import { GUESS_LIBRARY, guessFamilyMembers, type GuessEquation } from '../data/guessLibrary';
+import { GUESS_LIBRARY, guessFamilyMembers, type GuessEquation, type GuessDifficulty, type GuessFamily } from '../data/guessLibrary';
 
 /** Rounds in one playthrough. The single knob for how long a game is. */
 export const GUESS_ROUNDS_PER_PLAY = 10;
@@ -103,7 +103,21 @@ export function buildRound(
   return { index: 0, correct, options: shuffle(options, rng) };
 }
 
-/** Picks a random correct answer from the library. */
+/** Families included in each difficulty tier (normal play). */
+export const DIFFICULTY_FAMILIES: Record<GuessDifficulty, readonly GuessFamily[]> = {
+  Easy: ['trig', 'beat'],
+  Medium: ['chirp', 'perc'],
+  Hard: ['decay', 'shape', 'chirp'],
+};
+
+/** Resolve the equation pool for a difficulty tier. */
+export function libraryForDifficulty(
+  difficulty: GuessDifficulty,
+  library: readonly GuessEquation[] = GUESS_LIBRARY,
+): GuessEquation[] {
+  const families = DIFFICULTY_FAMILIES[difficulty];
+  return library.filter((eq) => (families as readonly string[]).includes(eq.family));
+}
 export function pickCorrect(
   library: readonly GuessEquation[] = GUESS_LIBRARY,
   rng: Rng = Math.random,
@@ -145,8 +159,10 @@ export function buildPlaythrough(
   library: readonly GuessEquation[] = GUESS_LIBRARY,
   rng: Rng = Math.random,
   rounds: number = GUESS_ROUNDS_PER_PLAY,
+  difficulty?: GuessDifficulty,
 ): GuessRound[] {
-  return buildDeck(library, rng, rounds).map((correct, index) => ({
+  const pool = difficulty ? libraryForDifficulty(difficulty, library) : library;
+  return buildDeck(pool, rng, rounds).map((correct, index) => ({
     ...buildRound(correct, library, rng),
     index,
   }));
