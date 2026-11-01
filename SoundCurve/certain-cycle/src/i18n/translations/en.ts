@@ -56,6 +56,7 @@ const en = {
   'studio.interactiveLabel': 'interactive audio synthesizer',
   'studio.version': 'Studio v1.0',
   'studio.spaceHint': 'play or stop',
+  'studio.equationOfTheDay': 'Equation of the day',
   'studio.howMathTitle': 'How math creates sound:',
   'studio.howMathDesc': 'as the playhead scans along x, the vertical elevation y(x) controls oscillator frequency while the slope dy/dx modulates filter brightness and timbre.',
   'studio.undo': 'Undo',

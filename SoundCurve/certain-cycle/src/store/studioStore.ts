@@ -84,6 +84,8 @@ export interface StudioState {
   activeScientist: Scientist | null;
   activeEquationName: string | null;
 
+  equationOfTheDayName: string | null;
+
   // Modals & UI triggers
   shareModalOpen: boolean;
   exportModalOpen: boolean;
@@ -147,6 +149,7 @@ export interface StudioActions {
   setCurveColor: (color: string | null) => void;
 
   setActiveScientist: (scientist: Scientist | null, equationName: string | null) => void;
+  setEquationOfTheDay: (name: string | null) => void;
 
   setShareModalOpen: (open: boolean) => void;
   setExportModalOpen: (open: boolean) => void;
@@ -195,6 +198,7 @@ const initialState: StudioState = {
 
   equation: 'sin(x)',
   originalEquation: 'sin(x)',
+  equationOfTheDayName: null,
   inputMode: 'bar',  // Active input source: 'bar' (equation bar) or 'paste' (paste card)
   raw: '',
   expr: '',
@@ -409,6 +413,7 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
     return set({ activeScientist: scientist, activeEquationName: equationName });
   },
 
+  setEquationOfTheDay: (name) => set({ equationOfTheDayName: name }),
   setShareModalOpen: (shareModalOpen) => set({ shareModalOpen }),
   setExportModalOpen: (exportModalOpen) => set({ exportModalOpen }),
   setPresetDrawerOpen: (presetDrawerOpen) => set({ presetDrawerOpen }),
@@ -427,6 +432,7 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
       instrument: preset.instrument ?? state.instrument,
       sonificationMode: preset.sonificationMode ?? state.sonificationMode,
       scale: preset.scale ?? state.scale,
+      equationOfTheDayName: null,
       isCustomCurve: false,
       isEditingCurve: false,
       splineControlPoints: [],

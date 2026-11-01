@@ -72,6 +72,8 @@ function StudioInner() {
   const redoSpline = useStudioStore((s) => s.redoSpline);
   const inputMode = useStudioStore((s) => s.inputMode);
 
+  const setEquationOfTheDay = useStudioStore((s) => s.setEquationOfTheDay);
+
   const graphSectionRef = useRef<HTMLDivElement>(null);
   const wasPlayingRef = useRef(false);
 
@@ -175,6 +177,7 @@ function StudioInner() {
         if (rs.maxFreq) s.setMaxFreq(rs.maxFreq);
         if (rs.scale) s.setScale(rs.scale as any);
         s.setActiveScientist(null, pick.name);
+        s.setEquationOfTheDay(pick.name);
       }
     }
   }, [setEquation, setOriginalEquation, setInstrument, setSonificationMode, setDuration, setMinX, setMaxX]);

@@ -31,6 +31,8 @@ export default function EquationInput() {
   const setMaxX = useStudioStore((s) => s.setMaxX);
   const loadPreset = useStudioStore((s) => s.loadPreset);
   const setPresetDrawerOpen = useStudioStore((s) => s.setPresetDrawerOpen);
+  const equationOfTheDayName = useStudioStore((s) => s.equationOfTheDayName);
+  const setEquationOfTheDay = useStudioStore((s) => s.setEquationOfTheDay);
 
   const [rawInput, setRawInput] = useState(equation);
   const [error, setError] = useState<string>('');
@@ -61,6 +63,7 @@ export default function EquationInput() {
       setError('');
       setSuggestion(null);
       setEquation(val);
+      setEquationOfTheDay(null);
       if (isPlaying) setHasPendingChanges(true);
     }
   };
@@ -70,6 +73,7 @@ export default function EquationInput() {
     setSuggestion(null);
     setRawInput(value);
     setEquation(value);
+    setEquationOfTheDay(null);
     if (isPlaying) setHasPendingChanges(true);
     inputRef.current?.focus();
   };
@@ -131,6 +135,16 @@ export default function EquationInput() {
             </button>
           </div>
         </div>
+
+        {equationOfTheDayName && (
+          <span
+            className="inline-flex items-center gap-1.5 rounded-md border border-sc-line/25 bg-sc-surface/50 px-2.5 py-1 text-[10px] font-mono text-sc-text-faint min-h-[44px]"
+            aria-label={`${t('studio.equationOfTheDay')} · ${equationOfTheDayName}`}
+          >
+            <span aria-hidden>{t('studio.equationOfTheDay')} · </span>
+            <span className="text-sc-text">{equationOfTheDayName}</span>
+          </span>
+        )}
 
         <div
           className="relative panel-inset z-[45]"
