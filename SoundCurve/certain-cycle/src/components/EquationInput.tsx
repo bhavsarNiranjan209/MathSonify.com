@@ -65,41 +65,6 @@ export default function EquationInput() {
     }
   };
 
-  /**
-   * Paste an equation, and treat it exactly as if it had been typed.
-   *
-   * WHY THIS IS NOT LEFT TO onChange: the input is a single-line text field, so
-   * the browser silently flattens a multi-line paste and the native input event
-   * hands us the mangled result. Pasting a row copied out of a spreadsheet, a
-   * textbook line with a trailing reference marker, or a block that happens to
-   * include a newline all produced either a syntax error or a wrong equation.
-   *
-   * Here the clipboard is read directly: trimmed, and reduced to the FIRST
-   * non-empty line, so the equation survives and everything after it is dropped.
-   * `preventDefault` stops the browser inserting its own flattened version on top.
-   *
-   * Handled through `handleChange` so a pasted equation is parsed, rendered and
-   * validated by the exact same path as a typed one — no second code path that
-   * could drift.
-   */
-  const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
-    const text = e.clipboardData.getData('text');
-    if (!text) return; // Let the browser do its thing for non-text pastes.
-
-    e.preventDefault();
-
-    const firstLine = text
-      .split(/\r\n|\r|\n/)
-      .map((line) => line.trim())
-      .find((line) => line.length > 0);
-
-    // Nothing but blank lines: leave the field alone rather than clearing it.
-    if (firstLine === undefined) return;
-
-    caretRef.current = firstLine.length;
-    handleChange(firstLine);
-  };
-
   /** Accept a suggested correction, exactly as if the user had typed it. */
   const applySuggestion = (value: string) => {
     setSuggestion(null);
@@ -198,8 +163,6 @@ export default function EquationInput() {
             }}
             onSelect={trackCaret}
             onClick={trackCaret}
-            onKeyUp={trackCaret}
-            onFocus={() => setKeyboardOpen(true)}
             placeholder={t('eq.placeholder')}
             className={`w-full min-h-[44px] pl-16 pr-16 py-3.5 bg-transparent text-sc-text placeholder:text-sc-text-faint/70 font-mono text-sm rounded-[4px] focus:outline-none transition-all duration-200 ${
               error

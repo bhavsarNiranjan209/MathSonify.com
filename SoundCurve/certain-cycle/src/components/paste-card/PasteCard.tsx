@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useStudioStore } from '../store/studioStore';
-import { useTranslation } from '../i18n/index';
-import { normalizePasted } from '../utils/pasteNormalizer';
-import { compile } from '../utils/miniEval';
+import { useStudioStore } from '../../store/studioStore';
+import { useTranslation } from '../../i18n/index';
+import { normalizePasted } from '../../utils/pasteNormalizer';
+import { compile } from '../../utils/miniEval';
 
 /** Sample an expression over a domain and check finiteness ratio. */
 function useAutoFitDomain(expr: string, params: number[] = []): { domain: [number, number]; ratio: number } {

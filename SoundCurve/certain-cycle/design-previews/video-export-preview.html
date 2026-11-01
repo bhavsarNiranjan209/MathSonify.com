@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Video export — landscape + portrait (preview)</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B0B0D;--panel:#121215;--border:#2A2A30;--text:#F5F5F2;--muted:#9A9AA2}
+*{box-sizing:border-box}body{margin:0;background:#050506;color:var(--text);font-family:Inter,sans-serif;padding:16px 14px 60px}
+.top{max-width:1000px;margin:0 auto 14px}.top h1{font-family:"Instrument Serif",serif;font-weight:400;font-size:26px;margin:0 0 4px}.top p{color:var(--muted);font-size:13px;margin:0;line-height:1.6}
+.ctl{max-width:1000px;margin:0 auto 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:flex;background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:3px}.seg button{font:inherit;font-size:12.5px;border:0;background:none;color:var(--muted);padding:8px 13px;border-radius:8px;cursor:pointer}.seg button.on{background:#F2EFE8;color:#0B0B0D;font-weight:600}
+select,.btn{font:inherit;font-size:12.5px;background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px 13px;cursor:pointer}.btn.rec{background:#F2EFE8;color:#0B0B0D;font-weight:600;border-color:#F2EFE8}.btn[disabled]{opacity:.5}
+label.chk{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.stage{max-width:1000px;margin:0 auto;display:flex;justify-content:center}
+.frame{position:relative;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#000;max-width:100%}
+canvas{display:block;max-width:100%;max-height:72vh;height:auto;width:auto;background:#000}
+.hud{position:absolute;left:8px;top:8px;font-family:"JetBrains Mono",monospace;font-size:11px;color:#7be3a8;background:rgba(0,0,0,.55);padding:3px 7px;border-radius:6px}
+.res{max-width:1000px;margin:14px auto 0;font-size:13px;color:var(--muted);line-height:1.7}.res a{color:#F5A623}
+.notes{max-width:1000px;margin:18px auto 0;border:1px dashed var(--border);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--muted);line-height:1.75}.notes b{color:var(--text)}
+</style></head><body>
+<div class="top"><h1>Video export — what it should look like</h1><p>Pure black background, a glowing graph line with a bright trail, larger numbers, and a watermark that never covers the curve. Switch between landscape and phone-portrait; <b>Record a test clip</b> makes a real video on YOUR device and reports its real frame rate.</p></div>
+<div class="ctl"><div class="seg" id="orient"><button class="on" data-o="L">Landscape 16:9</button><button data-o="P">Portrait 9:16</button></div>
+<div class="seg" id="qual"><button class="on" data-q="720p">720p</button><button data-q="1080p">1080p</button></div>
+<select id="eq"></select><button class="btn" id="replay">↻ Replay</button><label class="chk"><input type="checkbox" id="safe"> phone safe zones</label><button class="btn rec" id="rec">● Record a test clip</button></div>
+<div class="stage"><div class="frame"><canvas id="cv"></canvas><div class="hud" id="hud">–</div></div></div>
+<div class="res" id="res"></div>
+<div class="notes"><b>What changed vs your current video:</b> pure black (#000) instead of the gray panel, grid and vignette · graph numbers about 3× larger · line drawn as soft glow + bright core + brighter trail (no per-frame blur, which is what makes recording stutter) · watermark drifts along a safe strip below the graph instead of crossing the curve · everything timed by the clock, not by frame count, so a slow frame never slows the picture · static parts (axes, numbers, faint curve) are drawn once and reused · portrait keeps the graph out of the top 12% and bottom 20% that Reels / Shorts / TikTok cover with buttons.<br><b>Your current clip:</b> labelled 60 fps but it really averages about 27.6 fps — that is the stutter.</div>
+<script>
+const $=s=>document.querySelector(s),TAU=Math.PI*2,cv=$('#cv'),c=cv.getContext('2d');
+const EQ={'sin(x)':x=>Math.sin(x),'sin(x)·cos(3x)':x=>Math.sin(x)*Math.cos(3*x),'x² / 8 − 2':x=>x*x/8-2,'sin(x²)':x=>Math.sin(x*x/2)};
+Object.keys(EQ).forEach(k=>{const o=document.createElement('option');o.textContent=k;$('#eq').append(o);});
+const SZ={'720p':{L:[1280,720],P:[720,1280]},'1080p':{L:[1920,1080],P:[1080,1920]}};
+let O='L',Q='720p',W,H,fs,G,st,fn,eqName='sin(x)',t0=performance.now(),rec=null,frames=0,rf=0,rt=performance.now();
+const INTRO=1.1,PLAY=4.6,OUTRO=1.1,TOTAL=INTRO+PLAY+OUTRO;
+function ticks(a,b,n){const raw=(b-a)/n,p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p,s=(f<1.5?1:f<3?2:f<7?5:10)*p,o=[];for(let v=Math.ceil(a/s-1e-9);v<=b/s+1e-9;v++)o.push(Number((v*s).toPrecision(10)));return{o,s};}
+const fmt=(v,s)=>v===0?'0':v.toFixed(s>=1?0:Math.min(3,Math.ceil(-Math.log10(s))));
+function setup(){[W,H]=SZ[Q][O];cv.width=W;cv.height=H;fs=Math.round(Math.min(W,H)*.027);
+ G=O==='L'?{x:W*.085,y:H*.2,w:W*.865,h:H*.58}:{x:W*.14,y:H*.23,w:W*.78,h:H*.4};
+ fn=EQ[eqName];const xs=[];let lo=1e9,hi=-1e9;for(let i=0;i<=600;i++){const x=-TAU+2*TAU*i/600,y=fn(x);xs.push(y);lo=Math.min(lo,y);hi=Math.max(hi,y);}const pad=(hi-lo)*.08||1;lo-=pad;hi+=pad;
+ st={lo,hi,ys:xs,X:i=>G.x+G.w*i/600,Y:y=>G.y+G.h-(y-lo)/(hi-lo)*G.h};
+ const L=document.createElement('canvas');L.width=W;L.height=H;const l=L.getContext('2d');l.fillStyle='#000';l.fillRect(0,0,W,H);
+ const tx=ticks(-TAU,TAU,8),ty=ticks(lo,hi,5);l.strokeStyle='rgba(255,255,255,.045)';l.lineWidth=Math.max(1,fs*.05);l.beginPath();
+ tx.o.forEach(v=>{const X=G.x+G.w*(v+TAU)/(2*TAU);l.moveTo(X,G.y);l.lineTo(X,G.y+G.h);});ty.o.forEach(v=>{const Y=st.Y(v);l.moveTo(G.x,Y);l.lineTo(G.x+G.w,Y);});l.stroke();
+ l.strokeStyle='rgba(255,255,255,.22)';l.lineWidth=Math.max(1.5,fs*.07);l.beginPath();if(lo<0&&hi>0){l.moveTo(G.x,st.Y(0));l.lineTo(G.x+G.w,st.Y(0));}l.moveTo(G.x+G.w/2,G.y);l.lineTo(G.x+G.w/2,G.y+G.h);l.stroke();
+ l.font='500 '+fs+'px "JetBrains Mono",monospace';l.fillStyle='#8d8f98';l.textAlign='center';l.textBaseline='top';tx.o.forEach(v=>l.fillText(fmt(v,tx.s),G.x+G.w*(v+TAU)/(2*TAU),G.y+G.h+fs*.7));
+ l.textAlign='right';l.textBaseline='middle';ty.o.forEach(v=>l.fillText(fmt(v,ty.s),G.x-fs*.7,st.Y(v)));
+ l.strokeStyle='rgba(255,255,255,.12)';l.lineWidth=Math.max(2,fs*.12);l.lineJoin='round';l.beginPath();st.ys.forEach((y,i)=>i?l.lineTo(st.X(i),st.Y(y)):l.moveTo(st.X(i),st.Y(y)));l.stroke();
+ st.layer=L;t0=performance.now();}
+const sm=x=>x*x*(3-2*x),clamp=x=>Math.min(1,Math.max(0,x));
+function pill(txt,y,a){c.font='500 '+Math.round(fs*1.15)+'px "JetBrains Mono",monospace';const w=c.measureText(txt).width+fs*2.2,h=fs*2.3,x=W/2-w/2;c.globalAlpha=a;c.fillStyle='rgba(255,255,255,.07)';c.strokeStyle='rgba(255,255,255,.16)';c.lineWidth=Math.max(1,fs*.06);c.beginPath();c.roundRect(x,y-h/2,w,h,h/2);c.fill();c.stroke();c.fillStyle='#f2f2ee';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,W/2,y+1);c.globalAlpha=1;}
+function frame(now){const t=((now-t0)/1000)%TOTAL;c.drawImage(st.layer,0,0);
+ const gA=sm(clamp((t-INTRO)/.35))*(1-sm(clamp((t-INTRO-PLAY)/.4)));
+ if(t<INTRO||t>INTRO+PLAY+.2){const a=t<INTRO?sm(clamp(t/.5))*(1-sm(clamp((t-INTRO+.3)/.3))):sm(clamp((t-INTRO-PLAY-.2)/.4));c.fillStyle='rgba(0,0,0,'+(t<INTRO?1-0:1)+')';if(t<INTRO)c.fillRect(0,0,W,H);
+  if(t>INTRO+PLAY+.2){c.fillStyle='rgba(0,0,0,'+sm(clamp((t-INTRO-PLAY-.2)/.4))+')';c.fillRect(0,0,W,H);}
+  c.globalAlpha=a;c.fillStyle='#f2f2ee';c.textAlign='center';c.textBaseline='middle';c.font='italic 400 '+Math.round(fs*3.6)+'px "Instrument Serif",Georgia,serif';c.fillText(t<INTRO?'MathSonify':'Made with MathSonify.com',W/2,H/2-fs*.6);c.font='500 '+Math.round(fs*1.1)+'px "JetBrains Mono",monospace';c.fillStyle='#8d8f98';c.fillText('Equation: '+eqName,W/2,H/2+fs*2);c.globalAlpha=1;}
+ if(gA>0){c.globalAlpha=gA;const p=clamp((t-INTRO)/PLAY),n=Math.floor(p*600),w=fs*.2;
+  const path=(a,b)=>{c.beginPath();for(let i=a;i<=b;i++)i===a?c.moveTo(st.X(i),st.Y(st.ys[i])):c.lineTo(st.X(i),st.Y(st.ys[i]));};
+  c.lineCap='round';c.lineJoin='round';const tail=Math.max(0,n-90);
+  c.strokeStyle='rgba(255,255,255,.75)';c.lineWidth=w;path(0,tail);c.stroke();
+  [[w*5,.05],[w*2.8,.14]].forEach(([lw,a])=>{c.strokeStyle='rgba(255,255,255,'+a+')';c.lineWidth=lw;path(tail,n);c.stroke();});
+  c.strokeStyle='#fff';c.lineWidth=w*1.15;path(tail,n);c.stroke();
+  const hx=st.X(n),hy=st.Y(st.ys[Math.min(600,n)]),pu=(Math.sin(now/260)+1)/2,g=c.createRadialGradient(hx,hy,0,hx,hy,fs*2.6);g.addColorStop(0,'rgba(255,255,255,.45)');g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.beginPath();c.arc(hx,hy,fs*2.6,0,TAU);c.fill();
+  c.fillStyle='#fff';c.beginPath();c.arc(hx,hy,fs*.46,0,TAU);c.fill();c.strokeStyle='rgba(255,255,255,'+(.5-pu*.4)+')';c.lineWidth=fs*.1;c.beginPath();c.arc(hx,hy,fs*(.9+pu*.9),0,TAU);c.stroke();
+  pill('Equation: '+eqName,O==='L'?H*.09:H*.13,1);
+  c.font='500 '+Math.round(fs*.85)+'px "JetBrains Mono",monospace';c.fillStyle='rgba(255,255,255,.4)';c.textBaseline='middle';const wm='MathSonify · mathsonify.com',ww=c.measureText(wm).width,span=Math.max(0,G.w-ww),wx=G.x+span*(.5+.5*Math.sin(now/2600));c.textAlign='left';c.fillText(wm,wx,O==='L'?H*.9:H*.84);
+  c.globalAlpha=1;}
+ if($('#safe').checked&&O==='P'){c.fillStyle='rgba(255,70,70,.16)';c.fillRect(0,0,W,H*.12);c.fillRect(0,H*.8,W,H*.2);c.fillRect(W*.86,H*.45,W*.14,H*.35);c.fillStyle='#ffb0b0';c.font='500 '+fs+'px Inter,sans-serif';c.textAlign='left';c.fillText('app buttons cover these areas',W*.04,H*.06);}
+ frames++;rf++;if(now-rt>1000){$('#hud').textContent=Math.round(rf*1000/(now-rt))+' fps (this device) · '+W+'×'+H;rf=0;rt=now;}
+ requestAnimationFrame(frame);}
+document.querySelectorAll('#orient button').forEach(b=>b.onclick=()=>{O=b.dataset.o;document.querySelectorAll('#orient button').forEach(x=>x.classList.toggle('on',x===b));setup();});
+document.querySelectorAll('#qual button').forEach(b=>b.onclick=()=>{Q=b.dataset.q;document.querySelectorAll('#qual button').forEach(x=>x.classList.toggle('on',x===b));setup();});
+$('#eq').onchange=e=>{eqName=e.target.value;setup();};$('#replay').onclick=()=>{t0=performance.now();};
+$('#rec').onclick=()=>{if(rec||!window.MediaRecorder){if(!window.MediaRecorder)$('#res').textContent='Recording is not supported in this browser.';return;}
+ const mime=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(m=>MediaRecorder.isTypeSupported(m))||'';
+ const stream=cv.captureStream(60),chunks=[];rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:Q==='1080p'?14e6:8e6});
+ rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+ rec.onstop=()=>{const blob=new Blob(chunks,{type:mime||'video/webm'}),ext=(mime.includes('mp4')?'mp4':'webm'),url=URL.createObjectURL(blob),secs=(performance.now()-s0)/1000;
+  $('#res').innerHTML='Recorded '+secs.toFixed(1)+' s · average <b>'+Math.round(frames/secs)+' fps</b> · '+(blob.size/1e6).toFixed(1)+' MB · '+(O==='L'?'landscape':'portrait')+' '+W+'×'+H+' · <a download="mathsonify-test-'+O+'.'+ext+'" href="'+url+'">Download the clip</a> (watch it on your phone)';
+  rec=null;$('#rec').disabled=false;$('#rec').textContent='● Record a test clip';};
+ t0=performance.now();frames=0;const s0=performance.now();rec.start();$('#rec').disabled=true;$('#rec').textContent='Recording… '+TOTAL.toFixed(1)+' s';
+ setTimeout(()=>rec&&rec.state==='recording'&&rec.stop(),TOTAL*1000+150);};
+(document.fonts&&document.fonts.load?Promise.all([document.fonts.load('italic 40px "Instrument Serif"'),document.fonts.load('500 20px "JetBrains Mono"')]).catch(()=>{}):Promise.resolve()).then(()=>{setup();requestAnimationFrame(frame);});
+</script></body></html>

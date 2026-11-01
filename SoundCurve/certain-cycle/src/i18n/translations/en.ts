@@ -215,7 +215,7 @@ const en = {
   'eq.mathEquation': 'Mathematical equation',
   'eq.surpriseMe': 'Surprise me',
   'eq.library': 'Library',
-  'eq.placeholder': 'Type or paste any equation — e.g. sin(x) * cos(3*x)',
+  'eq.placeholder': 'Type an equation — e.g. sin(x) * cos(3*x)',
   /*
    * Replaces the old "View all 12+" control. That opened the preset library,
    * which was redundant with the separate Library button already doing exactly

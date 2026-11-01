@@ -53,6 +53,14 @@ export interface StudioState {
   maxX: number;
   /** Active input source: 'bar' (equation bar) or 'paste' (paste card) */
   inputMode: 'bar' | 'paste';
+  /** Raw pasted text (paste mode) */
+  raw: string;
+  /** Canonical expr from paste normalizer */
+  expr: string;
+  /** Display string from paste normalizer */
+  display: string;
+  /** Parameter names from paste normalizer */
+  params: string[];
 
   // Direct Curve Sculpting / Editing state
   isEditingCurve: boolean;
@@ -104,6 +112,11 @@ export interface StudioActions {
   setLoop: (loop: boolean) => void;
   setMinFreq: (freq: number) => void;
   setMaxFreq: (freq: number) => void;
+  setInputMode: (mode: 'bar' | 'paste') => void;
+  setRaw: (raw: string) => void;
+  setExpr: (expr: string) => void;
+  setDisplay: (display: string) => void;
+  setParams: (params: string[]) => void;
 
   // Undo/redo for freehand curve editing
   pushSplineHistory: (points: SplineControlPoint[]) => void;
@@ -183,6 +196,10 @@ const initialState: StudioState = {
   equation: 'sin(x)',
   originalEquation: 'sin(x)',
   inputMode: 'bar',  // Active input source: 'bar' (equation bar) or 'paste' (paste card)
+  raw: '',
+  expr: '',
+  display: '',
+  params: [],
   minX: -6.28,
   maxX: 6.28,
 
@@ -228,6 +245,11 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
   setLoop: (loop) => set({ loop }),
   setMinFreq: (minFreq) => set({ minFreq }),
   setMaxFreq: (maxFreq) => set({ maxFreq }),
+  setInputMode: (inputMode) => set({ inputMode }),
+  setRaw: (raw) => set({ raw }),
+  setExpr: (expr) => set({ expr }),
+  setDisplay: (display) => set({ display }),
+  setParams: (params) => set({ params }),
 
   setEquation: (equation) =>
     set({

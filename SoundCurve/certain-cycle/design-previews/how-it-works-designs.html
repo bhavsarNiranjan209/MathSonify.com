@@ -1,0 +1,153 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How It Works — 3 design directions</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B0B0D;--panel:#121215;--box:#17181B;--border:#2A2A30;--text:#F5F5F2;--muted:#9A9AA2;--amber:#F5A623;--blue:#7AA7FF}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,sans-serif;overflow-x:hidden}
+.bar{position:sticky;top:0;z-index:20;background:rgba(11,11,13,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.bar button{font:inherit;font-size:12.5px;border:1px solid var(--border);background:var(--panel);color:var(--muted);border-radius:999px;padding:8px 14px;cursor:pointer}
+.bar button.on{background:#F2EFE8;color:#0B0B0D;border-color:#F2EFE8;font-weight:600}
+.design{display:none;max-width:1040px;margin:0 auto;padding:30px 16px 80px}.design.on{display:block}
+.eyebrow{display:inline-flex;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:6px 14px;margin-bottom:16px}
+h1{font-family:"Instrument Serif",serif;font-weight:400;font-size:clamp(34px,6vw,58px);line-height:1.05;margin:0 0 10px}h1 em{font-style:italic}
+.lead{color:var(--muted);font-size:16px;line-height:1.65;max-width:56ch;margin:0 0 26px}
+.why{margin-top:34px;border:1px dashed var(--border);border-radius:14px;padding:14px 16px;font-size:12.5px;color:var(--muted);line-height:1.7}.why b{color:var(--text)}
+canvas{display:block;width:100%;background:#07070a;border:1px solid var(--border);border-radius:16px}
+/* A */
+.scrolly{display:grid;grid-template-columns:1.15fr .85fr;gap:26px;align-items:start}
+.stageA{position:sticky;top:70px}
+.stageA .cap{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted);margin-top:10px;min-height:18px}
+.step{min-height:62vh;display:flex;flex-direction:column;justify-content:center;opacity:.28;transition:opacity .4s}.step.on{opacity:1}
+.step i{font-family:"JetBrains Mono",monospace;font-style:normal;font-size:12px;color:var(--amber);margin-bottom:8px}
+.step h3{font-family:"Instrument Serif",serif;font-weight:400;font-size:32px;margin:0 0 8px}.step p{color:var(--muted);line-height:1.65;margin:0;font-size:15px;max-width:34ch}
+@media(max-width:760px){.scrolly{grid-template-columns:1fr}.stageA{top:56px;z-index:3;background:var(--bg);padding-bottom:6px}.step{min-height:44vh}}
+/* B */
+.lab{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px}
+.knob{margin-bottom:16px}.knob label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}.knob label span{font-family:"JetBrains Mono",monospace;color:var(--amber)}
+.knob input{width:100%;accent-color:#F5A623}.knob small{display:block;color:var(--muted);font-size:12px;margin-top:4px;min-height:32px;line-height:1.5}
+.ro{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.ro div{background:var(--box);border:1px solid var(--border);border-radius:12px;padding:10px}
+.ro small{display:block;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--muted);letter-spacing:.05em}.ro b{font-family:"JetBrains Mono",monospace;font-size:15px;display:block;margin-top:3px}
+.meter{height:5px;border-radius:3px;background:#222;margin-top:6px;overflow:hidden}.meter i{display:block;height:100%;background:linear-gradient(90deg,#fff,var(--amber));width:0;transition:width .25s}
+.play{width:100%;font:inherit;font-weight:600;background:#F2EFE8;color:#0B0B0D;border:0;border-radius:12px;padding:13px;margin-top:12px;cursor:pointer}
+.maps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.map{background:var(--box);border:1px solid var(--border);border-radius:12px;padding:10px 11px;transition:border-color .25s,box-shadow .25s,transform .25s}.map b{font-family:"JetBrains Mono",monospace;font-size:11.5px;display:block;margin-bottom:3px}.map span{font-size:11.5px;color:var(--muted);line-height:1.5}
+.map.hot{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,166,35,.15);transform:translateY(-2px)}
+@media(max-width:760px){.lab{grid-template-columns:1fr}.maps{grid-template-columns:1fr 1fr}}
+/* C */
+.chain{display:flex;align-items:stretch;gap:0;margin:6px 0 18px}
+.node{flex:1;min-width:0;font:inherit;color:inherit;text-align:center;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 6px;cursor:pointer;transition:.25s}
+.node:hover{border-color:#666}.node.on{border-color:var(--amber);background:rgba(245,166,35,.07);box-shadow:0 14px 34px -18px rgba(245,166,35,.7)}
+.node i{font-style:normal;font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--muted);display:block}.node b{font-family:"Instrument Serif",serif;font-weight:400;font-size:19px}
+.link{flex:0 0 26px;align-self:center;height:3px;border-radius:2px;background:repeating-linear-gradient(90deg,transparent 0 6px,rgba(255,255,255,.75) 6px 10px);background-size:20px 3px;animation:flow 1s linear infinite;opacity:.6}
+@keyframes flow{to{background-position:20px 0}}
+.panelC{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px}.panelC h3{font-family:"Instrument Serif",serif;font-weight:400;font-size:26px;margin:0 0 4px}.panelC p{color:var(--muted);font-size:14px;margin:0 0 12px;line-height:1.6}
+@media(max-width:760px){.chain{flex-direction:column}.link{flex:0 0 18px;width:3px;height:18px;align-self:center;background:repeating-linear-gradient(180deg,transparent 0 6px,rgba(255,255,255,.75) 6px 10px);background-size:3px 20px;animation:flowv 1s linear infinite}@keyframes flowv{to{background-position:0 20px}}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<div class="bar" id="tabs"></div>
+
+<!-- DESIGN A -->
+<section class="design on" id="dA">
+ <span class="eyebrow">Design A · The Journey</span>
+ <h1>How math becomes <em>music</em></h1><p class="lead">Scroll. One picture on the left changes as you read — from a typed equation to a shape, a moving scanner, a pitch, and finally a chord. Almost no text blocks; the picture does the explaining.</p>
+ <div class="scrolly"><div class="stageA"><canvas id="cA" width="720" height="500"></canvas><div class="cap" id="capA"></div></div>
+ <div id="stepsA"></div></div>
+ <div class="why"><b>Feels like:</b> a short film you scroll through. <b>Best for:</b> first-time visitors and sharing. <b>Trade-off:</b> longest page, least hands-on; needs good mobile care (the picture stays pinned at the top while you read).</div>
+</section>
+
+<!-- DESIGN B -->
+<section class="design" id="dB">
+ <span class="eyebrow">Design B · The Instrument</span>
+ <h1>Turn the <em>dials</em>. Hear the maths.</h1><p class="lead">One screen, no scrolling story. Move a dial, the curve changes, and the card that explains it lights up. Press play to hear exactly that curve.</p>
+ <div class="lab"><div class="card"><canvas id="cB" width="720" height="420"></canvas>
+  <div class="ro"><div><small>PITCH RANGE</small><b id="rPitch">–</b></div><div><small>OSCILLATIONS</small><b id="rOsc">–</b></div><div><small>BRIGHTNESS</small><b id="rBri">–</b><div class="meter"><i id="mBri"></i></div></div></div>
+  <button class="play" id="playB">▶ Play this curve</button></div>
+  <div class="card" id="knobs"></div></div>
+ <div class="maps" id="maps"></div>
+ <div class="why"><b>Feels like:</b> a synth you can learn from. <b>Best for:</b> students, teachers, anyone who likes to tinker. <b>Trade-off:</b> less storytelling; the "why" lives in the little cards.</div>
+</section>
+
+<!-- DESIGN C -->
+<section class="design" id="dC">
+ <span class="eyebrow">Design C · The Signal Chain</span>
+ <h1>Five steps from <em>equation</em> to sound</h1><p class="lead">A map of what MathSonify does, with the data flowing left to right. Tap any step to see it working. It plays through the steps on its own until you take over.</p>
+ <div class="chain" id="chain"></div>
+ <div class="panelC"><h3 id="cT"></h3><p id="cP"></p><canvas id="cC" width="720" height="360"></canvas></div>
+ <div class="why"><b>Feels like:</b> a technical diagram that comes alive. <b>Best for:</b> curious, technical visitors; fits one screen. <b>Trade-off:</b> more "engineering" than "emotion"; the demos are small.</div>
+</section>
+
+<script>
+const $=s=>document.querySelector(s),TAU=Math.PI*2,RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e;};
+const ease=t=>1-Math.pow(1-Math.min(1,Math.max(0,t)),3);
+const on=id=>$('#'+id).classList.contains('on');
+[['dA','A · The Journey'],['dB','B · The Instrument'],['dC','C · The Signal Chain']].forEach(([id,n],i)=>{const b=el('button',i?'':'on',n);b.onclick=()=>{document.querySelectorAll('.design').forEach(d=>d.classList.toggle('on',d.id===id));document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));scrollTo(0,0);};$('#tabs').append(b);});
+function glow(c,draw,w){[[w*3.2,.07],[w*1.8,.18],[w,1]].forEach(([lw,a])=>{c.lineWidth=lw;c.strokeStyle='rgba(255,255,255,'+a+')';c.lineCap='round';c.lineJoin='round';draw();c.stroke();});}
+function curve(c,fn,W,H,amp,upto,x0=-TAU,x1=TAU,N=260){c.beginPath();const n=Math.floor(N*upto);for(let i=0;i<=n;i++){const x=x0+(x1-x0)*i/N,px=W*i/N,py=H/2-fn(x)*amp;i?c.lineTo(px,py):c.moveTo(px,py);}}
+function axes(c,W,H){c.strokeStyle='rgba(255,255,255,.1)';c.lineWidth=1;c.beginPath();c.moveTo(0,H/2);c.lineTo(W,H/2);c.moveTo(W/2,0);c.lineTo(W/2,H);c.stroke();}
+function dot(c,x,y,r){const g=c.createRadialGradient(x,y,0,x,y,r*4);g.addColorStop(0,'rgba(245,166,35,.55)');g.addColorStop(1,'rgba(245,166,35,0)');c.fillStyle=g;c.beginPath();c.arc(x,y,r*4,0,TAU);c.fill();c.fillStyle='#fff';c.beginPath();c.arc(x,y,r,0,TAU);c.fill();}
+function tangent(c,fn,dfn,x,W,H,amp,L){const px=W*(x+TAU)/(2*TAU),py=H/2-fn(x)*amp,m=-dfn(x)*amp/(W/(2*TAU));c.strokeStyle='rgba(245,166,35,.85)';c.lineWidth=2;c.beginPath();c.moveTo(px-L,py-m*L);c.lineTo(px+L,py+m*L);c.stroke();}
+const hz=y=>220*Math.pow(4,(y+1)/2);
+
+/* ---------------- A: the journey ---------------- */
+const STEPS=[['01','An equation is a rule.','Type f(x) = sin(x). That is all MathSonify needs.','f(x) = sin(x)'],['02','The rule has a shape.','Every x gives a y. Plot them all and you get a curve.','x → y, for every x'],['03','Then something walks along it.','A scanner moves left to right. Where it is on x is time.','x = time · slope = how fast it changes'],['04','Height becomes pitch.','High points ring high, low points ring low. Steeper parts sound brighter.','y = height → pitch'],['05','Stack curves, get music.','Layer equations into chords. That is what SoundLab will do.','three curves → one chord']];
+STEPS.forEach(([n,h,p],i)=>{const d=el('div','step'+(i?'':' on'));d.dataset.i=i;d.append(el('i',null,n),el('h3',null,h),el('p',null,p));$('#stepsA').append(d);});
+let stepA=0,stepT=performance.now();$('#capA').textContent=STEPS[0][3];
+const stepObs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){stepA=+e.target.dataset.i;stepT=performance.now();document.querySelectorAll('.step').forEach(s=>s.classList.toggle('on',s===e.target));$('#capA').textContent=STEPS[stepA][3];}}),{rootMargin:'-42% 0px -42% 0px'});
+document.querySelectorAll('.step').forEach(s=>stepObs.observe(s));
+const xA=$('#cA').getContext('2d');
+function drawA(now){const c=xA,W=720,H=500,t=(now-stepT)/1000,amp=H*.3;c.fillStyle='#07070a';c.fillRect(0,0,W,H);axes(c,W,H);
+ if(stepA===0){const txt='f(x) = sin(x)',n=RM?txt.length:Math.min(txt.length,Math.floor(t*9));c.font='600 46px "JetBrains Mono",monospace';c.fillStyle='#fff';c.textAlign='center';c.fillText(txt.slice(0,n)+(Math.floor(now/450)%2?'▌':' '),W/2,H/2+14);c.font='14px Inter,sans-serif';c.fillStyle='#9A9AA2';c.fillText('an equation is just a rule',W/2,H/2+60);}
+ else if(stepA===1){glow(c,()=>curve(c,Math.sin,W,H,amp,RM?1:ease(t/2.4)),3);}
+ else if(stepA<4){c.strokeStyle='rgba(255,255,255,.16)';c.lineWidth=2;curve(c,Math.sin,W,H,amp,1);c.stroke();
+  const u=RM?.35:((now/1000)%4)/4,x=-TAU+2*TAU*u,y=Math.sin(x),px=W*u,py=H/2-y*amp;glow(c,()=>curve(c,Math.sin,W,H,amp,u),3);
+  c.setLineDash([4,6]);c.strokeStyle='rgba(245,166,35,.5)';c.lineWidth=1;c.beginPath();c.moveTo(px,0);c.lineTo(px,H);c.stroke();c.setLineDash([]);
+  tangent(c,Math.sin,Math.cos,x,W,H,amp,48);dot(c,px,py,6);
+  c.font='600 13px "JetBrains Mono",monospace';c.textAlign='left';c.fillStyle='#9A9AA2';c.fillText('slope  dy/dx = '+Math.cos(x).toFixed(2),18,28);
+  if(stepA===3){c.fillStyle='#fff';c.textAlign='right';c.fillText(Math.round(hz(y))+' Hz',W-18,28);
+   for(let i=0;i<16;i++){const h=(.15+.85*Math.abs(Math.sin(i*.9+now/260+y*3)))*70;c.fillStyle='rgba(255,255,255,'+(.35+.5*h/70)+')';c.fillRect(18+i*14,H-16-h,9,h);}
+   c.strokeStyle='rgba(255,255,255,.15)';c.lineWidth=2;c.beginPath();c.moveTo(W-30,60);c.lineTo(W-30,H-60);c.stroke();dot(c,W-30,H-60-(y+1)/2*(H-120),5);}}
+ else{const L=[[Math.sin,'255,255,255',1,4],[x=>Math.sin(2*x),'245,166,35',.7,5],[x=>Math.sin(3*x),'122,167,255',.5,6]];
+  L.forEach(([f,col,a,per],i)=>{c.strokeStyle='rgba('+col+',.2)';c.lineWidth=2;curve(c,f,W,H,amp*a,1);c.stroke();const u=RM?.4:((now/1000)%per)/per,x=-TAU+2*TAU*u;c.strokeStyle='rgba('+col+',1)';c.lineWidth=3;curve(c,f,W,H,amp*a,u);c.stroke();dot(c,W*u,H/2-f(x)*amp*a,5);});
+  c.font='600 13px "JetBrains Mono",monospace';c.fillStyle='#9A9AA2';c.textAlign='left';c.fillText('sin(x)  +  sin(2x)  +  sin(3x)  =  a chord',18,28);}}
+
+/* ---------------- B: the instrument ---------------- */
+const P={A:1,k:2,h:0},KN=[['A','Amplitude',.2,2,.01,'How tall the curve is. Taller means a wider span of pitches.','m-amp'],['k','Frequency',1,6,.1,'How many waves fit. More waves means the same pitches repeat more often.','m-osc'],['h','Richness',0,1,.01,'Adds a second wave on top. A more complex curve means a richer sound.','m-curv']];
+const MAPS=[['m-height','Height → Pitch','High points ring high.'],['m-width','Width → Time','Left to right is the song.'],['m-amp','Amplitude → Dynamic range','A taller curve spans more notes.'],['m-osc','Oscillations → Repetition','More waves, more repeats.'],['m-steep','Steepness → Brightness','Fast climbs sound brighter.'],['m-curv','Curvature → Rate of change','Bends change pitch quickly.']];
+MAPS.forEach(([id,b,s])=>{const d=el('div','map');d.id=id;d.append(el('b',null,b),el('span',null,s));$('#maps').append(d);});
+const hot=(...ids)=>ids.forEach(id=>{const e=$('#'+id);e.classList.add('hot');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('hot'),1000);});
+const fB=x=>P.A*(Math.sin(P.k*x)+.5*P.h*Math.sin(2*P.k*x));
+function stats(){let lo=1e9,hi=-1e9,sl=0;for(let i=0;i<=400;i++){const x=-TAU+2*TAU*i/400,y=fB(x);lo=Math.min(lo,y);hi=Math.max(hi,y);sl=Math.max(sl,Math.abs((fB(x+.001)-fB(x-.001))/.002));}return{lo,hi,sl};}
+function readouts(){const s=stats();$('#rPitch').textContent=Math.round(440*Math.pow(2,s.lo))+'–'+Math.round(440*Math.pow(2,s.hi))+' Hz';$('#rOsc').textContent=String(Math.round(P.k*2));$('#rBri').textContent=s.sl.toFixed(1);$('#mBri').style.width=Math.min(100,s.sl/8*100)+'%';}
+KN.forEach(([key,name,min,max,step,hint,map])=>{const k=el('div','knob'),l=el('label'),v=el('span',null,String(P[key]));l.append(el('b',null,name),v);const r=document.createElement('input');r.type='range';r.min=min;r.max=max;r.step=step;r.value=P[key];r.setAttribute('aria-label',name);
+ r.oninput=()=>{P[key]=+r.value;v.textContent=(+r.value).toFixed(key==='h'?2:1);readouts();hot(map,...(key==='k'?['m-steep']:[]));};k.append(l,r,el('small',null,hint));$('#knobs').append(k);});
+readouts();
+let playB=0,ac,osc,gn;
+$('#playB').onclick=()=>{if(playB){return;}ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();osc=ac.createOscillator();gn=ac.createGain();osc.type='sine';gn.gain.value=.0001;osc.connect(gn).connect(ac.destination);osc.start();gn.gain.setTargetAtTime(.1,ac.currentTime,.05);playB=performance.now();hot('m-height','m-width');};
+const xB=$('#cB').getContext('2d');
+function drawB(now){const c=xB,W=720,H=420,s=stats(),peak=Math.max(1.2,Math.abs(s.lo),Math.abs(s.hi)),amp=H*.4/peak;c.fillStyle='#07070a';c.fillRect(0,0,W,H);axes(c,W,H);
+ let u=1;if(playB){u=(now-playB)/3600;if(u>=1){playB=0;try{gn.gain.setTargetAtTime(.0001,ac.currentTime,.05);osc.stop(ac.currentTime+.1);}catch(e){}u=1;}}
+ if(playB){c.strokeStyle='rgba(255,255,255,.16)';c.lineWidth=2;curve(c,fB,W,H,amp,1);c.stroke();glow(c,()=>curve(c,fB,W,H,amp,u),3);const x=-TAU+2*TAU*u,y=fB(x);dot(c,W*u,H/2-y*amp,6);osc.frequency.setTargetAtTime(440*Math.pow(2,y),ac.currentTime,.02);}
+ else glow(c,()=>curve(c,fB,W,H,amp,1),3);}
+
+/* ---------------- C: the signal chain ---------------- */
+const NODES=[['01','Equation','The text you type becomes a rule the computer can read.'],['02','Samples','The rule is checked at hundreds of points across the domain.'],['03','Slope','At each point we also measure how steep the curve is.'],['04','Mapping','Height becomes pitch. Steepness becomes brightness.'],['05','Sound','A synthesizer plays that pitch as the scanner moves.']];
+let curC=0,autoC=true,tC=performance.now();
+NODES.forEach(([n,t],i)=>{if(i){const l=el('div','link');l.setAttribute('aria-hidden','true');$('#chain').append(l);}const b=el('button','node'+(i?'':' on'));b.type='button';b.append(el('i',null,n),el('b',null,t));b.onclick=()=>{autoC=false;setC(i);};$('#chain').append(b);});
+function setC(i){curC=i;tC=performance.now();document.querySelectorAll('.node').forEach((n,j)=>n.classList.toggle('on',j===i));$('#cT').textContent=NODES[i][1];$('#cP').textContent=NODES[i][2];}
+setC(0);setInterval(()=>{if(autoC&&on('dC'))setC((curC+1)%5);},5200);
+const xC=$('#cC').getContext('2d');
+function drawC(now){const c=xC,W=720,H=360,t=(now-tC)/1000,amp=H*.32,u=RM?.4:((now/1000)%4)/4,x=-TAU+2*TAU*u,y=Math.sin(x);c.fillStyle='#07070a';c.fillRect(0,0,W,H);
+ if(curC===0){const tk=['sin','(','x',')'];c.font='600 34px "JetBrains Mono",monospace';c.textAlign='center';tk.forEach((s,i)=>{const a=ease(t*1.6-i*.35);c.fillStyle='rgba(255,255,255,'+a+')';c.fillText(s,W/2-90+i*60,100);});
+  const a2=ease(t*1.4-1.6);c.strokeStyle='rgba(245,166,35,'+a2+')';c.lineWidth=2;c.strokeRect(W/2-52,200,104,46);c.strokeRect(W/2-52,290,104,40);c.beginPath();c.moveTo(W/2,246);c.lineTo(W/2,290);c.stroke();c.font='600 18px "JetBrains Mono",monospace';c.fillStyle='rgba(255,255,255,'+a2+')';c.fillText('sin',W/2,230);c.fillText('x',W/2,317);c.font='13px Inter,sans-serif';c.fillStyle='rgba(154,154,162,'+a2+')';c.fillText('a small tree the computer can follow',W/2,350);}
+ else{axes(c,W,H);c.strokeStyle='rgba(255,255,255,.16)';c.lineWidth=2;curve(c,Math.sin,W,H,amp,1);c.stroke();
+  if(curC===1){const n=RM?60:Math.floor(ease(t/2.6)*60);for(let i=0;i<=n;i++){const xx=-TAU+2*TAU*i/60;dot2(c,W*i/60,H/2-Math.sin(xx)*amp);}c.font='13px "JetBrains Mono",monospace';c.fillStyle='#9A9AA2';c.textAlign='left';c.fillText('800 samples in the real thing',16,24);}
+  if(curC>=2){glow(c,()=>curve(c,Math.sin,W,H,amp,u),3);dot(c,W*u,H/2-y*amp,6);}
+  if(curC===2){tangent(c,Math.sin,Math.cos,x,W,H,amp,46);c.font='600 13px "JetBrains Mono",monospace';c.fillStyle='#9A9AA2';c.textAlign='left';c.fillText('slope  dy/dx = '+Math.cos(x).toFixed(2),16,24);}
+  if(curC===3){const sx=W-46;c.strokeStyle='rgba(255,255,255,.2)';c.lineWidth=2;c.beginPath();c.moveTo(sx,30);c.lineTo(sx,H-30);c.stroke();c.font='11px "JetBrains Mono",monospace';c.textAlign='right';c.fillStyle='#9A9AA2';c.fillText('880 Hz',sx-10,38);c.fillText('220 Hz',sx-10,H-26);const my=H-30-(y+1)/2*(H-60);c.setLineDash([4,6]);c.strokeStyle='rgba(245,166,35,.7)';c.lineWidth=1;c.beginPath();c.moveTo(W*u,H/2-y*amp);c.lineTo(sx,my);c.stroke();c.setLineDash([]);dot(c,sx,my,5);c.fillStyle='#fff';c.font='600 15px "JetBrains Mono",monospace';c.textAlign='right';c.fillText(Math.round(hz(y))+' Hz',sx-10,my-10);}
+  if(curC===4){const f=hz(y)/80;c.strokeStyle='rgba(255,255,255,.9)';c.lineWidth=2;c.beginPath();for(let i=0;i<=W;i+=3){const yy=H-52+Math.sin(i/W*TAU*f+now/120)*26;i?c.lineTo(i,yy):c.moveTo(i,yy);}c.stroke();c.font='12px "JetBrains Mono",monospace';c.fillStyle='#9A9AA2';c.textAlign='left';c.fillText('the sound wave: '+Math.round(hz(y))+' Hz',16,24);}}}
+function dot2(c,x,y){c.fillStyle='#F5A623';c.beginPath();c.arc(x,y,3,0,TAU);c.fill();}
+function loop(now){if(on('dA'))drawA(now);if(on('dB'))drawB(now);if(on('dC'))drawC(now);requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+</script></body></html>

@@ -15,6 +15,10 @@ import { audioEngine } from '../utils/audioEngine';
 import { resolveActiveCurve } from '../utils/activeCurve';
 import StudioErrorBoundary from './Studio/StudioErrorBoundary';
 
+import { getEquationOfTheDay } from '../lib/equationOfTheDay';
+import { sortPresets, type EquationPreset } from '../data/presets';
+import { parseEquation } from '../utils/equationParser';
+
 // The 3D viewer is no longer dev-only: it is a mode of the shared GraphPanel and
 // ships to real users. The old `Curve3DDevPanel` harness has been retired — the
 // panel itself is the single reusable implementation.
@@ -122,6 +126,56 @@ function StudioInner() {
           useStudioStore.getState().setActiveScientist(sci, eqNameParam);
         }
       }).catch(() => {});
+    }
+
+    // Equation of the Day: when no explicit eq/sci, open with a deterministic pick.
+    if (!eqParam && !sciParam) {
+      // Build the usable list ONCE: presets that parse and give a finite curve
+      // on their default domain (Funny Questions included).
+      const usable: EquationPreset[] = [];
+      const sorted = sortPresets();
+      for (const preset of sorted) {
+        const res = parseEquation(preset.equation);
+        if (!res.success || !res.evaluate) continue;
+        const { minX, maxX } = preset.recommendedSettings;
+        let finite = false;
+        try {
+          for (const tp of [minX, (minX + maxX) / 2, maxX]) {
+            const yy = res.evaluate(tp);
+            if (typeof yy === 'number' && Number.isFinite(yy)) { finite = true; break; }
+          }
+        } catch {
+          finite = false;
+        }
+        if (finite) usable.push(preset);
+      }
+
+      // DEV-only preview date
+      let now: number = Date.now();
+      if (import.meta.env.DEV) {
+        const eodDate = urlParams.get('eodDate');
+        if (eodDate && /^\d{4}-\d{2}-\d{2}$/.test(eodDate)) {
+          const [y, m, d] = eodDate.split('-').map(Number);
+          now = new Date(y, m - 1, d, 12, 0, 0).getTime();
+        }
+      }
+
+      const pick = getEquationOfTheDay(now, usable) as EquationPreset | undefined;
+      if (pick) {
+        const s = useStudioStore.getState();
+        s.setEquation(pick.equation);
+        s.setOriginalEquation(pick.equation);
+        const rs = pick.recommendedSettings;
+        if (rs.minX !== undefined) s.setMinX(rs.minX);
+        if (rs.maxX !== undefined) s.setMaxX(rs.maxX);
+        if (rs.instrument) s.setInstrument(rs.instrument as InstrumentType);
+        if (rs.sonificationMode) s.setSonificationMode(rs.sonificationMode as SonificationMode);
+        if (rs.duration) s.setDuration(rs.duration);
+        if (rs.minFreq) s.setMinFreq(rs.minFreq);
+        if (rs.maxFreq) s.setMaxFreq(rs.maxFreq);
+        if (rs.scale) s.setScale(rs.scale as any);
+        s.setActiveScientist(null, pick.name);
+      }
     }
   }, [setEquation, setOriginalEquation, setInstrument, setSonificationMode, setDuration, setMinX, setMaxX]);
 
@@ -295,6 +349,7 @@ function StudioInner() {
       <motion.div variants={entranceItem} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Equation Input & Audio Controls (5 cols) */}
         <div className="lg:col-span-5 space-y-6 w-full min-w-0">
+          <PasteCard />
           <div className="panel p-5 sm:p-6 border-t-2 border-sc-accent/60">
             <EquationInput />
           </div>
