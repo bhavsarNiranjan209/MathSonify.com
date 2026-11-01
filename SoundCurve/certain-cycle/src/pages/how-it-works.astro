@@ -44,12 +44,12 @@ import HowItWorksExperience from '../components/HowItWorks/HowItWorksExperience.
       <div class="hwi-wash hwi-wash-b"></div>
     </div>
 
-    <!-- ── hero ── -->
+    <!-- ── HERO (H1) ── -->
     <section class="max-w-5xl mx-auto">
       <div
         class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-6"
       >
-        try it yourself
+        Interactive demo
       </div>
       <h1 class="font-serif text-4xl sm:text-6xl font-semibold text-sc-text tracking-tight leading-[1.05]">
         How math becomes music
@@ -59,7 +59,171 @@ import HowItWorksExperience from '../components/HowItWorks/HowItWorksExperience.
         that curve played. The scanner walks from left to right, and every point
         it passes becomes a note.
       </p>
+
+      <!-- Glowing curve art + "A CURVE / A JOURNEY / A SOUND" -->
+      <div class="mt-10 relative" aria-hidden="true">
+        <canvas
+          id="hero-canvas"
+          class="w-full aspect-[16/9] max-h-[360px] rounded-lg"
+          role="img"
+          aria-label="Animated glowing curve demonstrating math-to-sound transformation"
+        ></canvas>
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div class="flex flex-col items-center gap-1 text-center px-4">
+            <span class="font-mono text-xs tracking-widest text-sc-accent/70 uppercase">A CURVE</span>
+            <span class="font-mono text-xs tracking-widest text-sc-text-faint uppercase">/ A JOURNEY</span>
+            <span class="font-mono text-xs tracking-widest text-sc-accent/70 uppercase">/ A SOUND</span>
+          </div>
+        </div>
+      </div>
     </section>
+
+    <script>
+      // Hero canvas: animated glowing curve (static, no interaction)
+      // Uses the same math-to-sound mapping concept: x → time, y → pitch
+      const heroCanvas = document.getElementById('hero-canvas');
+      if (heroCanvas) {
+        const ctx = heroCanvas.getContext('2d');
+        if (ctx) {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          let width = 0, height = 0;
+          let raf = 0;
+          let t = 0;
+          let reducedMotion = false;
+
+          const checkReducedMotion = () => {
+            const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+            reducedMotion = query.matches;
+            query.addEventListener?.('change', (e) => { reducedMotion = e.matches; });
+          };
+          checkReducedMotion();
+
+          const resize = () => {
+            const rect = heroCanvas.getBoundingClientRect();
+            width = rect.width;
+            height = rect.height;
+            heroCanvas.width = Math.floor(width * dpr);
+            heroCanvas.height = Math.floor(height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          };
+          resize();
+          new ResizeObserver(resize).observe(heroCanvas);
+
+          // Theme-aware colors
+          const getColors = () => {
+            const isDark = document.documentElement.classList.contains('dark') ||
+              !document.documentElement.classList.contains('light');
+            return isDark
+              ? { glow: 'rgba(232,232,230,0.10)', accent: '#E8E8E6', accentSoft: 'rgba(232,232,230,0.55)', head: '#FFFFFF', trail: 'rgba(232,232,230,0.38)', ink: '#F2F2F0', faint: 'rgba(167,171,176,0.75)' }
+              : { glow: 'rgba(27,36,48,0.07)', accent: '#1B2430', accentSoft: 'rgba(27,36,48,0.55)', head: '#1B2430', trail: 'rgba(27,36,48,0.34)', ink: '#1B2430', faint: 'rgba(64,64,64,0.78)' };
+          };
+
+          // Curve function: sin(x) + 0.5*sin(3x) — visually interesting
+          const sampleCurve = (phase) => {
+            const pts = [];
+            const n = 400;
+            for (let i = 0; i <= n; i++) {
+              const x = -6 + (12 * i) / n;
+              const y = Math.sin(x + phase) + 0.5 * Math.sin(3 * x + phase * 1.3);
+              pts.push({ x, y });
+            }
+            return pts;
+          };
+
+          const draw = () => {
+            raf = requestAnimationFrame(draw);
+            if (width <= 0 || height <= 0) return;
+
+            const ink = getColors();
+            ctx.clearRect(0, 0, width, height);
+
+            // Soft radial glow
+            const glow = ctx.createRadialGradient(width / 2, height * 0.42, 0, width / 2, height * 0.42, Math.max(width, height) * 0.72);
+            glow.addColorStop(0, ink.glow);
+            glow.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(0, 0, width, height);
+
+            const pts = sampleCurve(t);
+            const padX = 30, padY = 24;
+            const usableW = Math.max(1, width - padX * 2);
+            const usableH = Math.max(1, height - padY * 2);
+            const project = (x, y) => ({
+              sx: padX + ((x + 6) / 12) * usableW,
+              sy: padY + usableH / 2 - y * (usableH / 2.6),
+            });
+
+            // Zero line
+            const zero = project(0, 0);
+            ctx.beginPath();
+            ctx.moveTo(0, zero.sy);
+            ctx.lineTo(width, zero.sy);
+            ctx.strokeStyle = ink.faint;
+            ctx.globalAlpha = 0.16;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            // Full curve faint
+            ctx.beginPath();
+            let pen = false;
+            for (const p of pts) {
+              const { sx, sy } = project(p.x, p.y);
+              if (pen) ctx.lineTo(sx, sy);
+              else { ctx.moveTo(sx, sy); pen = true; }
+            }
+            ctx.strokeStyle = ink.faint;
+            ctx.lineWidth = 1.6;
+            ctx.stroke();
+
+            // Travelling head + trail
+            if (!reducedMotion) {
+              t += 0.008;
+              const headIndex = Math.floor((Math.sin(t * 0.5) * 0.5 + 0.5) * (pts.length - 1));
+              const trailStart = Math.max(0, headIndex - 60);
+              for (let i = trailStart; i < headIndex; i++) {
+                const a = pts[i], b = pts[i + 1];
+                const p1 = project(a.x, a.y), p2 = project(b.x, b.y);
+                const age = (i - trailStart) / Math.max(1, headIndex - trailStart);
+                ctx.beginPath();
+                ctx.moveTo(p1.sx, p1.sy);
+                ctx.lineTo(p2.sx, p2.sy);
+                ctx.strokeStyle = ink.trail;
+                ctx.globalAlpha = 0.55 * (1 - age);
+                ctx.lineWidth = 3.4;
+                ctx.stroke();
+              }
+              ctx.globalAlpha = 1;
+
+              const head = project(pts[headIndex].x, pts[headIndex].y);
+              ctx.beginPath();
+              ctx.arc(head.sx, head.sy, 10, 0, Math.PI * 2);
+              ctx.fillStyle = ink.glow;
+              ctx.fill();
+              ctx.beginPath();
+              ctx.arc(head.sx, head.sy, 3.4, 0, Math.PI * 2);
+              ctx.fillStyle = ink.head;
+              ctx.fill();
+            } else {
+              // Reduced motion: static curve, no animation
+              ctx.strokeStyle = ink.accent;
+              ctx.lineWidth = 2.2;
+              ctx.stroke();
+            }
+          };
+
+          draw();
+
+          // Theme change handling
+          const onThemeChange = () => {
+            // Just trigger a redraw by letting the next frame pick up new colors
+          };
+          document.addEventListener('astro:after-swap', onThemeChange);
+          // Cleanup on page unload (not strictly needed for SPA but good practice)
+          window.addEventListener('beforeunload', () => cancelAnimationFrame(raf));
+        }
+      }
+    </script>
 
     <!--
       THE EXPERIENCE. This is the page. Everything above is a short preamble and
@@ -139,7 +303,7 @@ import HowItWorksExperience from '../components/HowItWorks/HowItWorksExperience.
             hear the masters
           </span>
           <span class="mt-2 font-serif text-xl text-sc-text">
-            Scientists &amp; mathematicians
+            Scientists & mathematicians
           </span>
           <span class="mt-2 text-sm text-sc-text-soft leading-relaxed flex-1">
             Euler, Fourier, Curie and a hundred more — each with the equations
