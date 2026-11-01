@@ -4,11 +4,14 @@ import GuessCurveReveal from './Guess/GuessCurveReveal';
 import GuessConfetti from './Guess/GuessConfetti';
 import GuessDailyCard from './Guess/GuessDailyCard';
 import GuessDailyFinish from './Guess/GuessDailyFinish';
+import GuessDifficultyChooser from './Guess/GuessDifficultyChooser';
 import { GUESS_ROUNDS_PER_PLAY, buildPlaythrough, type GuessRound } from '../utils/guessRounds';
 import {
+  GUESS_LIBRARY,
   GUESS_FAMILIES,
   GUESS_FAMILY_ACCENT,
   type GuessEquation,
+  type GuessDifficulty,
 } from '../data/guessLibrary';
 import {
   feedbackFor,
@@ -83,7 +86,21 @@ type RoundResult = 'correct' | 'wrong' | null;
 export default function GuessGame() {
   const { t } = useTranslation();
 
-  const [rounds, setRounds] = useState<GuessRound[]>(() => buildPlaythrough());
+  /**
+   * Normal-play difficulty. `null` means "all 30 equations" — the default the
+   * game shipped with. Choosing Easy/Medium/Hard restricts the deck to that
+   * tier's families via `libraryForDifficulty`, so a Hard game never asks you
+   * to tell `sin(x)` from `cos(x)`.
+   *
+   * The chooser is a pre-game control: it is enabled only before a normal game
+   * has started (or after one has finished), and disabled the moment a round
+   * is playing, so a mid-game click cannot restart the deck out from under the
+   * player. `gameStarted` is the flag that gates it.
+   */
+  const [difficulty, setDifficulty] = useState<GuessDifficulty | null>(null);
+  const [gameStarted, setGameStarted] = useState(false);
+
+  const [rounds, setRounds] = useState<GuessRound[]>(() => []);
   const [roundIndex, setRoundIndex] = useState(0);
   /** The option the player clicked this round, or null while still answering. */
   const [chosenId, setChosenId] = useState<string | null>(null);
@@ -372,14 +389,16 @@ export default function GuessGame() {
   };
 
   /**
-   * A fresh shuffled deck — score, streak and the results strip all reset.
+   * Start a normal (non-daily) game at the chosen difficulty.
    *
-   * `buildPlaythrough()` is called again here rather than reusing the previous
-   * rounds, so every replay is an independently shuffled game.
+   * `buildPlaythrough` is called here rather than in the chooser, so the deck
+   * is built fresh every time and each game is independently shuffled. The
+   * chooser only picks the tier; this is where the actual 10 questions exist.
    */
-  const handlePlayAgain = () => {
+  const handleStartGame = (nextDifficulty: GuessDifficulty | null) => {
     stopAudio();
-    setRounds(buildPlaythrough());
+    setDifficulty(nextDifficulty);
+    setRounds(buildPlaythrough(GUESS_LIBRARY, Math.random, GUESS_ROUNDS_PER_PLAY, nextDifficulty));
     setRoundIndex(0);
     setChosenId(null);
     setResults(new Array(GUESS_ROUNDS_PER_PLAY).fill(null));
@@ -390,6 +409,32 @@ export default function GuessGame() {
     setAudioError('');
     setDailyMode(false);
     setDailyAttemptUsed(false);
+    setGameStarted(true);
+  };
+
+  /**
+   * A fresh shuffled deck — score, streak and the results strip all reset.
+   *
+   * `buildPlaythrough()` is called again here rather than reusing the previous
+   * rounds, so every replay is an independently shuffled game. The current
+   * difficulty is preserved, so "Play again" from the end screen keeps the
+   * tier the player chose rather than resetting to all 30. `gameStarted` is
+   * cleared so the chooser re-appears and the player can pick a different tier.
+   */
+  const handlePlayAgain = () => {
+    stopAudio();
+    setRounds(buildPlaythrough(GUESS_LIBRARY, Math.random, GUESS_ROUNDS_PER_PLAY, difficulty));
+    setRoundIndex(0);
+    setChosenId(null);
+    setResults(new Array(GUESS_ROUNDS_PER_PLAY).fill(null));
+    setScore(0);
+    setStreak(0);
+    setFinished(false);
+    setBigCelebration(false);
+    setAudioError('');
+    setDailyMode(false);
+    setDailyAttemptUsed(false);
+    setGameStarted(false);
   };
 
   /**
@@ -414,6 +459,7 @@ export default function GuessGame() {
     setAudioError('');
     setDailyMode(true);
     setDailyAttemptUsed(false);
+    setGameStarted(false);
   };
 
   /* ── End of game ──────────────────────────────────────────────────── */
@@ -456,6 +502,41 @@ export default function GuessGame() {
         <button type="button" onClick={handlePlayAgain} className="btn-primary px-6 py-3 mt-8">
           {t('guess.playAgain')}
         </button>
+      </section>
+    );
+  }
+
+  /**
+   * Pre-game empty state: no normal game has started yet, so there is nothing
+   * to render here but the chooser and the daily card. `round` is undefined at
+   * this point, so the round-render path below would bail with `null` — which
+   * is correct, but spelling it out means the chooser is the only thing on
+   * screen rather than a silent empty section.
+   */
+  if (!gameStarted && !dailyMode && rounds.length === 0) {
+    return (
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+        <div className="text-center mb-8">
+          <p className="font-mono text-xs uppercase tracking-widest text-sc-text-faint">
+            {t('guess.preGame.tag')}
+          </p>
+          <h1 className="mt-2 font-serif text-2xl sm:text-3xl text-sc-text">
+            {t('guess.preGame.title')}
+          </h1>
+          <p className="mt-2 text-sm text-sc-text-soft">
+            {t('guess.preGame.subtitle')}
+          </p>
+        </div>
+
+        <GuessDifficultyChooser
+          value={difficulty}
+          onChange={handleStartGame}
+          disabled={false}
+        />
+
+        <div className="mt-8">
+          <GuessDailyCard onDailyStart={handleDailyStart} />
+        </div>
       </section>
     );
   }
@@ -532,6 +613,17 @@ export default function GuessGame() {
           </div>
         </div>
       </div>
+
+      {/* ── Difficulty chooser (normal play, before a game starts) ──────── */}
+      {!dailyMode && !gameStarted && (
+        <div className="mt-8">
+          <GuessDifficultyChooser
+            value={difficulty}
+            onChange={handleStartGame}
+            disabled={false}
+          />
+        </div>
+      )}
 
       {/* ── Daily challenge card (beside normal play) ──────────────────── */}
       <div className="mt-8">

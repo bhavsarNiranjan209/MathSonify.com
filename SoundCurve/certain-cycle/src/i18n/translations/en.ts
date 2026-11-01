@@ -111,6 +111,12 @@ const en = {
   'guess.grade.learning': 'Good progress. The near-miss rounds are where the learning is.',
   'guess.grade.beginning': 'A solid start. Play again and let the families separate in your ear.',
   'guess.playAgain': 'Play again',
+  'guess.preGame.tag': 'Normal play',
+  'guess.preGame.title': 'Pick a difficulty',
+  'guess.preGame.subtitle': 'Choose a tier, or play the full 30-equation library.',
+  'guess.difficulty.tag': 'Difficulty',
+  'guess.difficulty.subtitle': 'Easy fundamentals, Medium interference and percussion, or Hard sweeps, decays and windowed shapes.',
+  'guess.difficulty.all': 'All 30',
   // Daily challenge card — sits beside normal play on /guess
   'guess.daily.tag': 'Daily challenge',
   'guess.daily.title': 'Daily challenge',

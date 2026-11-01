@@ -27,6 +27,13 @@ export type GuessFamily = 'trig' | 'beat' | 'chirp' | 'perc' | 'decay' | 'shape'
 
 export type GuessDifficulty = 'Easy' | 'Medium' | 'Hard';
 
+/** Human labels for the difficulty chooser buttons. */
+export const GUESS_DIFFICULTY_LABELS: Record<GuessDifficulty, string> = {
+  Easy: 'Easy',
+  Medium: 'Medium',
+  Hard: 'Hard',
+};
+
 export interface GuessEquation {
   /** Unique, stable, and used as the React key. */
   id: string;
