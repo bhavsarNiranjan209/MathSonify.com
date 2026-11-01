@@ -111,6 +111,19 @@ const en = {
   'guess.grade.learning': 'Good progress. The near-miss rounds are where the learning is.',
   'guess.grade.beginning': 'A solid start. Play again and let the families separate in your ear.',
   'guess.playAgain': 'Play again',
+  // Daily challenge card — sits beside normal play on /guess
+  'guess.daily.tag': 'Daily challenge',
+  'guess.daily.title': 'Daily challenge',
+  'guess.daily.subtitle': 'One worldwide game per day, on the US Eastern clock. Same questions for everyone.',
+  'guess.daily.playToday': 'Play today',
+  'guess.daily.playedToday': 'Played today',
+  'guess.daily.streak': 'Streak',
+  'guess.daily.nextIn': 'Next challenge in',
+  'guess.daily.finishTag': 'Daily result',
+  'guess.daily.finishDate': 'Daily ·',
+  'guess.daily.finishStripLabel': 'Answer strip',
+  'guess.daily.share': 'Share result',
+  'guess.daily.copied': 'Copied',
   // End-game tiers. Grade and message per band, ported from the reference.
   // The low band is deliberately encouraging — it must never read as punishment.
   'guess.tier.perfect.grade': 'Perfect pitch?! 🏆',

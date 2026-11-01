@@ -2,8 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import GuessCurveReveal from './Guess/GuessCurveReveal';
 import GuessConfetti from './Guess/GuessConfetti';
+import GuessDailyCard from './Guess/GuessDailyCard';
+import GuessDailyFinish from './Guess/GuessDailyFinish';
 import { GUESS_ROUNDS_PER_PLAY, buildPlaythrough, type GuessRound } from '../utils/guessRounds';
-import { GUESS_FAMILIES, GUESS_FAMILY_ACCENT, type GuessEquation } from '../data/guessLibrary';
+import {
+  GUESS_FAMILIES,
+  GUESS_FAMILY_ACCENT,
+  type GuessEquation,
+} from '../data/guessLibrary';
 import {
   feedbackFor,
   gradeFor,
@@ -21,6 +27,7 @@ import { CURVE_SAMPLE_COUNT } from '../utils/activeCurve';
 import { sampleEquationDetailed } from '../utils/equationParser';
 import { equationLabel } from '../utils/equationLabel';
 import { useTranslation } from '../i18n/index';
+import { writeDailyResult } from '../utils/guessDaily';
 
 /**
  * How long a round's equation is heard for. Short enough to replay freely,
@@ -94,6 +101,26 @@ export default function GuessGame() {
   const [burstKey, setBurstKey] = useState(0);
   /** True only for the large end-of-game celebration. */
   const [bigCelebration, setBigCelebration] = useState(false);
+
+/**
+   * The current game's mode: normal (shuffle your own deck) or daily (built by
+   * `buildDailyRounds`, same questions for everyone on this date).
+   *
+   * The distinction is load-bearing: a daily attempt is consumed the moment the
+   * FIRST answer is given, so a player who closes the tab mid-round cannot
+   * replay the same day. `dailyAttemptUsed` is what enforces that — it is set
+   * inside `handleChoose` before any state that depends on it.
+   */
+  const [dailyMode, setDailyMode] = useState(false);
+  const [dailyAttemptUsed, setDailyAttemptUsed] = useState(false);
+
+  /**
+   * The running tally of daily answers, kept in a ref rather than state because
+   * it is written to localStorage on every answer and never needs to trigger a
+   * re-render. State would batch these writes and lose the "consumed at the
+   * first answer" property.
+   */
+  const dailyResultsRef = useRef<boolean[]>(new Array(GUESS_ROUNDS_PER_PLAY).fill(false));
 
   const round = rounds[roundIndex];
   const answered = chosenId !== null;
@@ -205,6 +232,15 @@ export default function GuessGame() {
     // Lock on the first answer: no re-answering, no score farming.
     if (!round || answered) return;
 
+    // A daily attempt is consumed the moment the FIRST answer is given. This
+    // happens BEFORE any state that depends on it, so a player who closes the
+    // tab mid-round cannot replay the same day — the storage write is the
+    // single source of truth, and `dailyAttemptUsed` is just the in-memory
+    // mirror that keeps the card's button disabled during the round.
+    if (dailyMode && !dailyAttemptUsed) {
+      setDailyAttemptUsed(true);
+    }
+
     // Silence the clip BEFORE revealing. Otherwise the tail of the previous audio
     // plays under the reveal and it reads as two things happening at once.
     stopAudio();
@@ -225,6 +261,14 @@ export default function GuessGame() {
       next[roundIndex] = wasCorrect ? 'correct' : 'wrong';
       return next;
     });
+
+    // Persist the daily answer immediately. The ref (not state) is used so the
+    // write is never coalesced away by a batched update — the attempt must be
+    // consumed even if the tab is closed mid-round.
+    if (dailyMode) {
+      dailyResultsRef.current[roundIndex] = wasCorrect;
+      writeDailyResult(dailyResultsRef.current.slice());
+    }
   };
 
   /*
@@ -344,12 +388,45 @@ export default function GuessGame() {
     setFinished(false);
     setBigCelebration(false);
     setAudioError('');
+    setDailyMode(false);
+    setDailyAttemptUsed(false);
+  };
+
+  /**
+   * Start the worldwide daily challenge.
+   *
+   * `buildDailyRounds()` reads the clock to pick today's key, so the same 10
+   * questions come back for every player on the same Eastern date. The attempt
+   * is NOT consumed here — it is consumed the moment the first answer is given,
+   * inside `handleChoose`, so a player who closes the tab mid-round has lost
+   * nothing and can come back to the same game.
+   */
+  const handleDailyStart = (nextRounds: GuessRound[]) => {
+    stopAudio();
+    setRounds(nextRounds);
+    setRoundIndex(0);
+    setChosenId(null);
+    setResults(new Array(GUESS_ROUNDS_PER_PLAY).fill(null));
+    setScore(0);
+    setStreak(0);
+    setFinished(false);
+    setBigCelebration(false);
+    setAudioError('');
+    setDailyMode(true);
+    setDailyAttemptUsed(false);
   };
 
   /* ── End of game ──────────────────────────────────────────────────── */
   if (finished) {
     const tier = tierFor(score, GUESS_ROUNDS_PER_PLAY);
     const bursts = TIER_BURSTS[tier];
+
+    // Daily games get their own finish screen: the score, the 🟩🟥 strip, a
+    // share button, the updated streak and a live countdown to the next day.
+    // Normal play falls back to the tier celebration card below.
+    if (dailyMode) {
+      return <GuessDailyFinish score={score} results={results} streak={streak} onPlayAgain={handlePlayAgain} />;
+    }
 
     return (
       <section
@@ -454,6 +531,11 @@ export default function GuessGame() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ── Daily challenge card (beside normal play) ──────────────────── */}
+      <div className="mt-8">
+        <GuessDailyCard onDailyStart={handleDailyStart} />
       </div>
 
       {/* ── Prompt + play ───────────────────────────────────────────── */}
