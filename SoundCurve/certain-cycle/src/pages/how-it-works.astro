@@ -20,7 +20,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Navigation from '../components/Navigation.astro';
 import Footer from '../components/Footer.astro';
-import HowItWorksExperience from '../components/HowItWorks/HowItWorksExperience.tsx';
+import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
 ---
 
 <BaseLayout
@@ -225,13 +225,9 @@ import HowItWorksExperience from '../components/HowItWorks/HowItWorksExperience.
       }
     </script>
 
-    <!--
-      THE EXPERIENCE. This is the page. Everything above is a short preamble and
-      everything below is elaboration, so the visitor meets a working
-      demonstration within one scroll instead of a specification.
-    -->
+    <!-- ── TWO-CARD DEMO (H2 + H3) ── -->
     <section class="max-w-5xl mx-auto mt-10 sm:mt-14">
-      <HowItWorksExperience client:load />
+      <HowItWorksDemo client:load />
     </section>
 
     <!-- ── the transformation, stated as a journey ── -->
