@@ -277,61 +277,85 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
     <!-- PLACEHOLDER_UNDER_THE_HOOD -->
 
     <!--
-      CLOSING — two ways to go deeper, then the same CTA the rest of the site
-      ends on. Plain Astro markup: zero JavaScript ships for this section, which
-      keeps the page's "one island" rule intact.
+      CLOSING — three link cards with line-art + Open the Studio button.
+      Plain Astro markup: zero JavaScript ships for this section.
     -->
     <section class="max-w-5xl mx-auto mt-24 sm:mt-32" aria-labelledby="hwi-deeper">
       <h2 id="hwi-deeper" class="font-serif text-2xl sm:text-3xl font-semibold text-sc-text">
-        Where this goes next
+        Continue the journey
       </h2>
       <p class="mt-3 text-sm text-sc-text-soft leading-relaxed max-w-2xl">
         You have heard one curve become sound. The rest of MathSonify points the
         same transformation at everything else.
       </p>
 
-      <div class="mt-8 grid gap-4 sm:grid-cols-2">
+      <div class="mt-8 grid gap-4 sm:grid-cols-3">
+        <!-- Card 1: Scientists -->
         <a
           href="/scientists"
-          class="panel group flex flex-col p-6 rounded hover:border-sc-accent/50 transition-colors duration-300"
+          class="panel group flex flex-col p-6 rounded hover:border-sc-accent/50 transition-colors duration-300 relative overflow-hidden"
         >
-          <span class="font-mono text-[10px] uppercase tracking-wider text-sc-accent">
-            hear the masters
+          <!-- Line-art background -->
+          <svg class="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500" viewBox="0 0 200 200" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="currentColor" />
+                <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M20,100 Q50,60 80,100 T140,100 T200,100" stroke="url(#grad1)" stroke-width="1.5" fill="none" stroke-linecap="round" />
+            <path d="M20,130 Q50,90 80,130 T140,130 T200,130" stroke="url(#grad1)" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.6" />
+            <circle cx="80" cy="100" r="8" fill="currentColor" opacity="0.3" />
+          </svg>
+          <span class="font-mono text-[10px] uppercase tracking-wider text-sc-accent relative z-10">hear the masters</span>
+          <span class="mt-2 font-serif text-xl text-sc-text relative z-10">Scientists & mathematicians</span>
+          <span class="mt-2 text-sm text-sc-text-soft leading-relaxed flex-1 relative z-10">
+            Euler, Fourier, Curie and more — their equations, ready to hear.
           </span>
-          <span class="mt-2 font-serif text-xl text-sc-text">
-            Scientists & mathematicians
-          </span>
-          <span class="mt-2 text-sm text-sc-text-soft leading-relaxed flex-1">
-            Euler, Fourier, Curie and a hundred more — each with the equations
-            they left behind, ready to hear.
-          </span>
-          <span class="mt-5 font-mono text-xs text-sc-text-soft transition-colors group-hover:text-sc-accent">
-            Browse the archive <span aria-hidden="true">→</span>
-          </span>
+          <span class="mt-5 font-mono text-xs text-sc-text-soft transition-colors group-hover:text-sc-accent relative z-10">Browse the archive <span aria-hidden="true">→</span></span>
         </a>
 
+        <!-- Card 2: Equation Reference -->
         <a
           href="/equations"
-          class="panel group flex flex-col p-6 rounded hover:border-sc-accent/50 transition-colors duration-300"
+          class="panel group flex flex-col p-6 rounded hover:border-sc-accent/50 transition-colors duration-300 relative overflow-hidden"
         >
-          <span class="font-mono text-[10px] uppercase tracking-wider text-sc-accent">
-            mathematical catalog
+          <svg class="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500" viewBox="0 0 200 200" preserveAspectRatio="none" aria-hidden="true">
+            <rect x="20" y="40" width="160" height="120" rx="8" stroke="currentColor" stroke-width="1.5" fill="none" />
+            <path d="M40,100 Q80,70 100,100 T160,100" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" />
+            <path d="M40,120 Q80,90 100,120 T160,120" stroke="currentColor" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.6" />
+            <line x1="60" y1="60" x2="140" y2="60" stroke="currentColor" stroke-width="1" stroke-dasharray="4,4" opacity="0.5" />
+          </svg>
+          <span class="font-mono text-[10px] uppercase tracking-wider text-sc-accent relative z-10">mathematical catalog</span>
+          <span class="mt-2 font-serif text-xl text-sc-text relative z-10">Equation reference</span>
+          <span class="mt-2 text-sm text-sc-text-soft leading-relaxed flex-1 relative z-10">
+            Every function MathSonify can parse, what it sounds like, and how each property becomes a note.
           </span>
-          <span class="mt-2 font-serif text-xl text-sc-text">
-            Equation reference
+          <span class="mt-5 font-mono text-xs text-sc-text-soft transition-colors group-hover:text-sc-accent relative z-10">Open the reference <span aria-hidden="true">→</span></span>
+        </a>
+
+        <!-- Card 3: Create / Studio -->
+        <a
+          href="/studio"
+          class="panel group flex flex-col p-6 rounded hover:border-sc-accent/50 transition-colors duration-300 relative overflow-hidden"
+        >
+          <svg class="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-500" viewBox="0 0 200 200" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M20,100 C40,60 80,60 100,100 S140,140 160,100" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" />
+            <path d="M100,40 C110,60 120,80 100,100" stroke="currentColor" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.6" />
+            <circle cx="100" cy="100" r="24" stroke="currentColor" stroke-width="1.5" fill="none" stroke-dasharray="8,4" opacity="0.5" />
+            <path d="M80,100 L100,80 L120,100" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <span class="font-mono text-[10px] uppercase tracking-wider text-sc-accent relative z-10">create your own</span>
+          <span class="mt-2 font-serif text-xl text-sc-text relative z-10">Studio & SoundLab</span>
+          <span class="mt-2 text-sm text-sc-text-soft leading-relaxed flex-1 relative z-10">
+            Type any equation, shape its sound, compose multi-track pieces.
           </span>
-          <span class="mt-2 text-sm text-sc-text-soft leading-relaxed flex-1">
-            Every function MathSonify can parse, what it sounds like, and how each
-            property of it becomes a note.
-          </span>
-          <span class="mt-5 font-mono text-xs text-sc-text-soft transition-colors group-hover:text-sc-accent">
-            Open the reference <span aria-hidden="true">→</span>
-          </span>
+          <span class="mt-5 font-mono text-xs text-sc-text-soft transition-colors group-hover:text-sc-accent relative z-10">Open the Studio <span aria-hidden="true">→</span></span>
         </a>
       </div>
     </section>
 
-    <!-- Final CTA — the closing action used across the site. -->
+    <!-- Final CTA — full-width button as the page's closing action. -->
     <div class="max-w-5xl mx-auto mt-16 text-center">
       <a href="/studio" class="btn-primary inline-flex items-center px-8 py-3.5 text-base">
         Open the Studio
