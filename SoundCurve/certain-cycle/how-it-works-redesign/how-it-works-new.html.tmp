@@ -1,0 +1,1389 @@
+<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How It Works — redesign</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0A0A0C;--panel:#101013;--panel2:#15151A;--border:#26262C;--border2:#34343c;--text:#F5F5F2;--muted:#9A9AA2;--ink:245,245,242;--btn:#F2F2EE;--btnText:#0A0A0C}
+html[data-theme=light]{--bg:#F3F1EB;--panel:#FBFAF7;--panel2:#EFECE4;--border:#D0CBBD;--border2:#B3AE9F;--text:#14161A;--muted:#575B63;--ink:20,22,26;--btn:#14161A;--btnText:#F5F4F0}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background .3s,color .3s}
+.mono{font-family:"JetBrains Mono",monospace}.serif{font-family:"Instrument Serif",serif}
+.cap{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.wrap{max-width:980px;margin:0 auto;padding:0 20px}
+/* nav (global component — shown for reference) */
+.nav{position:relative;z-index:5;height:58px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px)}
+.logo{display:flex;align-items:center;gap:10px;font-family:"Instrument Serif",serif;font-size:21px;color:var(--text);text-decoration:none}
+.logo i{width:34px;height:34px;border-radius:50%;border:1px solid var(--border2);display:grid;place-items:center;font-style:italic;font-size:19px}
+.links{display:flex;gap:26px;font-size:13px}.links a{color:var(--muted);text-decoration:none;padding:18px 0;position:relative}.links a.on{color:var(--text)}.links a.on::after{content:"";position:absolute;left:0;right:0;bottom:8px;height:1.5px;background:var(--text)}
+.ctl{display:flex;gap:10px;align-items:center}.icon{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--panel);color:var(--text);display:grid;place-items:center;cursor:pointer}
+.tog{display:flex;border:1px solid var(--border);border-radius:999px;padding:3px;background:var(--panel)}.tog button{font:inherit;font-size:12px;border:0;background:none;color:var(--muted);padding:6px 12px;border-radius:999px;cursor:pointer}.tog button.on{background:var(--btn);color:var(--btnText);font-weight:600}
+.lang{font:inherit;font-size:12px;border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:999px;padding:8px 14px}
+@media(max-width:820px){.links{display:none}}
+/* hero */
+.hero{position:relative;padding:44px 0 26px;min-height:340px}
+.heroArt{position:absolute;right:-60px;top:-58px;width:68%;height:430px;pointer-events:none;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 30%,#000 100%);mask-image:linear-gradient(90deg,transparent 0,#000 30%,#000 100%)}
+.heroArt canvas{width:100%;height:100%;display:block}
+.pillT{display:inline-flex;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;border:1px solid var(--border2);background:var(--panel);border-radius:999px;padding:7px 13px;margin-bottom:18px;position:relative}
+h1{position:relative;font-family:"Instrument Serif",serif;font-weight:400;font-size:clamp(46px,7vw,64px);line-height:.98;letter-spacing:-.015em;margin:0 0 20px;max-width:6.4em}
+.lead{position:relative;color:var(--text);opacity:.82;font-size:16px;line-height:1.65;max-width:46ch;margin:0}
+.aside{position:absolute;right:0;top:20px;text-align:left;pointer-events:none}.aside .f{font-family:"Instrument Serif",serif;font-style:italic;font-size:19px;margin-bottom:22px}
+.aside .cap{display:block;line-height:2.1}.aside hr{width:26px;border:0;border-top:1px solid var(--border2);margin:10px 0 0}
+@media(max-width:820px){.hero{padding-top:30px}.heroArt{position:relative;right:0;top:0;width:100%;height:240px;margin-top:10px;-webkit-mask-image:none;mask-image:none}.aside{display:none}}
+/* two cards */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;position:relative;min-width:0}
+.eqrow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.eqbig{display:flex;align-items:baseline;gap:10px;min-width:0;flex:1}
+.eqbig b{font-family:"Instrument Serif",serif;font-style:italic;font-weight:400;font-size:28px}
+.eqbig input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--text);font-family:"JetBrains Mono",monospace;font-size:24px;padding:2px 0;border-bottom:1px solid transparent}
+.eqbig input:focus{border-bottom-color:var(--border2)}
+.eqerr{min-height:16px;font-size:12px;color:#ff8f8f;margin:-6px 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--text);background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:9px 13px;cursor:pointer;transition:.2s}
+.chip:hover{border-color:var(--border2)}.chip[aria-pressed=true]{border-color:var(--text);background:color-mix(in srgb,var(--text) 8%,var(--panel2))}
+.note{margin:18px 0 14px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--border);padding-top:14px;line-height:1.7}
+.read{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.16em;font-weight:600;text-transform:uppercase;margin-bottom:10px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--panel2)}
+.seg button{font:inherit;font-size:12.5px;border:0;border-right:1px solid var(--border);background:none;color:var(--muted);padding:13px 4px;cursor:pointer;transition:.2s}.seg button:last-child{border-right:0}
+.seg button[aria-pressed=true]{background:var(--btn);color:var(--btnText);font-weight:600}
+.mcap{font-size:13px;color:var(--text);opacity:.8;margin-top:14px;min-height:20px}
+.tabs{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:3px;width:max-content}
+.tabs button{font:inherit;font-size:12px;border:0;background:none;color:var(--muted);padding:8px 14px;border-radius:8px;cursor:pointer}.tabs button[aria-selected=true]{background:var(--btn);color:var(--btnText);font-weight:600}
+.gbox{position:relative;border:1px solid var(--border);border-radius:10px;background:var(--bg);overflow:hidden;margin:14px 0 12px}
+.gbox canvas{display:block;width:100%;height:210px}
+.chipEq{position:absolute;right:10px;top:10px;font-family:"JetBrains Mono",monospace;font-size:11.5px;border:1px solid var(--border2);background:color-mix(in srgb,var(--bg) 80%,transparent);border-radius:8px;padding:6px 10px}
+.hint3{position:absolute;left:10px;bottom:8px;font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--muted);pointer-events:none}
+.wv{display:flex;align-items:center;gap:12px;margin-bottom:14px}.wv canvas{flex:1;height:26px;display:block}
+.acts{display:grid;grid-template-columns:1fr auto;gap:12px}
+.play{font:inherit;font-weight:600;font-size:15px;border:0;border-radius:11px;padding:16px;background:var(--btn);color:var(--btnText);cursor:pointer;display:flex;gap:10px;justify-content:center;align-items:center;transition:transform .2s,box-shadow .2s}
+.play:hover{transform:translateY(-1px);box-shadow:0 10px 30px -14px rgba(var(--ink),.6)}
+.reset{font:inherit;font-size:13px;border:1px solid var(--border2);border-radius:11px;background:none;color:var(--text);padding:0 22px;cursor:pointer;display:flex;gap:9px;align-items:center}
+.reset:hover{background:var(--panel2)}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+@media(max-width:820px){.duo{grid-template-columns:1fr}.gbox canvas{height:180px}}
+/* explore */
+.explore{margin-top:42px;position:relative}
+.explore h2{font-family:"Instrument Serif",serif;font-weight:400;font-size:clamp(34px,5vw,46px);margin:14px 0 10px;line-height:1.05}
+.explore .sub{color:var(--text);opacity:.8;max-width:48ch;line-height:1.6;font-size:15.5px;margin:0 0 26px}
+.eside{position:absolute;right:0;top:34px;text-align:left}.eside .cap{display:block;line-height:1.9}.eside hr{width:26px;border:0;border-top:1px solid var(--border2);margin:8px 0 0}
+@media(max-width:820px){.eside{display:none}}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.go{position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:222px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;text-decoration:none;color:var(--text);transition:border-color .3s,transform .3s}
+.go:hover{border-color:var(--border2);transform:translateY(-3px)}
+.go canvas{position:absolute;right:0;top:0;width:78%;height:100%;opacity:.8;transition:opacity .3s}.go:hover canvas{opacity:1}
+.go>*:not(canvas){position:relative}
+.go .n{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);margin-bottom:18px}
+.go svg.ic{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.5;margin-bottom:12px}
+.go h3{font-family:"Instrument Serif",serif;font-weight:400;font-size:25px;margin:0 0 8px}.go p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.55;max-width:20ch}
+.go .arr{margin-top:auto;padding-top:14px;transition:transform .3s;font-size:20px}.go:hover .arr{transform:translateX(6px)}
+@media(max-width:820px){.three{grid-template-columns:1fr}.go{min-height:190px}}
+.cta{display:flex;justify-content:center;margin:34px 0 54px}
+.cta a{display:inline-flex;align-items:center;gap:10px;font-weight:600;font-size:15px;background:var(--btn);color:var(--btnText);border-radius:11px;padding:16px 28px;text-decoration:none;transition:transform .2s,box-shadow .2s}.cta a:hover{transform:translateY(-2px);box-shadow:0 12px 32px -14px rgba(var(--ink),.6)}
+/* footer (global component — reference) */
+footer{border-top:1px solid var(--border);padding:34px 0 22px}
+.fgrid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:24px;font-size:13px}.fgrid b{display:block;margin-bottom:12px}.fgrid a{display:block;color:var(--muted);text-decoration:none;margin-bottom:8px}.fgrid p{color:var(--muted);line-height:1.6;margin:10px 0}
+.fbot{display:flex;justify-content:space-between;border-top:1px solid var(--border);margin-top:24px;padding-top:16px;font-size:12px;color:var(--muted)}
+@media(max-width:820px){.fgrid{grid-template-columns:1fr 1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></head><body>
+<header class="nav"><a class="logo" href="#"><i>S</i>MathSonify.com</a>
+ <nav class="links" aria-label="Main"><a class="on" href="#">How It Works</a><a href="#">Studio</a><a href="#">Guess</a><a href="#">Equations</a><a href="#">Scientists</a><a href="#">About</a></nav>
+ <div class="ctl"><button class="icon" aria-label="Search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+ <div class="tog" id="theme"><button data-t="light">Light</button><button data-t="dark" class="on">Dark</button></div><span class="lang">EN ⌄</span></div></header>
+
+<main class="wrap">
+<section class="hero">
+ <div class="heroArt" aria-hidden="true"><canvas id="heroArt"></canvas></div>
+ <div class="aside" aria-hidden="true"><div class="f">f(x)</div><span class="cap">A curve</span><span class="cap">A journey</span><span class="cap">A sound</span><hr></div>
+ <span class="pillT">Try it yourself</span>
+ <h1>How math becomes music</h1>
+ <p class="lead">Not by describing it. Type an equation, watch it become a curve, and hear that curve played. The scanner walks from left to right, and every point it passes becomes a note.</p>
+</section>
+
+<section class="duo">
+ <article class="card" aria-label="Equation">
+  <div class="eqrow"><label class="eqbig" for="eqInput"><b>f(x) =</b><input id="eqInput" value="sin(x)" spellcheck="false" autocomplete="off" aria-describedby="eqErr"></label><span class="cap" style="white-space:nowrap">Example equations</span></div>
+  <div class="eqerr" id="eqErr" role="status" aria-live="polite"></div>
+  <div class="chips" id="chips"></div>
+  <div class="note" id="noteLine"></div>
+  <div class="read">How the curve is read</div>
+  <div class="seg" id="modes" role="group" aria-label="How the curve is read"></div>
+  <div class="mcap" id="modeCap"></div>
+ </article>
+ <article class="card" aria-label="Graph">
+  <div class="eqrow" style="margin-bottom:0"><div class="tabs" role="tablist"><button role="tab" id="tab2d" aria-selected="true">2D Graph</button><button role="tab" id="tab3d" aria-selected="false">3D Graph</button></div><span class="cap" id="viewCap">Waveform view</span></div>
+  <div class="gbox"><canvas id="gc" aria-label="Graph of the equation"></canvas><canvas id="g3" aria-label="3D graph of the equation" hidden style="touch-action:pan-y"></canvas><div class="chipEq" id="chipEq">f(x) = sin(x)</div><div class="hint3" id="hint3" hidden>drag to rotate</div></div>
+  <div class="wv"><span class="cap">Waveform</span><canvas id="wc" aria-hidden="true"></canvas></div>
+  <div class="acts"><button class="play" id="play"><svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 2l11 6-11 6z"/></svg><span id="playTxt">Play</span></button><button class="reset" id="reset"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v8"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>Reset</button></div>
+ </article>
+</section>
+
+<section class="explore">
+ <span class="pillT" style="margin-bottom:0">Explore</span>
+ <h2>Continue the journey</h2>
+ <p class="sub">Try a challenge, explore more equations, or learn from the scientists who laid the foundations. Same transformation, different perspectives.</p>
+ <div class="eside" aria-hidden="true"><span class="cap">One idea</span><span class="cap">Many perspectives</span><hr></div>
+ <div class="three">
+  <a class="go" href="#"><canvas id="a1" aria-hidden="true"></canvas><div class="n">01</div><svg class="ic" viewBox="0 0 24 24"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-3.9 3.2l-1 5.6A3 3 0 0 0 4.7 17c.9 0 1.6-.4 2.2-1l1.4-1.4h7.4L17.1 16c.6.6 1.3 1 2.2 1a3 3 0 0 0 2.9-3.2l-1-5.6A4 4 0 0 0 17.3 5z"/></svg><h3>Guess</h3><p>Listen to the sound and guess the equation behind it.</p><span class="arr">⟶</span></a>
+  <a class="go" href="#"><canvas id="a2" aria-hidden="true"></canvas><div class="n">02</div><svg class="ic" viewBox="0 0 24 24"><path d="M12 7v13M3 5a1 1 0 0 1 1-1h5a3 3 0 0 1 3 3 3 3 0 0 1 3-3h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 2 3 3 0 0 0-3-2H4a1 1 0 0 1-1-1z"/></svg><h3>Equations</h3><p>Explore a growing library of equations and see how each one sounds.</p><span class="arr">⟶</span></a>
+  <a class="go" href="#"><canvas id="a3" aria-hidden="true"></canvas><div class="n">03</div><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/><circle cx="17" cy="9" r="2.4"/><path d="M17.5 14a4 4 0 0 1 3.5 4v1"/></svg><h3>Scientists</h3><p>Learn about the mathematicians and scientists behind these ideas.</p><span class="arr">⟶</span></a>
+ </div>
+ <div class="cta"><a href="#">Open the Studio <span aria-hidden="true">→</span></a></div>
+</section>
+</main>
+<footer><div class="wrap"><div class="fgrid"><div><a class="logo" href="#"><i>S</i>MathSonify.com</a><p>An interactive mathematical audio experiment and creative sonification platform — turn math into music.</p><span class="mono" style="font-size:11px">your equations stay on your device</span></div>
+<div><b>Product</b><a href="#">Studio</a><a href="#">Equation Library</a><a href="#">How It Works</a><a href="#">Guess</a><a href="#">Scientists</a></div><div><b>About</b><a href="#">About MathSonify</a><a href="#">Free and open access</a></div><div><b>Legal</b><a href="#">Privacy Policy</a><a href="#">Terms of Use</a><a href="#">Contact Us</a></div></div>
+<div class="fbot"><span>© 2026 MathSonify. All mathematical expressions sonified deterministically.</span><a href="#" style="color:var(--text);text-decoration:none">Open Studio ↗</a></div></div></footer>
+<script>
+const PM=(()=>{/** "Nice" tick values (1, 2 or 5 x 10^n) covering [min, max]. Exact for negatives; contains 0 when 0 is in range. */
+function niceTicks(min, max, target = 6) {
+    if (!Number.isFinite(min) || !Number.isFinite(max))
+        return { ticks: [], step: 1 };
+    if (min > max)
+        [min, max] = [max, min];
+    if (min === max) {
+        const d = Math.abs(min) || 1;
+        min -= d / 2;
+        max += d / 2;
+    }
+    const raw = (max - min) / Math.max(1, target);
+    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    const f = raw / pow;
+    const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * pow;
+    const first = Math.ceil(min / step - 1e-9);
+    const last = Math.floor(max / step + 1e-9);
+    const ticks = [];
+    for (let i = first; i <= last && ticks.length < 200; i++) {
+        const v = Number((i * step).toPrecision(12));
+        ticks.push(v === 0 ? 0 : v); // never "-0"
+    }
+    return { ticks, step };
+}
+function formatTick(v, step) {
+    if (v === 0)
+        return '0';
+    const a = Math.abs(v);
+    if (a >= 1e6 || a < 1e-4)
+        return v.toExponential(1).replace('+', '');
+    const decimals = step >= 1 ? 0 : Math.min(6, Math.ceil(-Math.log10(step) - 1e-9));
+    let s = v.toFixed(decimals);
+    if (s.indexOf('.') >= 0)
+        s = s.replace(/\.?0+$/, '');
+    return s === '-0' ? '0' : s;
+}
+/**
+ * y-range to display. Normally the true min..max (+4% padding). If a few extreme samples
+ * (tan, 1/x, sec...) would flatten everything else, trim to the 5th..95th percentile band.
+ */
+function robustRange(ys) {
+    const f = ys.filter(Number.isFinite);
+    if (f.length === 0)
+        return { lo: -1, hi: 1, clipped: false };
+    const s = f.slice().sort((a, b) => a - b);
+    let lo = s[0], hi = s[s.length - 1];
+    let clipped = false;
+    if (s.length >= 40) {
+        const q = (p) => s[Math.min(s.length - 1, Math.max(0, Math.round(p * (s.length - 1))))];
+        const p5 = q(0.05), p95 = q(0.95), band = p95 - p5;
+        // Measured on real curves: asymptotic ones (tan, 1/x, sec) have range/band of 30-80,
+        // ordinary ones (x^3, exp, x^10, ln|x|, damped sines) stay under 3. 10 separates them with margin.
+        if (band > 0 && hi - lo > 10 * band) {
+            lo = p5 - band * 0.5;
+            hi = p95 + band * 0.5;
+            clipped = true;
+        }
+    }
+    if (!(hi > lo)) {
+        const d = Math.abs(lo) || 1;
+        lo -= d;
+        hi += d;
+    }
+    if (!clipped) {
+        const pad = (hi - lo) * 0.04;
+        lo -= pad;
+        hi += pad;
+    }
+    return { lo, hi, clipped };
+}
+function splitSegments(points, range) {
+    const segs = [];
+    let start = -1;
+    for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        const ok = Number.isFinite(p.x) && Number.isFinite(p.y) && p.y >= range.lo && p.y <= range.hi;
+        if (ok) {
+            if (start < 0)
+                start = i;
+        }
+        else if (start >= 0) {
+            if (i - 1 > start)
+                segs.push({ start, end: i - 1 });
+            start = -1;
+        }
+    }
+    if (start >= 0 && points.length - 1 > start)
+        segs.push({ start, end: points.length - 1 });
+    return segs;
+}
+function computeView(points, width, height) {
+    let xMin = Infinity, xMax = -Infinity;
+    for (const p of points)
+        if (Number.isFinite(p.x)) {
+            if (p.x < xMin)
+                xMin = p.x;
+            if (p.x > xMax)
+                xMax = p.x;
+        }
+    if (!Number.isFinite(xMin)) {
+        xMin = -1;
+        xMax = 1;
+    }
+    if (xMin === xMax) {
+        xMin -= 1;
+        xMax += 1;
+    }
+    const range = robustRange(points.map(p => p.y));
+    const { lo, hi } = range;
+    return {
+        xMin, xMax, yLo: lo, yHi: hi, width, height,
+        toX: (x) => ((x - xMin) / (xMax - xMin)) * width,
+        toY: (y) => ((y - lo) / (hi - lo)) * height,
+        xAxisY: Math.min(hi, Math.max(lo, 0)),
+        yAxisX: Math.min(xMax, Math.max(xMin, 0)),
+        xTicks: niceTicks(xMin, xMax, 8),
+        yTicks: niceTicks(lo, hi, 6),
+        segments: splitSegments(points, range),
+        clipped: range.clipped,
+    };
+}
+
+return {niceTicks,formatTick};})();
+const NZ=(()=>{class NormErr extends Error {
+}
+const SEP = '\u2063', GV = '\u2064', MO = '\u27e6', MC = '\u27e7', BO = '\u27ea', BC = '\u27eb';
+const HELP = 'Supported: plain text (sin(x)*cos(3x)), LaTeX (\\frac{1}{2}\\sin x, \\sqrt[3]{x}), symbols (√(3−x²), x², π, Σ with bounds) '
+    + 'and sum(k=0,12, …). Not supported yet: implicit curves like x²+y²=4, piecewise/cases, integrals, derivatives, inequalities.';
+const FN_NAMES = ['sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh',
+    'exp', 'ln', 'log', 'log10', 'log2', 'sqrt', 'cbrt', 'nthRoot', 'abs', 'sign', 'floor', 'ceil', 'round', 'min', 'max', 'mod'];
+const FN_ALIAS = { arcsin: 'asin', arccos: 'acos', arctan: 'atan', arsinh: 'asinh', arcosh: 'acosh', artanh: 'atanh', sgn: 'sign', lg: 'log10', cosec: 'csc', tg: 'tan', ctg: 'cot' };
+const CONSTS = ['pi', 'tau', 'e'];
+const GREEK_WORDS = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'theta', 'lambda', 'omega', 'sigma', 'kappa', 'zeta'];
+const NAMES = [...FN_NAMES, ...Object.keys(FN_ALIAS), ...CONSTS, ...GREEK_WORDS].sort((a, b) => b.length - a.length);
+const INVERSE = { sin: 'asin', cos: 'acos', tan: 'atan', sinh: 'asinh', cosh: 'acosh', tanh: 'atanh' };
+const SUP = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁺': '+', '⁻': '-', '⁼': '=', '⁽': '(', '⁾': ')', 'ⁿ': 'n', 'ⁱ': 'i', 'ˣ': 'x' };
+const SUB = { '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9', '₊': '+', '₋': '-', '₌': '=', '₍': '(', '₎': ')', 'ₐ': 'a', 'ₑ': 'e', 'ₒ': 'o', 'ₓ': 'x', 'ₕ': 'h', 'ₖ': 'k', 'ₗ': 'l', 'ₘ': 'm', 'ₙ': 'n', 'ₚ': 'p', 'ₛ': 's', 'ₜ': 't', 'ᵢ': 'i', 'ⱼ': 'j' };
+const GREEK_CHARS = { 'α': 'alpha', 'β': 'beta', 'γ': 'gamma', 'δ': 'delta', 'ε': 'epsilon', 'θ': 'theta', 'λ': 'lambda', 'ω': 'omega', 'σ': 'sigma', 'κ': 'kappa', 'ζ': 'zeta', 'φ': 'phi', 'ψ': 'psi', 'ρ': 'rho', 'μ': 'mu', 'ν': 'nu', 'η': 'eta', 'χ': 'chi' };
+const VULGAR = { '½': '(1/2)', '⅓': '(1/3)', '⅔': '(2/3)', '¼': '(1/4)', '¾': '(3/4)', '⅕': '(1/5)', '⅖': '(2/5)', '⅗': '(3/5)', '⅘': '(4/5)', '⅙': '(1/6)', '⅛': '(1/8)' };
+const SIMPLE = { '−': '-', '–': '-', '—': '-', '‒': '-', '×': '*', '·': '*', '⋅': '*', '∙': '*', '∗': '*', '÷': '/', '⁄': '/', 'π': 'pi', 'τ': 'tau', 'ℯ': 'e', '“': '"', '”': '"', '\u00a0': ' ', '\u200b': '', '\u200c': '', '\u200d': '', '\ufeff': '', '\u2009': ' ', '\u202f': ' ' };
+/* ---------------------------------------------------------------- guards */
+function unsupported(src) {
+    if (/[∫∮]|\\int\b|\\oint|\\iint/.test(src))
+        return "Integrals aren't supported — enter the function you want to graph instead.";
+    if (/\\lim\b|\blim\b/i.test(src))
+        return "Limits aren't supported — enter the function itself.";
+    if (/[∂]|\\partial|\bd\s*[xy]\s*\/\s*d\s*[xy]|\b[yf]\s*['′]/.test(src))
+        return "Derivatives and differential equations aren't supported — enter y = … directly.";
+    if (/\\begin\s*\{|\bcases\b/.test(src))
+        return "Piecewise (cases) isn't supported yet — enter each piece as its own equation.";
+    if (/∞|\\infty/.test(src))
+        return "∞ can't be graphed — use a finite number (e.g. 50 as the upper bound).";
+    if (/\\vec|\\binom|\\choose|\\nabla|\\det/.test(src))
+        return "That notation isn't supported.";
+    if (/<=|>=|[<>≤≥≠]|\\leq?\b|\\geq?\b|\\neq?\b/.test(src))
+        return "Inequalities can't be graphed — enter an equation like y = …";
+    return null;
+}
+/* ---------------------------------------------------------------- LaTeX -> plain */
+function readGroup(s, i) {
+    if (s[i] !== '{')
+        return null;
+    let d = 0;
+    for (let j = i; j < s.length; j++) {
+        if (s[j] === '{')
+            d++;
+        else if (s[j] === '}') {
+            d--;
+            if (d === 0)
+                return { body: s.slice(i + 1, j), end: j + 1 };
+        }
+    }
+    return null;
+}
+function skipSp(s, i) { while (i < s.length && /\s/.test(s[i]))
+    i++; return i; }
+/** one LaTeX argument: {group} | \command | single char */
+function readArg(s, i) {
+    i = skipSp(s, i);
+    const g = readGroup(s, i);
+    if (g)
+        return g;
+    if (s[i] === '\\') {
+        const m = /^\\([A-Za-z]+|.)/.exec(s.slice(i));
+        return { body: m[0], end: i + m[0].length };
+    }
+    if (i < s.length)
+        return { body: s[i], end: i + 1 };
+    throw new NormErr('A LaTeX command is missing its argument.');
+}
+function sigmaMarker(kind, lower, upper) {
+    const m = /^\s*([A-Za-z])\s*(?:=|:)\s*(.+?)\s*$/.exec(lower || '');
+    if (!m || !upper)
+        throw new NormErr(`Σ needs bounds like k=0 to 12. Type it as sum(k=0,12, …).`);
+    return `${MO}S${SEP}${kind}${SEP}${m[1]}${SEP}${m[2]}${SEP}${upper.trim()}${MC}`;
+}
+const LATEX_PLAIN_FN = new Set(['sin', 'cos', 'tan', 'sec', 'csc', 'cot', 'sinh', 'cosh', 'tanh', 'arcsin', 'arccos', 'arctan', 'ln', 'log', 'exp', 'min', 'max', 'sgn', 'lg', 'arsinh', 'arcosh', 'artanh']);
+const LATEX_GREEK = new Set(['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'varepsilon', 'theta', 'vartheta', 'lambda', 'mu', 'nu', 'omega', 'sigma', 'rho', 'kappa', 'zeta', 'eta', 'phi', 'varphi', 'psi', 'chi']);
+function latexToPlain(s, depth = 0) {
+    if (depth > 12)
+        throw new NormErr('That formula is nested too deeply.');
+    let out = '', i = 0;
+    while (i < s.length) {
+        const c = s[i];
+        if (c === '\\') {
+            const m = /^\\([A-Za-z]+|.)/.exec(s.slice(i));
+            const cmd = m[1];
+            i += m[0].length;
+            if (/^[,;:! ]$/.test(cmd) || ['left', 'right', 'displaystyle', 'limits', 'nolimits', 'big', 'Big', 'bigg', 'Bigg', 'quad', 'qquad'].includes(cmd)) {
+                if ((cmd === 'left' || cmd === 'right') && s[i] === '.')
+                    i++;
+                continue;
+            }
+            if (cmd === 'frac' || cmd === 'dfrac' || cmd === 'tfrac') {
+                const a = readArg(s, i);
+                const b = readArg(s, a.end);
+                i = b.end;
+                out += `((${latexToPlain(a.body, depth + 1)})/(${latexToPlain(b.body, depth + 1)}))`;
+                continue;
+            }
+            if (cmd === 'sqrt') {
+                let n = null;
+                let j = skipSp(s, i);
+                if (s[j] === '[') {
+                    const k = s.indexOf(']', j);
+                    if (k < 0)
+                        throw new NormErr('\\sqrt[ is missing its ].');
+                    n = s.slice(j + 1, k);
+                    i = k + 1;
+                }
+                const a = readArg(s, i);
+                i = a.end;
+                out += n ? `nthRoot(${latexToPlain(a.body, depth + 1)},${latexToPlain(n, depth + 1)})` : `sqrt(${latexToPlain(a.body, depth + 1)})`;
+                continue;
+            }
+            if (cmd === 'sum' || cmd === 'prod') {
+                let lower = '', upper = '';
+                for (let k = 0; k < 2; k++) {
+                    let j = skipSp(s, i);
+                    if (s.slice(j, j + 7) === '\\limits')
+                        j = skipSp(s, j + 7);
+                    if (s[j] === '_') {
+                        const a = readArg(s, j + 1);
+                        lower = latexToPlain(a.body, depth + 1);
+                        i = a.end;
+                    }
+                    else if (s[j] === '^') {
+                        const a = readArg(s, j + 1);
+                        upper = latexToPlain(a.body, depth + 1);
+                        i = a.end;
+                    }
+                    else
+                        break;
+                }
+                out += sigmaMarker(cmd, lower, upper);
+                continue;
+            }
+            if (cmd === 'operatorname' || cmd === 'mathrm' || cmd === 'mathit' || cmd === 'text' || cmd === 'textbf' || cmd === 'mathbf') {
+                const a = readArg(s, i);
+                i = a.end;
+                out += latexToPlain(a.body, depth + 1);
+                continue;
+            }
+            if (cmd === 'cdot' || cmd === 'times' || cmd === 'ast' || cmd === 'bullet') {
+                out += '*';
+                continue;
+            }
+            if (cmd === 'div') {
+                out += '/';
+                continue;
+            }
+            if (cmd === 'pi') {
+                out += 'pi';
+                continue;
+            }
+            if (cmd === 'tau') {
+                out += 'tau';
+                continue;
+            }
+            if (cmd === 'lfloor') {
+                out += 'floor(';
+                continue;
+            }
+            if (cmd === 'rfloor') {
+                out += ')';
+                continue;
+            }
+            if (cmd === 'lceil') {
+                out += 'ceil(';
+                continue;
+            }
+            if (cmd === 'rceil') {
+                out += ')';
+                continue;
+            }
+            if (cmd === 'circ' || cmd === 'degree') {
+                out += '*(pi/180)';
+                continue;
+            }
+            if (cmd === '{' || cmd === '(') {
+                out += '(';
+                continue;
+            }
+            if (cmd === '}' || cmd === ')') {
+                out += ')';
+                continue;
+            }
+            if (cmd === '|') {
+                out += '|';
+                continue;
+            }
+            if (LATEX_GREEK.has(cmd)) {
+                out += `${GV}${cmd.replace(/^var/, '')}${GV}`;
+                continue;
+            }
+            if (cmd === 'log' && s[skipSp(s, i)] === '_') {
+                const a = readArg(s, skipSp(s, i) + 1);
+                i = a.end;
+                const b = a.body.trim();
+                if (b === '10')
+                    out += 'log10';
+                else if (b === '2')
+                    out += 'log2';
+                else
+                    throw new NormErr('log with a base other than 10 or 2: write log(x, base).');
+                continue;
+            }
+            if (LATEX_PLAIN_FN.has(cmd)) {
+                out += cmd;
+                continue;
+            }
+            throw new NormErr(`The LaTeX command \\${cmd} isn't supported.`);
+        }
+        if (c === '^') {
+            const a = readArg(s, i + 1);
+            i = a.end;
+            const body = a.body.trim();
+            if (body === '\\circ' || body === '°') {
+                out += '*(pi/180)';
+                continue;
+            }
+            out += `^(${latexToPlain(a.body, depth + 1)})`;
+            continue;
+        }
+        if (c === '_')
+            throw new NormErr("Subscripts (like x₁) aren't supported — use a plain letter such as a or b.");
+        if (c === '{') {
+            const g = readGroup(s, i);
+            if (!g)
+                throw new NormErr('Unbalanced { } in the LaTeX.');
+            out += `(${latexToPlain(g.body, depth + 1)})`;
+            i = g.end;
+            continue;
+        }
+        if (c === '}')
+            throw new NormErr('Unbalanced { } in the LaTeX.');
+        out += c;
+        i++;
+    }
+    return out;
+}
+/* ---------------------------------------------------------------- Unicode -> plain */
+function mapRun(s, i, table) {
+    let j = i, t = '';
+    while (j < s.length && table[s[j]] !== undefined) {
+        t += table[s[j]];
+        j++;
+    }
+    return { text: t, end: j };
+}
+function matching(s, i, open, close) {
+    let d = 0;
+    for (let j = i; j < s.length; j++) {
+        if (s[j] === open)
+            d++;
+        else if (s[j] === close) {
+            d--;
+            if (d === 0)
+                return j;
+        }
+    }
+    return -1;
+}
+function parseHeader(h) {
+    const m = /^\s*([A-Za-z])\s*(?:=|:|\bfrom\b)\s*(.+?)\s*(?:\.\.\.?|…|\bto\b|→|\bthrough\b)\s*(.+?)\s*$/i.exec(h);
+    return m ? { idx: m[1], lo: m[2], hi: m[3] } : null;
+}
+function unicodeToPlain(s) {
+    let out = '', i = 0;
+    while (i < s.length) {
+        const c = s[i];
+        if (c === '∑' || c === 'Σ' || c === '∏') {
+            const kind = c === '∏' ? 'prod' : 'sum';
+            let j = i + 1, lower = '', upper = '', header = null;
+            for (let k = 0; k < 3; k++) {
+                j = skipSp(s, j);
+                if (SUB[s[j]] !== undefined) {
+                    const r = mapRun(s, j, SUB);
+                    lower = r.text;
+                    j = r.end;
+                }
+                else if (s[j] === '_') {
+                    const a = readArg(s, j + 1);
+                    lower = a.body;
+                    j = a.end;
+                }
+                else if (SUP[s[j]] !== undefined) {
+                    const r = mapRun(s, j, SUP);
+                    upper = r.text;
+                    j = r.end;
+                }
+                else if (s[j] === '^') {
+                    const a = readArg(s, j + 1);
+                    upper = a.body;
+                    j = a.end;
+                }
+                else if (s[j] === '(' && !lower && !upper) {
+                    const e = matching(s, j, '(', ')');
+                    if (e > 0) {
+                        header = parseHeader(s.slice(j + 1, e));
+                        if (header) {
+                            j = e + 1;
+                        }
+                    }
+                    break;
+                }
+                else
+                    break;
+            }
+            if (header)
+                out += `${MO}S${SEP}${kind}${SEP}${header.idx}${SEP}${header.lo}${SEP}${header.hi}${MC}`;
+            else
+                out += sigmaMarker(kind, lower, upper);
+            i = j;
+            continue;
+        }
+        if (c === '√' || c === '∛' || c === '∜') {
+            const fn = c === '√' ? 'sqrt' : c === '∛' ? 'cbrt' : 'nthRoot';
+            let j = skipSp(s, i + 1), inner = '';
+            if (s[j] === '(') {
+                const e = matching(s, j, '(', ')');
+                if (e < 0)
+                    throw new NormErr('Unbalanced ( ) after √.');
+                inner = unicodeToPlain(s.slice(j + 1, e));
+                j = e + 1;
+            }
+            else {
+                const m = /^(\d+(?:\.\d+)?|[A-Za-z]|π|τ)/.exec(s.slice(j));
+                if (!m)
+                    throw new NormErr('√ needs a number, a letter or (…) after it.');
+                j += m[0].length;
+                const sup = mapRun(s, j, SUP);
+                j = sup.end;
+                inner = unicodeToPlain(m[0]) + (sup.text ? `^(${sup.text})` : '');
+            }
+            out += fn === 'nthRoot' ? `nthRoot(${inner},4)` : `${fn}(${inner})`;
+            i = j;
+            continue;
+        }
+        if (SUP[c] !== undefined) {
+            const r = mapRun(s, i, SUP);
+            out += `^(${r.text})`;
+            i = r.end;
+            continue;
+        }
+        if (SUB[c] !== undefined)
+            throw new NormErr("Subscripts (like x₁) aren't supported — use a plain letter such as a or b.");
+        if (VULGAR[c]) {
+            out += VULGAR[c];
+            i++;
+            continue;
+        }
+        if (GREEK_CHARS[c]) {
+            out += `${GV}${GREEK_CHARS[c]}${GV}`;
+            i++;
+            continue;
+        }
+        if (c === '°') {
+            out += '*(pi/180)';
+            i++;
+            continue;
+        }
+        if (SIMPLE[c] !== undefined) {
+            out += SIMPLE[c];
+            i++;
+            continue;
+        }
+        out += c;
+        i++;
+    }
+    return out;
+}
+/* ---------------------------------------------------------------- word-form sums: sum(k=0 to 12)[…] / sum(k=0,12, …) */
+function asciiSums(s) {
+    let out = '', i = 0;
+    const re = /\b(sum|prod)\s*(?=[(_])/gi;
+    while (i < s.length) {
+        re.lastIndex = i;
+        const m = re.exec(s);
+        if (!m) {
+            out += s.slice(i);
+            break;
+        }
+        out += s.slice(i, m.index);
+        const kind = m[1].toLowerCase();
+        let j = m.index + m[0].length;
+        if (s[j] === '_') { // sum_{k=0}^{12} or sum_(k=0)^(12)
+            const rd = (k) => { k = skipSp(s, k); if (s[k] === '{') {
+                const g = readGroup(s, k);
+                if (!g)
+                    throw new NormErr('Unbalanced { }.');
+                return { body: g.body, end: g.end };
+            } if (s[k] === '(') {
+                const e = matching(s, k, '(', ')');
+                if (e < 0)
+                    throw new NormErr('Unbalanced ( ).');
+                return { body: s.slice(k + 1, e), end: e + 1 };
+            } const mm = /^[A-Za-z0-9=+\-]+/.exec(s.slice(k)); if (!mm)
+                throw new NormErr('Σ bounds are missing.'); return { body: mm[0], end: k + mm[0].length }; };
+            const a = rd(j + 1);
+            let k = skipSp(s, a.end);
+            if (s[k] !== '^')
+                throw new NormErr('Σ needs an upper bound after ^.');
+            const b = rd(k + 1);
+            out += sigmaMarker(kind, a.body, b.body);
+            i = b.end;
+            continue;
+        }
+        // sum( … )
+        const e = matching(s, j, '(', ')');
+        if (e < 0)
+            throw new NormErr('Unbalanced ( ) in sum(…).');
+        const inside = s.slice(j + 1, e);
+        const parts = [];
+        let d = 0, last = 0;
+        for (let k = 0; k < inside.length; k++) {
+            const ch = inside[k];
+            if ('([{'.includes(ch))
+                d++;
+            else if (')]}'.includes(ch))
+                d--;
+            else if (ch === ',' && d === 0) {
+                parts.push(inside.slice(last, k));
+                last = k + 1;
+            }
+        }
+        parts.push(inside.slice(last));
+        if (parts.length === 3) { // canonical: sum(k=0,12, body)
+            const h = /^\s*([A-Za-z])\s*=\s*(.+?)\s*$/.exec(parts[0]);
+            if (!h)
+                throw new NormErr('sum(…) must start with the index, e.g. sum(k=0,12, …).');
+            out += `${MO}S${SEP}${kind}${SEP}${h[1]}${SEP}${h[2]}${SEP}${parts[1].trim()}${MC}${BO}${asciiSums(parts[2])}${BC}`;
+            i = e + 1;
+            continue;
+        }
+        const h = parseHeader(inside);
+        if (!h)
+            throw new NormErr('Could not read the Σ bounds. Type it as sum(k=0,12, …).');
+        const marker = `${MO}S${SEP}${kind}${SEP}${h.idx}${SEP}${h.lo}${SEP}${h.hi}${MC}`;
+        let k = skipSp(s, e + 1);
+        if (s[k] === '*')
+            k = skipSp(s, k + 1);
+        const open = s[k], close = open === '[' ? ']' : open === '{' ? '}' : open === '(' ? ')' : '';
+        if (close) {
+            const ce = matching(s, k, open, close);
+            if (ce < 0)
+                throw new NormErr('Unbalanced brackets after Σ.');
+            out += `${marker}${BO}${asciiSums(s.slice(k + 1, ce))}${BC}`;
+            i = ce + 1;
+        }
+        else {
+            out += marker;
+            i = e + 1;
+        }
+    }
+    return out;
+}
+function splitRun(run, nextIsLP, notes) {
+    const low = run.toLowerCase();
+    if (low === 'sum' || low === 'prod')
+        throw new NormErr('Σ needs bounds. Type it as sum(k=0,12, …).');
+    if (nextIsLP && run.length > 2 && !NAMES.some(n => n.toLowerCase() === low))
+        throw new NormErr(`"${run}(" isn't a function MathSonify knows.`);
+    const toks = [];
+    let i = 0, singles = 0;
+    while (i < run.length) {
+        const rest = run.slice(i), lo = rest.toLowerCase();
+        let hit = null;
+        for (const n of NAMES) {
+            const nl = n.toLowerCase();
+            if (lo.startsWith(nl) && (n.length > 1 || rest[0] === 'e')) {
+                hit = n;
+                break;
+            }
+        }
+        if (hit) {
+            if (FN_ALIAS[hit])
+                toks.push({ t: 'fn', v: FN_ALIAS[hit] });
+            else if (FN_NAMES.includes(hit)) {
+                if (hit === 'log')
+                    notes.push('log is read as the natural logarithm (ln). Use log10(x) for base 10.');
+                toks.push({ t: 'fn', v: hit });
+            }
+            else if (CONSTS.includes(hit))
+                toks.push({ t: 'const', v: hit });
+            else
+                toks.push({ t: 'var', v: hit });
+            i += hit.length;
+        }
+        else {
+            toks.push({ t: 'var', v: rest[0] });
+            singles++;
+            i++;
+        }
+    }
+    if (run.length >= 4 && singles === run.length)
+        throw new NormErr(`"${run}" isn't a known function or constant.`);
+    return toks;
+}
+function tokenize(s, notes) {
+    const toks = [];
+    let i = 0;
+    while (i < s.length) {
+        const c = s[i];
+        if (/\s/.test(c)) {
+            i++;
+            continue;
+        }
+        if (c === MO) {
+            const e = s.indexOf(MC, i);
+            const f = s.slice(i + 2, e).split(SEP);
+            const explicit = s[e + 1] === BO;
+            toks.push({ t: 'sum', kind: f[1], idx: f[2], lo: f[3], hi: f[4], explicit });
+            i = e + 1;
+            continue;
+        }
+        if (c === BO) {
+            toks.push({ t: 'lp' });
+            i++;
+            continue;
+        }
+        if (c === BC) {
+            toks.push({ t: 'rp' });
+            i++;
+            continue;
+        }
+        if (c === GV) {
+            const e = s.indexOf(GV, i + 1);
+            toks.push({ t: 'var', v: s.slice(i + 1, e) });
+            i = e + 1;
+            continue;
+        }
+        const num = /^(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+(?![A-Za-z(]))?/.exec(s.slice(i));
+        if (num) {
+            toks.push({ t: 'num', v: num[0] });
+            i += num[0].length;
+            continue;
+        }
+        const run = /^[A-Za-z]+/.exec(s.slice(i));
+        if (run) {
+            let word = run[0];
+            i += word.length;
+            if (/log$/i.test(word)) {
+                const d = /^(10|2)(?!\d)/.exec(s.slice(i));
+                if (d) {
+                    word += d[1];
+                    i += d[1].length;
+                }
+            }
+            toks.push(...splitRun(word, s[skipSp(s, i)] === '(', notes));
+            continue;
+        }
+        if (c === '*' && s[i + 1] === '*') {
+            toks.push({ t: 'op', v: '^' });
+            i += 2;
+            continue;
+        }
+        if ('+-*/^!='.includes(c)) {
+            toks.push({ t: 'op', v: c });
+            i++;
+            continue;
+        }
+        if ('([{'.includes(c)) {
+            toks.push({ t: 'lp' });
+            i++;
+            continue;
+        }
+        if (')]}'.includes(c)) {
+            toks.push({ t: 'rp' });
+            i++;
+            continue;
+        }
+        if (c === '_')
+            throw new NormErr("Subscripts (like x₁) aren't supported — use a plain letter such as a or b.");
+        if (c === ',') {
+            toks.push({ t: 'comma' });
+            i++;
+            continue;
+        }
+        if (c === '|') {
+            toks.push({ t: 'bar' });
+            i++;
+            continue;
+        }
+        throw new NormErr(`The character "${c}" isn't supported.`);
+    }
+    return toks;
+}
+const isOp = (t, v) => !!t && t.t === 'op' && t.v === v;
+function matchGroup(toks, i) {
+    let d = 0;
+    for (let j = i; j < toks.length; j++) {
+        if (toks[j].t === 'lp')
+            d++;
+        else if (toks[j].t === 'rp') {
+            d--;
+            if (d === 0)
+                return j;
+        }
+    }
+    throw new NormErr("The brackets don't match.");
+}
+const endsAtom = (t) => t.t === 'num' || t.t === 'var' || t.t === 'const' || t.t === 'rp' || isOp(t, '!');
+const startsAtom = (t) => t.t === 'num' || t.t === 'var' || t.t === 'const' || t.t === 'lp' || t.t === 'fn';
+function resolveBars(toks) {
+    const out = [];
+    let open = 0;
+    for (const t of toks) {
+        if (t.t !== 'bar') {
+            out.push(t);
+            continue;
+        }
+        const prev = out[out.length - 1];
+        const closer = open > 0 && !!prev && endsAtom(prev);
+        if (closer) {
+            out.push({ t: 'rp' });
+            open--;
+        }
+        else {
+            out.push({ t: 'fn', v: 'abs' }, { t: 'lp' });
+            open++;
+        }
+    }
+    if (open !== 0)
+        throw new NormErr("The | | bars don't match.");
+    return out;
+}
+function readExponent(toks, k) {
+    let j = k;
+    if (isOp(toks[j], '-') || isOp(toks[j], '+'))
+        j++;
+    const t = toks[j];
+    if (!t)
+        throw new NormErr('An exponent is missing after ^.');
+    if (t.t === 'lp')
+        j = matchGroup(toks, j) + 1;
+    else if (t.t === 'num' || t.t === 'var' || t.t === 'const')
+        j++;
+    else if (t.t === 'fn' && toks[j + 1]?.t === 'lp')
+        j = matchGroup(toks, j + 1) + 1;
+    else
+        throw new NormErr('That exponent is not supported.');
+    return { toks: toks.slice(k, j), next: j };
+}
+function readChain(toks, j) {
+    const start = j;
+    while (j < toks.length) {
+        const t = toks[j];
+        if (!(t.t === 'num' || t.t === 'var' || t.t === 'const' || t.t === 'lp'))
+            break;
+        j = t.t === 'lp' ? matchGroup(toks, j) + 1 : j + 1;
+        while (isOp(toks[j], '!'))
+            j++;
+        if (isOp(toks[j], '^'))
+            j = readExponent(toks, j + 1).next;
+    }
+    return { toks: toks.slice(start, j), next: j };
+}
+function argify(toks) {
+    const out = [];
+    let i = 0;
+    while (i < toks.length) {
+        const t = toks[i];
+        if (t.t === 'fn') {
+            let j = i + 1, expo = null;
+            if (isOp(toks[j], '^')) {
+                const r = readExponent(toks, j + 1);
+                expo = r.toks;
+                j = r.next;
+            }
+            let arg;
+            if (toks[j]?.t === 'lp') {
+                const e = matchGroup(toks, j);
+                arg = argify(toks.slice(j + 1, e));
+                j = e + 1;
+            }
+            else {
+                const r = readChain(toks, j);
+                if (!r.toks.length)
+                    throw new NormErr(`"${t.v}" needs something to apply to, e.g. ${t.v}(x).`);
+                arg = argify(r.toks);
+                j = r.next;
+            }
+            let name = t.v;
+            if (expo && expo.length === 2 && isOp(expo[0], '-') && expo[1].t === 'num' && expo[1].v === '1') {
+                if (!INVERSE[name])
+                    throw new NormErr(`${name}^-1 is only supported for trig functions.`);
+                name = INVERSE[name];
+                expo = null;
+            }
+            const call = [{ t: 'fn', v: name }, { t: 'lp' }, ...arg, { t: 'rp' }];
+            if (expo)
+                out.push({ t: 'lp' }, ...call, { t: 'rp' }, { t: 'op', v: '^' }, { t: 'lp' }, ...argify(expo), { t: 'rp' });
+            else
+                out.push(...call);
+            i = j;
+            continue;
+        }
+        if (t.t === 'lp') {
+            const e = matchGroup(toks, i);
+            out.push(t, ...argify(toks.slice(i + 1, e)), toks[e]);
+            i = e + 1;
+            continue;
+        }
+        out.push(t);
+        i++;
+    }
+    return out;
+}
+function resolveSums(toks, depth = 0) {
+    if (depth > 8)
+        throw new NormErr('Σ is nested too deeply.');
+    const out = [];
+    let i = 0;
+    while (i < toks.length) {
+        const t = toks[i];
+        if (t.t !== 'sum') {
+            out.push(t);
+            i++;
+            continue;
+        }
+        let body;
+        const bs = i + 1;
+        if (t.explicit) {
+            if (toks[bs]?.t !== 'lp')
+                throw new NormErr('The Σ body is missing.');
+            const e = matchGroup(toks, bs);
+            body = toks.slice(bs + 1, e);
+            i = e + 1;
+        }
+        else {
+            let d = 0, j = bs;
+            for (; j < toks.length; j++) {
+                const u = toks[j];
+                if (u.t === 'lp')
+                    d++;
+                else if (u.t === 'rp') {
+                    if (d === 0)
+                        break;
+                    d--;
+                }
+                else if (d === 0 && (u.t === 'comma' || ((isOp(u, '+') || isOp(u, '-')) && j > bs)))
+                    break;
+            }
+            body = toks.slice(bs, j);
+            i = j;
+        }
+        if (!body.length)
+            throw new NormErr('The Σ has no term after it.');
+        const inner = resolveSums(body, depth + 1).map(b => (b.t === 'var' && b.v === t.idx ? { ...b, bound: true } : b));
+        const lo = finishTokens(t.lo, [], depth + 1), hi = finishTokens(t.hi, [], depth + 1);
+        out.push({ t: 'fn', v: t.kind }, { t: 'lp' }, { t: 'var', v: t.idx, bound: true }, { t: 'op', v: '=' }, ...lo, { t: 'comma' }, ...hi, { t: 'comma' }, ...inner, { t: 'rp' });
+    }
+    return out;
+}
+function implicitMul(toks) {
+    const out = [];
+    for (let i = 0; i < toks.length; i++) {
+        const a = toks[i], b = toks[i + 1];
+        out.push(a);
+        if (b && endsAtom(a) && startsAtom(b))
+            out.push({ t: 'op', v: '*' });
+    }
+    return out;
+}
+function finishTokens(plain, notes, depth = 0) {
+    return implicitMul(resolveSums(argify(resolveBars(tokenize(toPlain(plain), notes))), depth));
+}
+function toPlain(s) {
+    const a = /\\/.test(s) ? latexToPlain(s) : s;
+    return asciiSums(unicodeToPlain(a));
+}
+function render(toks) {
+    return toks.map(t => t.t === 'num' || t.t === 'var' || t.t === 'const' || t.t === 'fn' || t.t === 'op' ? t.v : t.t === 'lp' ? '(' : t.t === 'rp' ? ')' : t.t === 'comma' ? ',' : '').join('');
+}
+function pretty(toks) {
+    let s = '';
+    toks.forEach((t, i) => {
+        const prev = toks[i - 1];
+        const binary = prev && endsAtom(prev);
+        if (t.t === 'op' && (t.v === '+' || t.v === '-') && binary)
+            s += ` ${t.v} `;
+        else if (t.t === 'op' && (t.v === '*' || t.v === '/'))
+            s += t.v === '*' ? '·' : '/';
+        else if (t.t === 'comma')
+            s += ', ';
+        else
+            s += render([t]);
+    });
+    return s;
+}
+/* ---------------------------------------------------------------- public API */
+function normalizePasted(raw) {
+    const fail = (error) => ({ ok: false, expr: '', display: '', notes: [], params: [], xVar: 'x', error });
+    try {
+        let src = (raw ?? '').replace(/[\u200b-\u200d\ufeff]/g, '').replace(/\s+/g, ' ').trim();
+        if (!src)
+            return fail('Paste an equation to graph it.');
+        if (src.length > 1000)
+            return fail('That is too long to graph (limit 1000 characters).');
+        src = src.replace(/^\${1,2}|\${1,2}$/g, '').replace(/^\\\(|\\\)$/g, '').replace(/^\\\[|\\\]$/g, '').replace(/[.;]\s*$/, '').trim();
+        const un = unsupported(src);
+        if (un)
+            return fail(un);
+        const lhs = /^\s*(?:(?:y|f|g|h|Y|F)\s*(?:\(\s*[A-Za-z]\s*\))?)\s*(?:=|:=)\s*/.exec(src);
+        if (lhs)
+            src = src.slice(lhs[0].length);
+        else if (/^\s*(?:x|r|ρ|θ|t)\s*(?:\(\s*[A-Za-z]\s*\))?\s*=/i.test(src))
+            return fail('Only y = f(x) style equations can be graphed (not x = f(y), polar, or parametric ones). Solve for y first.');
+        const plain = toPlain(src);
+        if (plain.replace(/\u27e6[^\u27e7]*\u27e7/g, '').includes('='))
+            return fail('That looks like an implicit equation (it has = in the middle). Rewrite it as y = f(x).');
+        const notes = [];
+        let toks = tokenize(plain, notes);
+        toks = implicitMul(resolveSums(argify(resolveBars(toks))));
+        // brackets must balance
+        let d = 0;
+        for (const t of toks) {
+            if (t.t === 'lp')
+                d++;
+            else if (t.t === 'rp') {
+                d--;
+                if (d < 0)
+                    break;
+            }
+        }
+        if (d !== 0)
+            return fail("The brackets don't match.");
+        if (!toks.length)
+            return fail('Paste an equation to graph it.');
+        // which symbol is x, which are parameters
+        const unbound = [];
+        for (const t of toks)
+            if (t.t === 'var' && !t.bound && !unbound.includes(t.v))
+                unbound.push(t.v);
+        let xVar = 'x';
+        if (!unbound.includes('x')) {
+            const pref = ['t', 'theta', 'u', 's', 'z', 'w'].find(v => unbound.includes(v));
+            if (pref)
+                xVar = pref;
+            else if (unbound.length === 1)
+                xVar = unbound[0];
+            if (xVar !== 'x')
+                notes.push(`Treated ${xVar} as the horizontal variable x.`);
+        }
+        const params = unbound.filter(v => v !== xVar);
+        if (params.length > 6)
+            return fail('Too many unknown constants (' + params.join(', ') + '). Put numbers in for some of them.');
+        if (xVar !== 'x')
+            toks = toks.map(t => (t.t === 'var' && !t.bound && t.v === xVar ? { ...t, v: 'x' } : t));
+        if (params.length)
+            notes.push(`Unknown constants found: ${params.join(', ')}. Use the sliders to set them.`);
+        if (toks.length > 4000)
+            return fail('That formula is too large to graph.');
+        return { ok: true, expr: render(toks), display: pretty(toks), notes: Array.from(new Set(notes)), params, xVar };
+    }
+    catch (e) {
+        return fail(e instanceof NormErr ? `${e.message} ${HELP}` : `We couldn't read that equation. ${HELP}`);
+    }
+}
+
+return {normalizePasted};})();
+const ME=(()=>{const CONSTS = { pi: Math.PI, tau: 2 * Math.PI, e: Math.E };
+function lex(src) {
+    const out = [];
+    let i = 0;
+    while (i < src.length) {
+        const c = src[i];
+        if (/\s/.test(c)) {
+            i++;
+            continue;
+        }
+        const n = /^(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/.exec(src.slice(i));
+        if (n) {
+            out.push(n[0]);
+            i += n[0].length;
+            continue;
+        }
+        const w = /^[A-Za-z][A-Za-z0-9]*/.exec(src.slice(i));
+        if (w) {
+            out.push(w[0]);
+            i += w[0].length;
+            continue;
+        }
+        if ('+-*/^!(),='.includes(c)) {
+            out.push(c);
+            i++;
+            continue;
+        }
+        throw new Error(`bad character ${c}`);
+    }
+    return out;
+}
+function parseExpr(src) {
+    const t = lex(src);
+    let p = 0;
+    const peek = () => t[p], next = () => t[p++];
+    const expect = (s) => { if (next() !== s)
+        throw new Error(`expected ${s}`); };
+    function expr() { let a = term(); while (peek() === '+' || peek() === '-') {
+        const op = next();
+        a = { t: 'bin', op, a, b: term() };
+    } return a; }
+    function term() { let a = unary(); while (peek() === '*' || peek() === '/') {
+        const op = next();
+        a = { t: 'bin', op, a, b: unary() };
+    } return a; }
+    function unary() { if (peek() === '-') {
+        next();
+        return { t: 'neg', a: unary() };
+    } if (peek() === '+') {
+        next();
+        return unary();
+    } return power(); }
+    function power() { const a = postfix(); if (peek() === '^') {
+        next();
+        return { t: 'bin', op: '^', a, b: unary() };
+    } return a; }
+    function postfix() { let a = primary(); while (peek() === '!') {
+        next();
+        a = { t: 'fact', a };
+    } return a; }
+    function primary() {
+        const k = next();
+        if (k === undefined)
+            throw new Error('unexpected end');
+        if (k === '(') {
+            const e = expr();
+            expect(')');
+            return e;
+        }
+        if (/^[\d.]/.test(k))
+            return { t: 'num', v: parseFloat(k) };
+        if (/^[A-Za-z]/.test(k)) {
+            if (peek() === '(') {
+                next();
+                if (k === 'sum' || k === 'prod') {
+                    const idx = next();
+                    expect('=');
+                    const lo = expr();
+                    expect(',');
+                    const hi = expr();
+                    expect(',');
+                    const body = expr();
+                    expect(')');
+                    return { t: 'sum', prod: k === 'prod', idx, lo, hi, body };
+                }
+                const args = [];
+                if (peek() !== ')') {
+                    args.push(expr());
+                    while (peek() === ',') {
+                        next();
+                        args.push(expr());
+                    }
+                }
+                expect(')');
+                return { t: 'call', fn: k, args };
+            }
+            return { t: 'var', n: k };
+        }
+        throw new Error(`unexpected ${k}`);
+    }
+    const r = expr();
+    if (p !== t.length)
+        throw new Error(`unexpected ${t[p]}`);
+    return r;
+}
+function realPow(a, b) {
+    if (a >= 0 || Number.isInteger(b))
+        return Math.pow(a, b);
+    for (let q = 1; q <= 99; q += 2) {
+        const pq = b * q;
+        if (Math.abs(pq - Math.round(pq)) < 1e-9) {
+            const r = Math.pow(-a, b);
+            return Math.round(pq) % 2 === 0 ? r : -r;
+        }
+    }
+    return NaN;
+}
+const fact = (n) => { if (!Number.isInteger(n) || n < 0 || n > 170)
+    return NaN; let r = 1; for (let i = 2; i <= n; i++)
+    r *= i; return r; };
+const FN = {
+    sin: Math.sin, cos: Math.cos, tan: Math.tan, sec: x => 1 / Math.cos(x), csc: x => 1 / Math.sin(x), cot: x => 1 / Math.tan(x),
+    asin: Math.asin, acos: Math.acos, atan: Math.atan, sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh, asinh: Math.asinh, acosh: Math.acosh, atanh: Math.atanh,
+    exp: Math.exp, ln: Math.log, log: (x, b) => (b === undefined ? Math.log(x) : Math.log(x) / Math.log(b)), log10: Math.log10, log2: Math.log2,
+    sqrt: Math.sqrt, cbrt: Math.cbrt, abs: Math.abs, sign: Math.sign, floor: Math.floor, ceil: Math.ceil, round: Math.round,
+    min: Math.min, max: Math.max, mod: (x, y) => x - y * Math.floor(x / y),
+    nthRoot: (x, n) => (Number.isInteger(n) && n % 2 === 1 ? Math.sign(x) * Math.pow(Math.abs(x), 1 / n) : x < 0 ? NaN : Math.pow(x, 1 / n)),
+};
+function evalNode(n, s) {
+    switch (n.t) {
+        case 'num': return n.v;
+        case 'var': {
+            if (n.n in s)
+                return s[n.n];
+            if (n.n in CONSTS)
+                return CONSTS[n.n];
+            throw new Error(`unknown symbol ${n.n}`);
+        }
+        case 'neg': return -evalNode(n.a, s);
+        case 'fact': return fact(evalNode(n.a, s));
+        case 'bin': {
+            const a = evalNode(n.a, s), b = evalNode(n.b, s);
+            return n.op === '+' ? a + b : n.op === '-' ? a - b : n.op === '*' ? a * b : n.op === '/' ? a / b : realPow(a, b);
+        }
+        case 'call': {
+            const f = FN[n.fn];
+            if (!f)
+                throw new Error(`unknown function ${n.fn}`);
+            return f(...n.args.map(a => evalNode(a, s)));
+        }
+        case 'sum': {
+            const lo = Math.round(evalNode(n.lo, s)), hi = Math.round(evalNode(n.hi, s));
+            if (!Number.isFinite(lo) || !Number.isFinite(hi))
+                return NaN;
+            if (hi - lo + 1 > 10000)
+                throw new Error('sum is limited to 10,000 terms');
+            let acc = n.prod ? 1 : 0;
+            for (let k = lo; k <= hi; k++) {
+                const v = evalNode(n.body, { ...s, [n.idx]: k });
+                acc = n.prod ? acc * v : acc + v;
+            }
+            return acc;
+        }
+    }
+}
+function compile(src, params = {}) {
+    const ast = parseExpr(src);
+    return (x) => evalNode(ast, { ...params, x });
+}
+
+return {parseExpr,evalNode};})();
+
+const $=s=>document.querySelector(s),TAU=Math.PI*2,RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e;};
+const isLight=()=>document.documentElement.dataset.theme==='light';
+const ink=a=>'rgba('+getComputedStyle(document.documentElement).getPropertyValue('--ink').trim()+','+Math.min(1,isLight()?a*1.2:a)+')';
+const halo=a=>ink(a*(isLight()?.35:1));
+function fit(c){const d=Math.min(devicePixelRatio||1,2),w=c.clientWidth,h=c.clientHeight;if(!w||!h)return null;if(c.width!==Math.round(w*d)||c.height!==Math.round(h*d)){c.width=Math.round(w*d);c.height=Math.round(h*d);}const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return{x,w,h};}
+const smooth=(a,b,v)=>{const t=Math.min(1,Math.max(0,(v-a)/(b-a)));return t*t*(3-2*t);};
+const vis={};const io=new IntersectionObserver(es=>es.forEach(e=>vis[e.target.id]=e.isIntersecting));['heroArt','gc','g3','wc','a1','a2','a3'].forEach(id=>io.observe($('#'+id)));
+/* theme */
+document.querySelectorAll('#theme button').forEach(b=>b.onclick=()=>{document.documentElement.dataset.theme=b.dataset.t;document.querySelectorAll('#theme button').forEach(x=>x.classList.toggle('on',x===b));drawArts();});
+/* ---------- hero art: one big glowing curve, three nodes, a scan line, fanned ribbons ---------- */
+function mainY(u,H){const g=u<.23?Math.exp(-Math.pow((u-.23)/.16,2)):Math.exp(-Math.pow((u-.23)/.3,2));return H*(.8-.58*g);}
+function drawHero(now){const f=fit($('#heroArt'));if(!f)return;const{x:c,w:W,h:H}=f;c.clearRect(0,0,W,H);const t=RM?0:now/1000;
+ c.strokeStyle=ink(.05);c.lineWidth=1;c.beginPath();for(let gx=W*.5;gx<W;gx+=26){c.moveTo(gx,0);c.lineTo(gx,H*.62);}for(let gy=0;gy<H*.62;gy+=26){c.moveTo(W*.5,gy);c.lineTo(W,gy);}c.stroke();
+ const su=.49+(RM?0:.012*Math.sin(t*.6)),sx=W*su;const g=c.createLinearGradient(0,0,0,H*.9);g.addColorStop(0,ink(0));g.addColorStop(.35,ink(.55));g.addColorStop(1,ink(0));c.fillStyle=g;c.fillRect(sx-.5,0,1,H*.9);
+ const N=46;for(let k=N;k>=1;k--){const a=.2*(1-k/N)+.02;c.strokeStyle=ink(a);c.lineWidth=1;c.beginPath();for(let i=0;i<=120;i++){const u=i/120,off=(k/N)*H*.16*smooth(.22,.95,u)*(1+.18*Math.sin(u*9+k*.31+t*.7));const x=W*u,y=mainY(u,H)+off;i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}
+ [[3.2,.2],[1.8,.4],[1,1]].forEach(([lw,a])=>{c.strokeStyle=ink(a*.55+(a===1?.45:0));c.lineWidth=lw;c.lineCap='round';c.beginPath();for(let i=0;i<=160;i++){const u=i/160;i?c.lineTo(W*u,mainY(u,H)):c.moveTo(W*u,mainY(u,H));}c.stroke();});
+ [.23,.49,.68].forEach((u,i)=>{const x=W*u,y=mainY(u,H),p=RM?0:(Math.sin(t*1.6+i*1.4)+1)/2,r=3.5+(i===1?1:0);const gr=c.createRadialGradient(x,y,0,x,y,16+p*8);gr.addColorStop(0,halo(.5));gr.addColorStop(1,ink(0));c.fillStyle=gr;c.beginPath();c.arc(x,y,16+p*8,0,TAU);c.fill();c.fillStyle=ink(1);c.beginPath();c.arc(x,y,r,0,TAU);c.fill();});}
+/* ---------- explore-card art ---------- */
+function artWaves(c,W,H){for(let k=0;k<30;k++){c.strokeStyle=ink(.05+.2*(1-Math.abs(k-15)/15));c.lineWidth=1;c.beginPath();for(let i=0;i<=100;i++){const u=i/100,x=W*(.1+.9*u),env=Math.sin(u*Math.PI),y=H*.55+Math.sin(u*7+k*.2)*H*.2*env*(1-u*.2)+(k-15)*3.2*env;i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}}
+function artRibbon(c,W,H){for(let k=0;k<26;k++){c.strokeStyle=ink(.06+.16*(1-k/26));c.lineWidth=1;c.beginPath();for(let i=0;i<=100;i++){const u=i/100,x=W*u,y=H*.62-Math.sin(u*TAU*.8+.4)*H*.22*(0.4+u*.8)+k*3-(1-u)*k*2;i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}}
+function artTorus(c,W,H){const cx=W*.6,cy=H*.45,R=Math.min(W,H)*.3,r=R*.46,tx=1.0,tz=.35,rot=(p)=>{let [x,y,z]=p;let y1=y*Math.cos(tx)-z*Math.sin(tx),z1=y*Math.sin(tx)+z*Math.cos(tx);let x2=x*Math.cos(tz)-y1*Math.sin(tz),y2=x*Math.sin(tz)+y1*Math.cos(tz);return[cx+x2,cy+y2,z1];};
+ const P=(u,v)=>rot([(R+r*Math.cos(v))*Math.cos(u),(R+r*Math.cos(v))*Math.sin(u),r*Math.sin(v)]);c.lineWidth=1;
+ for(let a=0;a<26;a++){c.strokeStyle=ink(.22);c.beginPath();for(let i=0;i<=40;i++){const p=P(a/26*TAU,i/40*TAU);i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]);}c.stroke();}
+ for(let b=0;b<14;b++){c.strokeStyle=ink(.3);c.beginPath();for(let i=0;i<=60;i++){const p=P(i/60*TAU,b/14*TAU);i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]);}c.stroke();}}
+function drawArts(){[['a1',artWaves],['a2',artRibbon],['a3',artTorus]].forEach(([id,fn])=>{const f=fit($('#'+id));if(f){f.x.clearRect(0,0,f.w,f.h);fn(f.x,f.w,f.h);}});}
+/* ---------- equation state ---------- */
+const PRESETS=['sin(x)','cos(x)','sin(x) + 0.5sin(2x)','x^2','sin(x^2)','sin(x) + cos(2x)'];
+const N=600,X0=0,X1=TAU;let ys=[],yMin=-1,yMax=1,ticksY=[],stepY=1,peaks=[],ast=null,label='sin(x)';
+PRESETS.forEach(p=>{const b=el('button','chip',p);b.type='button';b.setAttribute('aria-pressed','false');b.onclick=()=>{$('#eqInput').value=p;setEq(p);};$('#chips').append(b);});
+function setEq(text){const r=NZ.normalizePasted(text);const err=$('#eqErr');
+ if(!r.ok){err.textContent="That equation couldn't be read — try something like sin(x) or x^2.";return;}
+ let a;try{a=ME.parseExpr(r.expr);}catch(e){err.textContent="That equation couldn't be evaluated.";return;}
+ const prm={};r.params.forEach(p=>prm[p]=1);const out=[];for(let i=0;i<=N;i++){const x=X0+(X1-X0)*i/N;let y;try{y=ME.evalNode(a,{...prm,x});}catch(e){y=NaN;}out.push(y);}
+ const fin=out.filter(Number.isFinite);if(fin.length<N*.4){err.textContent='That curve is undefined for most of 0 to 2π.';return;}
+ err.textContent='';ast=a;ys=out;label=text.trim();yMin=Math.min(...fin);yMax=Math.max(...fin);if(yMax-yMin<1e-9){yMin-=1;yMax+=1;}const pad=(yMax-yMin)*.12;const t=PM.niceTicks(yMin-pad,yMax+pad,3);ticksY=t.ticks;stepY=t.step;
+ peaks=[];const lim=yMin+.15*(yMax-yMin);for(let i=1;i<N;i++)if(Number.isFinite(ys[i])&&ys[i]>ys[i-1]&&ys[i]>=ys[i+1]&&ys[i]>lim)peaks.push(i);
+ $('#chipEq').textContent='f(x) = '+label;document.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(b.textContent===label)));updateNote();if(playing)restartVoices();}
+const MODES=[['Frequency','Height maps straight onto pitch, continuously.'],['Note','Height snaps to the nearest note of a musical scale.'],['Rhythm','Each peak of the curve triggers a short percussive hit.'],['Chord','Height picks the root of a chord that plays together.']];let mode=0;
+MODES.forEach(([n],i)=>{const b=el('button',null,n);b.type='button';b.setAttribute('aria-pressed',String(i===0));b.onclick=()=>{mode=i;document.querySelectorAll('#modes button').forEach((x,j)=>x.setAttribute('aria-pressed',String(j===i)));updateNote();if(playing)restartVoices();};$('#modes').append(b);});
+function updateNote(){$('#modeCap').textContent=MODES[mode][1];$('#noteLine').textContent=mode===2?(peaks.length?'Every peak triggers a hit — '+peaks.length+' peak'+(peaks.length>1?'s':'')+' in this curve.':'No peaks here — a steady beat plays instead.'):(mode===1?'Highest point snaps to A5 (880 Hz).':mode===3?'Highest point plays A5 (880 Hz) — the chord builds from there.':'Highest point of the curve plays A5 (880 Hz).');}
+$('#eqInput').addEventListener('input',e=>setEq(e.target.value));
+/* ---------- audio ---------- */
+const SCALE=[220,261.63,293.66,329.63,392,440,523.25,587.33,659.25,783.99,880];let ac,master,an,voices=[],playing=false,prog=0,tStart=0,lastIdx=0,beatAt=0;const DUR=4800;
+const norm=y=>Number.isFinite(y)?Math.min(1,Math.max(0,(y-yMin)/(yMax-yMin))):0;
+const freqOf=y=>220*Math.pow(4,norm(y)),noteOf=y=>SCALE[Math.round(norm(y)*(SCALE.length-1))];
+function startVoices(){stopVoices();if(mode===2)return;const n=mode===3?3:1;for(let i=0;i<n;i++){const o=ac.createOscillator(),g=ac.createGain();o.type=mode===3?(i?'triangle':'sine'):'sine';g.gain.value=.0001;o.connect(g).connect(master);o.start();g.gain.setTargetAtTime(mode===3?.07:.12,ac.currentTime,.04);voices.push({o,g});}}
+function stopVoices(){voices.forEach(({o,g})=>{try{g.gain.setTargetAtTime(.0001,ac.currentTime,.04);o.stop(ac.currentTime+.2);}catch(e){}});voices=[];}
+function blip(f){const o=ac.createOscillator(),g=ac.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(.0001,ac.currentTime);g.gain.exponentialRampToValueAtTime(.22,ac.currentTime+.01);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+.22);o.connect(g).connect(master);o.start();o.stop(ac.currentTime+.3);}
+function restartVoices(){startVoices();lastIdx=Math.floor(prog*N);}
+function voiceUpdate(){const i=Math.min(N,Math.floor(prog*N)),y=ys[i];
+ if(mode===0&&voices[0]&&Number.isFinite(y))voices[0].o.frequency.setTargetAtTime(freqOf(y),ac.currentTime,.02);
+ else if(mode===1&&voices[0]&&Number.isFinite(y))voices[0].o.frequency.setTargetAtTime(noteOf(y),ac.currentTime,.012);
+ else if(mode===3&&voices.length&&Number.isFinite(y)){const r=noteOf(y);voices[0].o.frequency.setTargetAtTime(r,ac.currentTime,.03);voices[1].o.frequency.setTargetAtTime(r*1.25,ac.currentTime,.03);voices[2].o.frequency.setTargetAtTime(r*1.5,ac.currentTime,.03);}
+ else if(mode===2){if(i<lastIdx)lastIdx=0;if(peaks.length){for(const p of peaks)if(p>lastIdx&&p<=i)blip(noteOf(ys[p]));}else if(i-beatAt>N/8||i<beatAt){beatAt=i;blip(noteOf(y));}lastIdx=i;}}
+function play(){if(!ys.length)return;ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();if(!master){master=ac.createGain();master.gain.value=1;an=ac.createAnalyser();an.fftSize=1024;master.connect(an);an.connect(ac.destination);}
+ playing=true;tStart=performance.now()-prog*DUR;beatAt=0;$('#playTxt').textContent='Pause';startVoices();lastIdx=Math.floor(prog*N);}
+function pause(){playing=false;$('#playTxt').textContent='Play';if(ac)stopVoices();}
+$('#play').onclick=()=>playing?pause():play();$('#reset').onclick=()=>{pause();prog=0;};
+/* ---------- 2D graph ---------- */
+const gx=$('#gc'),g3=$('#g3');
+function draw2D(){const f=fit(gx);if(!f||!ys.length)return;const{x:c,w:W,h:H}=f;c.clearRect(0,0,W,H);const L=40,R=12,T=14,B=26,pw=W-L-R,ph=H-T-B;
+ const lo=yMin-(yMax-yMin)*.12,hi=yMax+(yMax-yMin)*.12,X=u=>L+pw*u,Y=y=>T+ph-(y-lo)/(hi-lo)*ph;
+ c.strokeStyle=ink(.045);c.lineWidth=1;c.beginPath();for(let i=0;i<=16;i++){const x=Math.round(X(i/16))+.5;c.moveTo(x,T);c.lineTo(x,T+ph);}for(let k=0;k<=8;k++){const y=Math.round(T+ph*k/8)+.5;c.moveTo(L,y);c.lineTo(L+pw,y);}c.stroke();
+ c.strokeStyle=ink(.1);c.beginPath();ticksY.forEach(v=>{const y=Math.round(Y(v))+.5;c.moveTo(L,y);c.lineTo(L+pw,y);});[0,.5,1].forEach(u=>{const x=Math.round(X(u))+.5;c.moveTo(x,T);c.lineTo(x,T+ph);});c.stroke();
+ if(lo<0&&hi>0){c.strokeStyle=ink(.3);c.beginPath();c.moveTo(L,Math.round(Y(0))+.5);c.lineTo(L+pw,Math.round(Y(0))+.5);c.stroke();}
+ c.font='500 11px "JetBrains Mono",monospace';c.fillStyle=ink(.6);c.textAlign='right';c.textBaseline='middle';ticksY.forEach(v=>c.fillText(PM.formatTick(v,stepY),L-8,Y(v)));
+ c.textAlign='center';c.textBaseline='top';[['0',0],['π',.5],['2π',1]].forEach(([s,u])=>c.fillText(s,X(u),T+ph+8));
+ c.save();c.beginPath();c.rect(L,T-4,pw,ph+8);c.clip();
+ const path=(n)=>{c.beginPath();let on=false;for(let i=0;i<=n;i++){const y=ys[i];if(!Number.isFinite(y)){on=false;continue;}const x=X(i/N),yy=Y(y);if(on)c.lineTo(x,yy);else{c.moveTo(x,yy);on=true;}}};
+ [[6,.06],[3.5,.14],[2,1]].forEach(([lw,a])=>{c.strokeStyle=a===1?ink(1):halo(a);c.lineWidth=lw;c.lineCap='round';c.lineJoin='round';path(N);c.stroke();});
+ const u=prog,i=Math.min(N,Math.floor(u*N)),sx=X(u);c.strokeStyle=ink(.55);c.lineWidth=1;c.beginPath();c.moveTo(sx,T);c.lineTo(sx,T+ph);c.stroke();
+ if(Number.isFinite(ys[i])){const hy=Y(ys[i]);const gr=c.createRadialGradient(sx,hy,0,sx,hy,14);gr.addColorStop(0,halo(.45));gr.addColorStop(1,ink(0));c.fillStyle=gr;c.beginPath();c.arc(sx,hy,14,0,TAU);c.fill();c.fillStyle=ink(1);c.beginPath();c.arc(sx,hy,4,0,TAU);c.fill();}
+ c.restore();}
+/* ---------- waveform strip ---------- */
+const wc=$('#wc'),buf=new Uint8Array(1024);
+function drawWave(now){const f=fit(wc);if(!f)return;const{x:c,w:W,h:H}=f;c.clearRect(0,0,W,H);c.lineWidth=1.2;c.strokeStyle=ink(.85);c.beginPath();
+ if(playing&&an){an.getByteTimeDomainData(buf);const n=buf.length;for(let i=0;i<W;i+=2){const v=(buf[Math.floor(i/W*n)]-128)/128;const y=H/2+v*H*.9;i?c.lineTo(i,y):c.moveTo(i,y);}c.stroke();}
+ else{const upto=W*(.12+.78*prog);for(let i=0;i<upto;i+=2){const e=Math.abs(Math.sin(i*.018))*(.45+.55*Math.sin(i*.9)),y=H/2+Math.sin(i*1.7)*H*.42*e;i?c.lineTo(i,y):c.moveTo(i,y);}c.stroke();c.fillStyle=ink(.5);for(let i=upto;i<W;i+=5)c.fillRect(i,H/2,1.4,1.4);}}
+/* ---------- 3D (lightweight stand-in: the real app uses your existing 3D viewer) ---------- */
+let ang=.7,drag=null;g3.addEventListener('pointerdown',e=>{drag=e.clientX;g3.setPointerCapture(e.pointerId);});g3.addEventListener('pointermove',e=>{if(drag!==null){ang+=(e.clientX-drag)*.01;drag=e.clientX;}});['pointerup','pointercancel'].forEach(t=>g3.addEventListener(t,()=>drag=null));
+function draw3D(){const f=fit(g3);if(!f||!ys.length)return;const{x:c,w:W,h:H}=f;c.clearRect(0,0,W,H);if(!RM&&drag===null)ang+=.004;
+ const P=(x,y,z)=>{const ca=Math.cos(ang),sa=Math.sin(ang),X=x*ca-z*sa,Z=x*sa+z*ca,s=1/(1-Z*.22),k=Math.min(W/2.5,H/1.6);return[W/2+X*k*s,H*.52-y*k*s*.9+Z*8];};
+ const line=(a,b,al)=>{const p=P(...a),q=P(...b);c.strokeStyle=ink(al);c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.stroke();};c.lineWidth=1;
+ const bx=[-1,1],by=[-.62,.62],bz=[-.5,.5];for(const y of by)for(const z of bz)line([-1,y,z],[1,y,z],.2);for(const x of bx)for(const z of bz)line([x,-.62,z],[x,.62,z],.2);for(const x of bx)for(const y of by)line([x,y,-.5],[x,y,.5],.2);
+ for(let i=0;i<=8;i++){const x=-1+i*.25;line([x,-.62,-.5],[x,-.62,.5],.1);}for(let k=0;k<=4;k++){const z=-.5+k*.25;line([-1,-.62,z],[1,-.62,z],.1);}
+ const pt=i=>{const y=ys[i];return Number.isFinite(y)?P(i/N*2-1,(norm(y)*2-1)*.5,0):null;};
+ [[5,.06],[3,.16],[1.8,1]].forEach(([lw,a])=>{c.strokeStyle=ink(a);c.lineWidth=lw;c.lineCap='round';c.beginPath();let on=false;for(let i=0;i<=N;i+=3){const p=pt(i);if(!p){on=false;continue;}on?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]);on=true;}c.stroke();});
+ const i=Math.min(N,Math.floor(prog*N)),p=pt(i);if(p){const fl=P(i/N*2-1,-.62,0);c.strokeStyle=ink(.4);c.setLineDash([3,4]);c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(fl[0],fl[1]);c.stroke();c.setLineDash([]);c.fillStyle=ink(1);c.beginPath();c.arc(p[0],p[1],4,0,TAU);c.fill();}}
+function tab(is3){$('#tab2d').setAttribute('aria-selected',String(!is3));$('#tab3d').setAttribute('aria-selected',String(is3));gx.hidden=is3;g3.hidden=!is3;$('#hint3').hidden=!is3;$('#viewCap').textContent=is3?'3D view':'Waveform view';}
+$('#tab2d').onclick=()=>tab(false);$('#tab3d').onclick=()=>tab(true);
+/* ---------- loop ---------- */
+function tick(now){if(playing){prog=((now-tStart)%DUR)/DUR;voiceUpdate();}
+ if(vis.heroArt!==false)drawHero(now);if(!gx.hidden&&vis.gc!==false)draw2D();if(!g3.hidden&&vis.g3!==false)draw3D();if(vis.wc!==false)drawWave(now);requestAnimationFrame(tick);}
+document.querySelectorAll('.chip')[0].setAttribute('aria-pressed','true');
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{setEq('sin(x)');updateNote();drawArts();requestAnimationFrame(tick);});
+addEventListener('resize',()=>drawArts());
+</script></body></html>
+

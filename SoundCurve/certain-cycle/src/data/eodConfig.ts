@@ -1,0 +1,1 @@
+export const EQUATION_OF_THE_DAY_IN_STUDIO = false;

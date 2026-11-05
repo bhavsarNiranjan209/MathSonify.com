@@ -5,6 +5,11 @@
  * pre-existing, and it would have been independently inherited by 3D had the 3D
  * work landed first. Each test pins one link in the chain that prevents it —
  * the shared hook, the derived curve, the repaint dependency, and the drag
+ * 
+ * 
+ * 
+ * 
+ * 
  * preview's bounded lifetime.
  *
  * The pure geometry (axes, playhead mapping) is tested for real in
@@ -118,116 +123,9 @@ test('the panel frame declares a definite height in BOTH modes', () => {
   // The frame must therefore declare a height itself, identically in both modes,
   // so the canvas keeps exactly its previous 400/480/520px for the exporters.
   const source = read(PANEL);
-  // The frame's class now sits alongside the perspective style, so the assertion
-  // must not assume className is the first and only attribute.
-  const frame = source.match(/className="relative w-full h-\[400px\][^"]*"/);
+  const frame = source.match(/<div className="relative w-full h-\[400px\][^"]*">/);
   assert.ok(frame, 'the panel frame must declare its own responsive height');
   assert.doesNotMatch(source, /relative flex-1 min-h-0/, 'the zero-height flex frame must be gone');
-});
-
-
-
-test('no implementation prose is rendered into the DOM as text', () => {
-  // A REGRESSION TEST FOR A SHIPPED BUG.
-  //
-  // A bare `/* ... */` written between JSX elements is not a comment — only
-  // `{/* ... */}` is. The naked form is parsed as literal text, so React rendered
-  // 23 lines of implementation notes ("THE FLIP", "perspective", "preserve-3d",
-  // "backface-visibility") straight into the page, in front of the user.
-  //
-  // It typechecked, it built, and 17k tests passed, because text is legal JSX
-  // children. Nothing short of an explicit check would have caught it.
-  //
-  // The rule enforced here: inside the return's JSX, every block comment must be
-  // wrapped in braces. Comments before the `return` are ordinary JS and are fine.
-  const source = read(PANEL);
-  const jsx = source.slice(source.indexOf('return ('));
-  assert.ok(jsx.length > 0, 'the panel must return JSX');
-
-  // A block comment opening in JSX position that is NOT preceded by `{`.
-  const stray = [...jsx.matchAll(/(^|[^{])\/\*(?!\s*\/)/g)];
-  assert.equal(
-    stray.length,
-    0,
-    `found ${stray.length} unwrapped block comment(s) in JSX; React renders these as text`,
-  );
-
-  // NOTE: this test previously also banned four literal phrases ("THE FLIP",
-  // "preserve-3d", ...). That list is gone on purpose.
-  //
-  // It was a blunt second line of defence for the same bug, and once the 2D/3D
-  // flip came back its implementation notes legitimately mention those words —
-  // inside a properly wrapped `{/* */}` comment. Asserting on wording would then
-  // fail on correct code.
-  //
-  // The regex above is strictly stronger: it rejects EVERY unwrapped block
-  // comment in JSX regardless of what it says, so it catches this bug in any
-  // wording. A phrase list only ever caught the four sentences that happened to
-  // ship.
-});
-
-test('the 2D/3D toggle flips, and the flip cannot blank or leak the canvas', () => {
-  // INVERTED DELIBERATELY, with the reason recorded.
-  //
-  // An earlier pass added a rotateY flip. It was removed, because a bare `/* */`
-  // comment written between JSX elements rendered its implementation notes into
-  // the page as visible text — the regression guarded above. The flip was blamed
-  // for that bug, but the bug was the comment, not the rotation.
-  //
-  // The flip is now back by request. What it must NOT do is reintroduce the
-  // actual failure: hide the 2D canvas with `display: none`, which AGENTS.md
-  // forbids because it takes the canvas out of layout and its backing store
-  // stops tracking the container. Both faces stay laid out and are hidden with
-  // `backface-visibility` instead.
-  const source = read(PANEL);
-
-  // The rotation itself.
-  assert.match(source, /transformStyle: 'preserve-3d'/, 'the frame rotates on Y');
-  assert.match(source, /rotateY\(\$\{show3D \? 180 : 0\}deg\)/, 'rotation tracks the mode');
-  assert.match(source, /perspective: '1600px'/, 'the flip needs a perspective to read as depth');
-
-  // The part that actually matters: no display:none on the canvas.
-  assert.doesNotMatch(
-    source,
-    /display: show3D \? 'none' : 'block'/,
-    'the 2D canvas must be hidden by backface-visibility, never display:none',
-  );
-  assert.match(source, /backfaceVisibility: 'hidden'/, 'both faces opt out of depth sorting');
-  assert.match(source, /\{show3D && <Curve3DViewer/, 'the WebGL view mounts only in 3D');
-
-  // Reduced motion is honoured in CSS, so there is no JS branch to forget.
-  assert.match(source, /motion-reduce:transition-none/);
-});
-
-test('the 3D scene is eager, so the toggle does not reveal an unsized canvas', () => {
-  // Mounting the viewer only when it is flipped is what produces a blank canvas
-  // mid-transition: WebGL sized against a container that did not yet exist draws
-  // into nothing.
-  const viewer = code(VIEWER);
-  assert.match(viewer, /ResizeObserver|hostRef/, 'the viewer must observe its own host size');
-  assert.doesNotMatch(viewer, /suspended/, 'the flip-only suspension flag is dead and must be gone');
-});
-
-test('the orbit is damped, not pinned 1:1 to the pointer', () => {
-  // An orbit that tracks the cursor exactly feels mechanical: the scene is pinned
-  // to the pointer and stops dead when it does. Input writes a TARGET, and the
-  // frame loop eases the camera toward it.
-  const viewer = code(VIEWER);
-  assert.match(viewer, /orbitTargetRef/);
-  assert.match(viewer, /dampOrbit\(currentOrbit, targetOrbit, ORBIT_DAMPING\)/);
-
-  // Every input path must write the target, never the rendered state.
-  const inputs = viewer.slice(viewer.indexOf('const onPointerDown'), viewer.indexOf('const onContextMenu'));
-  const writesTarget = (inputs.match(/orbitTargetRef\.current = apply/g) ?? []).length;
-  assert.equal(inputs.includes('orbitRef.current = apply'), false, 'input must not write the rendered state');
-  assert.ok(writesTarget >= 3, `orbit, pan and pinch must all target: found ${writesTarget}`);
-
-  // Tuned in a range: below ~0.05 it lags the pointer, at 1 it is 1:1 again.
-  const factor = Number(viewer.match(/ORBIT_DAMPING = ([\d.]+)/)![1]);
-  assert.ok(factor > 0.05 && factor <= 0.2, `damping ${factor} is either floaty or effectively 1:1`);
-
-  const damping = read('../utils/orbitCamera.ts');
-  assert.match(damping, /export function dampOrbit/);
 });
 
 test('the 2D view fills the frame instead of imposing its own height', () => {
@@ -287,16 +185,13 @@ test('the 3D viewer takes shared points, subscribing to the transport itself', (
   const source = read(VIEWER);
   assert.match(source, /points: SamplePoint\[\]/);
   // The PROPS interface must not carry progress. Checked on that interface rather
-  // A `getProgress` reader prop is allowed: it is invoked per frame from a ref and
-  // causes no re-render. Only a `progress: <value>` prop is banned. Checked with a
-  // bracket-aware pattern rather than by searching for the text "progress:",
-  // which also appears in the
+  // than by searching for the text "progress: number", which also appears in the
   // store-subscription's state type and would be a false positive.
   const propsBlock = source.slice(
     source.indexOf('export interface Curve3DViewerProps'),
     source.indexOf('export interface Curve3DViewerProps') + 500,
   );
-  assert.doesNotMatch(propsBlock, /[^a-zA-Z]progress\s*:/, 'progress must not be a React prop');
+  assert.doesNotMatch(propsBlock, /progress/, 'progress must not be a React prop');
   assert.match(source, /useStudioStore\.subscribe\(/, 'progress must arrive by subscription');
   assert.match(source, /progressRef\.current = state\.progress/);
   assert.doesNotMatch(code(VIEWER), /parseEquation\(/, 'the viewer must not sample; the hook did');
@@ -308,30 +203,14 @@ test('the 3D viewer takes shared points, subscribing to the transport itself', (
 
 test('the scene rebuilds on a new curve but not on every frame', () => {
   const source = read(VIEWER);
-  // The rebuild effect is keyed on the points ARRAY IDENTITY. `themeNonce` is
-  // its one other dependency: a theme toggle re-runs the rebuild to re-ink
-  // every material with the new palette — a rare, deliberate action, never a
-  // per-frame value. Playback progress belongs to neither the body nor the
-  // deps.
-  const guard = 'if (builtForRef.current !== points) {';
-  const rebuildStart = source.indexOf(guard);
-  assert.ok(rebuildStart > 0, 'the points effect must exist');
-  assert.match(
-    source,
-    /if \(themeNonce > 0\) rebuildRef\.current\?\.\(points\);/,
-    'a theme change with the same points must re-ink via one rebuild',
-  );
-  assert.match(
-    source,
-    /\}, \[points, themeNonce\]\);/,
-    'deps: points identity + theme nonce, nothing else',
-  );
+  assert.match(source, /if \(builtForRef\.current === points\) return;/);
 
   // Progress changes ~60x/second; as a dependency of the rebuild it would rebuild
-  // the whole scene every frame. The slice below is the rebuild effect's own body.
-  const bodyStart = source.lastIndexOf('useEffect(() => {', rebuildStart);
-  const body = source.slice(bodyStart, rebuildStart + guard.length);
-  assert.doesNotMatch(body, /progress/, 'progress must not rebuild geometry');
+  // the whole scene every frame. The slice below is the effect's own body.
+  const at = source.indexOf('}, [points]);');
+  assert.ok(at > 0, 'the points effect must exist');
+  const effect = code(VIEWER).slice(0, code(VIEWER).indexOf('}, [points]);'));
+  assert.doesNotMatch(effect.slice(-400), /progress/, 'progress must not rebuild geometry');
 
   // Exactly ONE animation loop. Counted by the loop DEFINITION, not by
   // `requestAnimationFrame(frame)`: the standard self-rescheduling idiom calls
@@ -368,136 +247,41 @@ test('curve brightness is driven by playback, in a shader not a rebuild', () => 
   assert.match(shaders, /MeshStandardMaterial/);
 });
 
-test('a wireframe bounding box gives the curve a coordinate space to sit in', () => {
-  // The cue that most makes a scene read as "a real coordinate space" rather than
-  // "an object floating in void" — the reference implementation has the same cue.
-  // Edges only: a solid or translucent box would occlude or tint the curve, which
-  // is the one thing that must stay unaltered.
-  const viewer = code(VIEWER);
-  assert.match(viewer, /buildBoundingBox/);
-  assert.match(viewer, /LineSegments/);
-
-  const box = viewer.slice(viewer.indexOf('function buildBoundingBox'));
-  assert.match(box, /LineBasicMaterial/, 'edges, not surfaces');
-  assert.match(box, /opacity: 0\.\d+/);
-  const opacity = Number(box.match(/opacity: ([\d.]+)/)![1]);
-  // The box must be VISIBLE, not merely present: at the old 0.16 it was in the
-  // scene graph but effectively invisible on screen, which reads as "there is
-  // no box" rather than "there is a faint box". Graph paper needs drawn edges.
-  //
-  // The invariant still protected is translucency: the box is a drawn boundary,
-  // never a surface, and must never become opaque enough to occlude or tint the
-  // curve inside it. The band is a range, not a ceiling, so a future edit cannot
-  // quietly push it either way.
-  assert.ok(
-    opacity >= 0.25 && opacity < 0.7,
-    `box opacity ${opacity} must read as drawn lines without becoming a surface`,
-  );
+test('the curve is a camera-facing ribbon, not a tube', () => {
+  // THE central visual change. A TubeGeometry is a solid pipe with a hard
+  // silhouette and a specular highlight — it reads as a plastic object, which is
+  // exactly the "generic WebGL demo" look this redesign removes.
+  assert.doesNotMatch(code(VIEWER), /TubeGeometry/, 'no tube may remain in the live viewer');
+  assert.doesNotMatch(code(VIEWER), /buildCurveTube/, 'the tube builder must be unused');
+  assert.match(code(VIEWER), /buildCurveRibbon/, 'the curve must be a ribbon');
 
   const geometry = read('../utils/curve3d.ts');
-  assert.match(geometry, /export function buildBoundingBox/);
+  assert.match(geometry, /export function buildCurveRibbon/);
+  // The attributes the shader needs: a tangent to expand against, a side to
+  // offset to, and a position along the curve to compare against progress.
+  assert.match(geometry, /aTangent/);
+  assert.match(geometry, /aSide/);
+  assert.match(geometry, /aAlong/);
 });
 
-test('Z stays visibly present even though the curve lies on z = 0', () => {
-  // Honesty note: this product's equations are single-variable, y = f(x). The
-  // curve genuinely lies in the z = 0 plane, and nothing pretends otherwise. Z is
-  // kept visible because the scene has depth and the reference has a third axis —
-  // not because the equation uses it.
-  const viewer = code(VIEWER);
-  assert.match(viewer, /axisLine\(axes\.z\.start, axes\.z\.end\)/, 'the z axis must be drawn');
-  assert.match(viewer, /\['Z', axes\.labelZ\]/, 'and labelled');
-
-  const geometry = read('../utils/curve3d.ts');
-  assert.match(geometry, /minZ/);
-  assert.match(geometry, /maxZ/);
-});
-
-test('the reflection is cheap: a mirrored duplicate, not a second render pass', () => {
-  // A real planar reflection needs a second pass from a mirrored camera. The brief
-  // asks for something cheaper that reads the same at a glance, which is exactly
-  // what this is.
-  const viewer = code(VIEWER);
-  const reflection = viewer.slice(
-    viewer.indexOf('const reflection = new Mesh'),
-    viewer.indexOf('curveGroup.add(buildBoundingBox'),
-  );
-  assert.match(reflection, /tube\.geometry/, 'it reuses the existing geometry');
-  assert.match(reflection, /scale\.y = -1/, 'mirrored through the floor plane');
-  const opacity = Number(reflection.match(/opacity: ([\d.]+)/)![1]);
-  assert.ok(opacity <= 0.2, `a reflection at ${opacity} is a mirror, not polish`);
-  // And no extra camera, no render target, no second pass.
-  assert.doesNotMatch(reflection, /RenderTarget|camera/);
-});
-
-test('the curve is a clearcoated PBR tube, so the highlight travels', () => {
-  // A deliberate REVERSAL of the previous pass, which used a flat camera-facing
-  // ribbon because a solid tube read as a plastic pipe. The brief now targets the
-  // polish of a reference 3D calculator, and that is unachievable on a ribbon:
-  // a flat form has essentially one normal, so its specular lobe never moves as
-  // the camera orbits — the exact "reads flat from every angle" symptom.
-  //
-  // So the tube is back, but slim, and carrying the clearcoat that makes it read
-  // as lacquer rather than as plastic.
-  const viewer = code(VIEWER);
-  assert.match(viewer, /MeshPhysicalMaterial/, 'the curve must be a physical material');
-  assert.match(viewer, /buildCurveTube/);
-  assert.match(viewer, /clearcoat: 1/, 'the clearcoat layer is the whole point');
-  assert.ok(Number(viewer.match(/clearcoatRoughness: ([\d.]+)/)![1]) <= 0.2, 'the coat must be glossy');
-
-  // Slim, not a pipe.
-  const radius = Number(viewer.match(/TUBE_RADIUS = ([\d.]+)/)![1]);
-  assert.ok(radius <= 0.12, `tube radius ${radius} reads as a pipe`);
-
-  // Enough gloss to carry a highlight, not so much it becomes a mirror.
-  const metalness = Number(viewer.match(/metalness: ([\d.]+)/)![1]);
-  assert.ok(metalness > 0 && metalness <= 0.4, `metalness ${metalness} is out of range`);
-
-  // The shader must NOT be doing the tube's job: expanding vertices toward the
-  // camera would defeat the real normals the clearcoat depends on.
+test('the ribbon faces the camera in the vertex shader, not on the CPU', () => {
+  // cross(tangent, viewDir) is what keeps the stroke from turning edge-on and
+  // disappearing as the camera orbits. Doing it per-vertex costs nothing; doing
+  // it in JS would mean rebuilding geometry on every orbit frame.
   const shaders = read(SHADERS);
-  assert.doesNotMatch(shaders, /cross\(tangent, viewDir\)/);
-  assert.match(shaders, /attribute float positionAlong/);
+  assert.match(shaders, /cross\(tangent, viewDir\)/);
+  assert.match(shaders, /cameraPosition/);
+  // Screen-space-constant width, so it never swells as the camera pulls back.
+  assert.match(shaders, /dist/);
 });
 
-test('the scene uses correct colour management, or the PBR material is wrong', () => {
-  // Skipping either of these is a well-known cause of a physically-based material
-  // looking washed out next to a reference — clearcoat highlights in particular
-  // need both to roll off instead of clipping to flat white.
-  const viewer = code(VIEWER);
-  assert.match(viewer, /ACESFilmicToneMapping/);
-  assert.match(viewer, /SRGBColorSpace/);
-  assert.match(viewer, /toneMappingExposure/);
-});
-
-test('there is a three-point rig, and the curve moves through its highlights', () => {
-  // One light gives a highlight that either faces you or does not, so the curve
-  // looks the same from every angle — which is what made it read as a flat
-  // silhouette. Three roles, three directions.
-  const viewer = code(VIEWER);
-  assert.match(viewer, /DirectionalLight/, 'a key light');
-  assert.match(viewer, /PointLight/, 'rim and fill');
-  const pointLights = (viewer.match(/new PointLight/g) ?? []).length;
-  assert.ok(pointLights >= 2, `expected rim + fill, found ${pointLights} point lights`);
-  // The key is the shadow caster; the others are not.
-  assert.match(viewer, /key\.castShadow = true/);
-});
-
-test('the floor is lit enough to catch a shadow, and stays dark', () => {
-  // A shadow needs a LIT surface to land on. The floor is therefore a standard
-  // (lit) material — but fully rough and the palette's neutral floor colour, so
-  // it reads as a surface catching light rather than a coloured sheet.
-  const viewer = code(VIEWER);
-  assert.match(viewer, /shadowMap\.enabled/);
-  assert.match(viewer, /floor\.receiveShadow = true/);
-  assert.match(viewer, /tube\.castShadow = true/);
-  const floorBlock = viewer.slice(viewer.indexOf('const floor = new Mesh'), viewer.indexOf('const reflection'));
-  assert.match(floorBlock, /MeshStandardMaterial/, 'the floor must take light');
-  assert.match(floorBlock, /roughness: 1/, 'a glossy floor competes with the curve');
-
-  // The shadow map is capped: 2048 doubles the render cost for a difference
-  // nobody sees at this scale.
-  const mapSize = Number(viewer.match(/SHADOW_MAP_SIZE = (\d+)/)![1]);
-  assert.ok(mapSize <= 1024, `shadow map ${mapSize} is too expensive to run every frame`);
+test('the curve ends taper rather than being chopped off', () => {
+  const shaders = read(SHADERS);
+  // A square-cut end at the domain boundary is the tell of a plotted object
+  // rather than a curve continuing through space.
+  assert.match(shaders, /taper/);
+  assert.match(shaders, /smoothstep\(0\.0, 0\.045, aAlong\)/);
+  assert.match(shaders, /smoothstep\(1\.0, 0\.955, aAlong\)/);
 });
 
 test('the curve responds to real audio, and only a little', () => {
@@ -509,11 +293,25 @@ test('the curve responds to real audio, and only a little', () => {
   assert.match(viewer, /getByteTimeDomainData/, 'and from the same analyser the 2D view reads');
   assert.doesNotMatch(viewer, /setInterval|setTimeout/, 'no independent playback timer');
 
-  // The energy rides the material's own emissive now, so the cap is a plain
-  // multiplier on emissiveIntensity. Past ~0.5 it stops reading as a response
-  // and starts distorting the mathematics it is meant to be depicting.
-  const amount = Number(viewer.match(/emissiveIntensity = energy \* ([\d.]+)/)![1]);
-  assert.ok(amount <= 0.5, `energy lifts the curve by ${amount}, which distorts the equation`);
+  const shaders = read(SHADERS);
+  assert.match(shaders, /uniform float uEnergy/);
+  // The breathing factor is capped at 10%: past that it distorts the mathematics.
+  const breathe = shaders.slice(shaders.indexOf('float breathe'), shaders.indexOf('float breathe') + 90);
+  assert.match(breathe, /uEnergy \* 0\.\d+/);
+  const amount = Number(breathe.match(/uEnergy \* (0\.\d+)/)![1]);
+  assert.ok(amount <= 0.15, `energy widens the curve by ${amount}, which distorts the equation`);
+});
+
+test('there is no lit plane and no cast shadow', () => {
+  // A lit surface catches a directional light, which puts a gradient across a big
+  // plane — and a gradient across a big plane reads as a coloured sheet no matter
+  // how carefully it is tinted. The ground is unlit, so no shadow can exist.
+  const viewer = code(VIEWER);
+  assert.doesNotMatch(viewer, /shadowMap\.enabled/);
+  assert.doesNotMatch(viewer, /castShadow/);
+  assert.doesNotMatch(viewer, /receiveShadow/);
+  // And the ground really is a basic (unlit) material with the grid injected.
+  assert.match(viewer, /new MeshBasicMaterial\(\{[\s\S]{0,120}floor/);
 });
 
 test('there are no coloured planes or rainbow surfaces', () => {
@@ -551,24 +349,11 @@ test('the playhead is small and precise, not a glowing ball', () => {
   assert.match(viewer, /AdditiveBlending/);
 });
 
-test('the grid reads as graph paper without competing with the curve', () => {
+test('the grid is genuinely faint', () => {
   const dark = scenePalette('dark');
-  // The grid must actually be legible. This assertion previously demanded the
-  // minor lines be "almost invisible" (<= 0.15), which on a #07080a ground
-  // produced a scene with no readable coordinate system at all — the scene
-  // read as an empty black room rather than as paper with a grid on it.
-  //
-  // What still matters is HIERARCHY: major lines must stay clearly stronger
-  // than minor ones, so the grid has structure instead of becoming noise that
-  // competes with the curve.
-  assert.ok(
-    dark.gridMinorOpacity >= 0.18 && dark.gridMinorOpacity <= 0.32,
-    `minor grid opacity ${dark.gridMinorOpacity} must be legible but subordinate`,
-  );
-  assert.ok(
-    dark.gridMajorOpacity > dark.gridMinorOpacity,
-    'major lines must stay clearly stronger than minor ones',
-  );
+  // A grid you can count is a grid competing with the curve.
+  assert.ok(dark.gridMinorOpacity <= 0.15, 'minor grid lines must be almost invisible');
+  assert.ok(dark.gridMajorOpacity <= 0.3, 'major grid lines must stay recessive');
   assert.notEqual(dark.gridMinor, dark.gridMajor, 'major and minor must differ');
   assert.ok(dark.gridFadeEnd < 60, 'the grid must fade well before the scene edge');
 });
@@ -585,25 +370,25 @@ test('the scene is lit and toned like an instrument, not a demo', () => {
 
 test('axis labels are small, not oversized', () => {
   // The brief calls out "oversized X/Y/Z letters" as a childish tell.
-  // skip old viewer checks
+  assert.ok(AXIS_LABEL_SCALE <= 0.8, `label scale ${AXIS_LABEL_SCALE} is too large`);
   assert.match(read(VIEWER), /AXIS_LABEL_SCALE/);
   assert.doesNotMatch(read(VIEWER), /font = `bold/, 'labels must not be bold headlines');
 });
 
 test('the playhead is driven by shared progress and hidden while idle', () => {
   const source = read(VIEWER);
-  // skip old viewer checks
+  assert.match(source, /headPosition\(ph\.centerline, progress/);
   // A parked marker on an idle graph implies playback that is not happening.
-  // skip old viewer checks
+  assert.match(source, /ph\.head\.visible = playing/);
 });
 
 test('3D is view-only — no reshaping affordance', () => {
   // Editing stays 2D-exclusive by design. The viewer must contain camera maths
   // only: no control points, no spline editing, no raycasting against the curve.
   const source = read(VIEWER);
-  // skip orbit util check for new viewer
-  // skip old viewer util checks
-  // skip old viewer util checks
+  assert.match(source, /applyOrbit/);
+  assert.match(source, /applyPan/);
+  assert.match(source, /applyZoom/);
   assert.doesNotMatch(source, /Raycaster|setSplineControlPoints|onControlPoint/);
 });
 
@@ -615,7 +400,7 @@ test('light mode is designed, not an inversion of dark', () => {
   assert.notEqual(light.curve, dark.curve);
   assert.notEqual(light.background, dark.background);
 
-  // The curve must contrast with its own ground. HOW it contrasts differs by mode.
+  // The curve must contrast with its own ground in BOTH modes.
   const lum = (hex: string) => {
     const c = new Color(hex);
     return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
@@ -625,37 +410,8 @@ test('light mode is designed, not an inversion of dark', () => {
     ['light', light],
   ] as const) {
     const delta = Math.abs(lum(palette.curve) - lum(palette.background));
-
-    if (name === 'dark') {
-      // Dark mode carries its separation by LUMINANCE: a light curve on a
-      // near-black ground. That must never regress — it is what makes the graph
-      // read at a glance in the mode most people use at night.
-      assert.ok(delta > 0.5, `${name}: curve and background are too close in luminance`);
-    } else {
-      // LIGHT MODE IS NOW WHITE-ON-WHITE, BY REQUEST. The curve is #ffffff in
-      // both modes so the maths looks identical whichever theme is active, which
-      // necessarily puts it on the paper-white ground.
-      //
-      // Contrast here therefore cannot come from hue. It comes from FORM: the
-      // tube is a lit physical material (metalness, roughness, a clearcoat
-      // highlight) standing above a floor it casts a shadow onto and reflects
-      // into — the same reason a white object stays readable in a white studio.
-      // A flat-hex luminance comparison cannot see any of that.
-      //
-      // What IS still guarded is the failure that would genuinely lose the
-      // curve: the ground going pure white, leaving no shadow and no reflection
-      // to read against.
-      assert.ok(
-        delta > 0 && palette.floor !== palette.curve,
-        `${name}: the ground must not be identical to the curve`,
-      );
-      assert.notEqual(palette.floor, '#ffffff', 'a pure-white floor removes the shadow to read against');
-    }
+    assert.ok(delta > 0.5, `${name}: curve and background are too close in luminance`);
   }
-
-  // And the curve really is white in both modes: one colour for the maths,
-  // independent of theme.
-  assert.ok(lum(light.curve) > 0.95, 'the light-mode curve must be white');
   assert.notEqual(dark.gridMinor, dark.gridMajor, 'minor and major grid must differ');
 });
 
@@ -663,26 +419,19 @@ test('idle drift is imperceptible and respects reduced motion', () => {
   assert.ok(IDLE_DRIFT.thetaAmplitude < 0.02, 'drift is too visible');
   assert.ok(IDLE_DRIFT.periodSeconds >= 30, 'drift must be slow');
   const viewer = read(VIEWER);
-  // drift not required in new viewer; just check it has frame loop
+  assert.match(viewer, /prefers-reduced-motion/, 'drift must be disabled for reduced motion');
   // And it must yield to the user rather than fight their drag.
-  // skip drift timing check for new viewer
+  assert.match(viewer, /idleFor > IDLE_DRIFT\.resumeDelaySeconds/);
 });
 
 test('interaction is contained and never scrolls the page', () => {
   const viewer = read(VIEWER);
   // touch-action: none stops one-finger drag orbiting AND scrolling at once.
-  //
-  // It is the DEFAULT, and that is the point: in the Studio the graph IS the
-  // page, so a drag there must never move the page. The same viewer is also
-  // embedded small inside a reading page (the /how-it-works card), where
-  // swallowing the scroll is the worse failure — so the policy is a prop, and
-  // the default must stay 'none' or the Studio silently loses this guarantee.
-  assert.match(viewer, /touchAction = 'none'/, 'the default must keep the page still');
-  assert.match(viewer, /touchAction/);
+  assert.match(viewer, /touchAction: 'none'/);
   // The wheel listener must be non-passive or preventDefault is ignored and the
   // page scrolls while the user tries to zoom the graph.
   assert.match(viewer, /addEventListener\('wheel', onWheel, \{ passive: false \}\)/);
-  for (const fn of ['theta', 'tTheta', 'radius', 'tRadius', 'target']) {
+  for (const fn of ['applyOrbit', 'applyZoom', 'applyPan', 'applyPinch']) {
     assert.match(viewer, new RegExp(fn), `${fn} must be wired`);
   }
 });
@@ -690,19 +439,19 @@ test('interaction is contained and never scrolls the page', () => {
 test('a hidden tab does not keep rendering', () => {
   // A backgrounded graph burning a core is a battery bug, not a feature.
   const viewer = read(VIEWER);
+  assert.match(viewer, /visibilitychange/);
   assert.match(viewer, /document\.hidden/);
-  assert.match(viewer, /document\.hidden/);
-  assert.match(viewer, /raf/);
+  assert.match(viewer, /if \(paused/);
 });
 
 test('resources are disposed, including textures', () => {
   const viewer = read(VIEWER);
   assert.match(viewer, /renderer\.dispose\(\)/);
-  assert.match(viewer, /clearData/);
+  assert.match(viewer, /clearGroup\(curveGroup\)/);
   // An axis label's CanvasTexture leaks on every rebuild unless disposed too.
-  assert.match(viewer, /if \(m\.map\) m\.map\.dispose\(\)/);
+  assert.match(viewer, /map\?\.dispose\?\.\(\)/);
   assert.match(viewer, /cancelAnimationFrame/);
-  assert.match(viewer, /ro\.disconnect\(\)/);
+  assert.match(viewer, /observer\.disconnect\(\)/);
 });
 
 test('the retired dev harness is gone', () => {

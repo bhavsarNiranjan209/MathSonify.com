@@ -1,22 +1,96 @@
-[33m[1m15:38:04[22m [WARN][39m Missing pages directory: src/pages
-[2m15:38:04[22m [34m[vite][39m connected.
-[2m15:38:04[22m [34m[types][39m Generated [2m4ms[22m
-[2m15:38:04[22m [34m[vite][39m connected.
-[42m[1m astro [22m[49m [32mv7.3.4[39m [2mready in[22m 6393 [2mms[22m
+[33m[1m16:06:32[22m [WARN][39m Missing pages directory: src/pages
+[2m16:06:33[22m [34m[vite][39m connected.
+[2m16:06:33[22m [34m[types][39m Generated [2m4ms[22m
+[2m16:06:33[22m [34m[vite][39m connected.
+[42m[1m astro [22m[49m [32mv7.3.4[39m [2mready in[22m 4580 [2mms[22m
 [2m┃[22m Local    [36mhttp://localhost:4321/[39m
 [2m┃[22m Network  [2muse --host to expose[22m
-[2m15:38:05[22m [32mwatching for file changes...[39m
-[2m15:38:22[22m [33m[404][39m / [2m217ms[22m
-[2m15:38:47[22m [33m[404][39m / [2m3ms[22m
-[2m15:38:50[22m [33m[404][39m / [2m1ms[22m
-[2m15:38:50[22m [33m[404][39m / [2m2ms[22m
-[2m15:38:50[22m [33m[404][39m / [2m2ms[22m
-[2m15:38:51[22m [33m[404][39m / [2m1ms[22m
-[2m15:40:05[22m [33m[404][39m / [2m1ms[22m
-[2m15:40:05[22m [33m[404][39m / [2m2ms[22m
-[2m15:40:05[22m [33m[404][39m / [2m1ms[22m
-[2m15:40:05[22m [33m[404][39m / [2m1ms[22m
-[2m15:40:06[22m [33m[404][39m / [2m5ms[22m
-[2m15:40:06[22m [33m[404][39m / [2m1ms[22m
-[2m15:40:06[22m [33m[404][39m / [2m1ms[22m
-[2m15:40:06[22m [33m[404][39m / [2m1ms[22m
+[2m16:06:33[22m [32mwatching for file changes...[39m
+[2m16:08:34[22m [33m[404][39m / [2m44ms[22m
+[2m16:08:35[22m [33m[404][39m / [2m2ms[22m
+[2m16:08:35[22m [33m[404][39m / [2m2ms[22m
+[2m16:08:36[22m [33m[404][39m / [2m1ms[22m
+[2m16:08:36[22m [33m[404][39m / [2m3ms[22m
+[2m16:08:36[22m [33m[404][39m / [2m2ms[22m
+[2m16:08:36[22m [33m[404][39m / [2m1ms[22m
+[2m16:08:36[22m [33m[404][39m / [2m1ms[22m
+[2m16:08:36[22m [33m[404][39m / [2m2ms[22m
+[2m16:09:50[22m [33m[404][39m / [2m1ms[22m
+[2m16:09:51[22m [33m[404][39m / [2m1ms[22m
+[2m16:09:51[22m [33m[404][39m / [2m1ms[22m
+[2m16:09:51[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:48[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:48[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:48[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:48[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:48[22m [33m[404][39m / [2m2ms[22m
+[2m16:16:48[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:49[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:49[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:49[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:49[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:49[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:50[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:50[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:50[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:50[22m [33m[404][39m / [2m1ms[22m
+[2m16:16:50[22m [33m[404][39m / [2m1ms[22m
+[2m16:17:16[22m [33m[404][39m / [2m1ms[22m
+[2m16:17:16[22m [33m[404][39m / [2m1ms[22m
+[2m16:17:17[22m [33m[404][39m / [2m2ms[22m
+[2m16:17:17[22m [33m[404][39m / [2m1ms[22m
+[2m16:17:17[22m [33m[404][39m / [2m1ms[22m
+[2m16:17:17[22m [33m[404][39m / [2m1ms[22m
+[2m16:17:17[22m [33m[404][39m / [2m1ms[22m
+[2m16:17:17[22m [33m[404][39m / [2m1ms[22m
+[2m16:17:18[22m [33m[404][39m / [2m2ms[22m
+[2m16:21:07[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:07[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:07[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:08[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:08[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:08[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:08[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:08[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:08[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:09[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:09[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:09[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:09[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:09[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:09[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:10[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:10[22m [33m[404][39m / [2m1ms[22m
+[2m16:21:10[22m [33m[404][39m / [2m1ms[22m
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/404.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/500.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/about/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/contact/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/create/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/guess/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/equations/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/how-it-works/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/music-lab/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/pricing/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/privacy/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/scientists/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/studio/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/soundlab/index.html
+[2m16:24:05[22m [34m[watch][39m certain-cycle/dist/terms/index.html
+[2m16:29:30[22m [34m[watch][39m certain-cycle/dist/404.html
+[2m16:29:30[22m [34m[watch][39m certain-cycle/dist/500.html
+[2m16:29:30[22m [34m[watch][39m certain-cycle/dist/about/index.html
+[2m16:29:30[22m [34m[watch][39m certain-cycle/dist/contact/index.html
+[2m16:29:30[22m [34m[watch][39m certain-cycle/dist/create/index.html
+[2m16:29:30[22m [34m[watch][39m certain-cycle/dist/equations/index.html
+[2m16:29:30[22m [34m[watch][39m certain-cycle/dist/guess/index.html
+[2m16:29:34[22m [34m[watch][39m certain-cycle/dist/how-it-works/index.html
+[2m16:29:34[22m [34m[watch][39m certain-cycle/dist/music-lab/index.html
+[2m16:29:34[22m [34m[watch][39m certain-cycle/dist/pricing/index.html
+[2m16:29:34[22m [34m[watch][39m certain-cycle/dist/privacy/index.html
+[2m16:29:35[22m [34m[watch][39m certain-cycle/dist/scientists/index.html
+[2m16:29:35[22m [34m[watch][39m certain-cycle/dist/soundlab/index.html
+[2m16:29:35[22m [34m[watch][39m certain-cycle/dist/studio/index.html
+[2m16:29:35[22m [34m[watch][39m certain-cycle/dist/index.html
+[2m16:29:35[22m [34m[watch][39m certain-cycle/dist/terms/index.html

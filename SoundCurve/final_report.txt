@@ -1,0 +1,94 @@
+## RECOVERY REPORT
+
+### Error 1: GuessDailyCard.tsx (File: `certain-cycle/src/components/Guess/GuessDailyCard.tsx`)
+
+**Root cause:** The file contained stray JSDoc comment text on lines 6-7 that existed outside the comment block:
+```
+/**
+ * Daily challenge card shown on the guess game screen.
+ * Displays the daily challenge information and provides a start button.
+ */
+
+/* Daily challenge card shown on the guess game screen.
+ * Displays the daily challenge information and provides a start button.
+ */
+```
+After the `*/` on line 4 closed the JSDoc block, lines 6-7 (`* Daily challenge card...` and `* Displays the daily challenge information...`) became invalid syntax standing alone as `* text` outside a comment. The error was reported at line 6:2.
+
+**Actual changes made:** Removed the two stray lines (lines 6-7) and the extra `*/` on what was line 8. The original valid JSDoc comment block (lines 1-4) was preserved intact.
+
+**Before:**
+```
+1: /**
+2:  * Daily challenge card shown on the guess game screen.
+3:  * Displays the daily challenge information and provides a start button.
+4:  */
+5: 
+6: * Daily challenge card shown on the guess game screen.
+7: * Displays the daily challenge information and provides a start button.
+8: */
+9: import { useTranslation } from '../../i18n/index';
+```
+
+**After:**
+```
+1: /**
+2:  * Daily challenge card shown on the guess game screen.
+3:  * Displays the daily challenge information and provides a start button.
+4:  */
+5: 
+6: import { useTranslation } from '../../i18n/index';
+```
+
+---
+
+### Error 2: Studio.tsx (File: `certain-cycle/src/components/Studio.tsx`)
+
+**Root cause:** Lines 204-205 contained a duplicate `useCallback` dependency array closing bracket:
+```
+  }, [setEquation, setOriginalEquation, setInstrument, setSonificationMode, setDuration, setMinX, setMaxX]);  // line 204
+  }, [setEquation, setOriginalEquation, setInstrument, setSonificationMode, setDuration, setMinX, setMaxX]);  // line 205
+```
+The second closing bracket on line 205 was a duplicate that created a syntax error - two closing `}, [deps]);` tokens in a row with no intervening opening construct. The error was reported at line 204:4.
+
+**Actual changes made:** Removed the duplicate closing bracket on line 205. The single remaining `useCallback` closing on line 204 is correct and complete.
+
+**Before (lines 203-205):**
+```
+203:     }
+204:   }, [setEquation, setOriginalEquation, setInstrument, setSonificationMode, setDuration, setMinX, setMaxX]);
+205:   }, [setEquation, setOriginalEquation, setInstrument, setSonificationMode, setDuration, setMinX, setMaxX]);
+```
+
+**After (lines 203-205):**
+```
+203:     }
+204:   }, [setEquation, setOriginalEquation, setInstrument, setSonificationMode, setDuration, setMinX, setMaxX]);
+205: 
+```
+
+---
+
+### Build Verification
+
+```
+npm run build
+  soundcurve@0.0.1 build
+> astro build
+
+:[WARN] Missing pages directory: src/pages
+15:28:00 [types] Generated 131ms
+15:28:00 [build] output: "static"
+15:28:00 [build] mode: "static"
+15:28:00 [build] directory: C:\Projects(NiJo)\SoundCurve\dist\
+15:28:00 [build] Collecting build info...
+15:28:00 [build] ✓ Completed in 346ms.
+15:28:01 [vite] ✓ built in 410ms
+15:28:01 [vite] ✓ built in 183ms
+15:28:01 [build] Rearranging server assets...
+15:28:01 [build] ✓ Completed in 713ms.
+15:28:01 [build] 0 page(s) built in 1.08s
+15:28:01 [build] Complete!
+```
+
+**Build result:** PASS - Both errors are fixed and the project builds successfully with no new errors.
