@@ -1,0 +1,319 @@
+---
+/**
+ * NoticePage — ONE page that handles both 'coming-soon' and 'maintenance' states.
+ * Replaces FeatureBuildingState.astro with a cleaner implementation that includes
+ * the email sign-up form (when EMAIL_SIGNUP_ENABLED is true).
+ *
+ * The form uses:
+ * - emailCheck for instant validation with specific messages
+ * - Honeypot field (name="website") to catch bots
+ * - Consent and under-18 notice
+ * - Thank-you state after submission
+ * - aria-invalid and aria-live for accessibility
+ */
+import type { Status } from '../config/featureStatus';
+
+interface Props {
+  /** The feature's current state: 'coming-soon' or 'maintenance' */
+  status: Status;
+  /** Feature-specific copy */
+  badge: string;
+  title: string;
+  description: string;
+  /** For maintenance: optional note and ETA */
+  maintenance?: {
+    note?: string;
+    eta?: string;
+    collectEmail?: boolean;
+  };
+  /** Email sign-up topic (e.g., 'soundlab', 'music-lab', 'maintenance') */
+  topic: string;
+  /** Whether the email form should be shown */
+  showEmailForm: boolean;
+}
+
+const { status, badge, title, description, maintenance, topic, showEmailForm } = Astro.props;
+
+const isMaintenance = status === 'maintenance';
+const shouldShowForm = showEmailForm && (maintenance?.collectEmail !== false);
+---
+
+<div class="notice-page-wrapper min-h-[calc(100vh-200px)] flex items-center justify-center px-4 py-16">
+  <div class="notice-page-content max-w-xl mx-auto text-center">
+    <!-- Badge -->
+    <span class="inline-flex items-center gap-2 px-3 py-1.5 border border-sc-line/30 rounded-full font-mono text-xs text-sc-text-soft mb-6">
+      {badge}
+    </span>
+
+    <!-- Title -->
+    <h1 class="font-serif text-3xl sm:text-5xl font-semibold text-sc-text mb-5 leading-tight">
+      {title}
+    </h1>
+
+    <!-- Description -->
+    <p class="text-base sm:text-lg text-sc-text-soft leading-relaxed mb-6 max-w-prose mx-auto">
+      {description}
+    </p>
+
+    <!-- Maintenance-specific details -->
+    {isMaintenance && maintenance?.note && (
+      <p class="text-sm text-sc-text-soft mb-3">{maintenance.note}</p>
+    )}
+    {isMaintenance && maintenance?.eta && (
+      <p class="text-sm text-sc-text-faint mb-6">{maintenance.eta}</p>
+    )}
+
+    <!-- Animated wave indicator -->
+    <div class="flex justify-center items-center gap-1 h-12 mb-8" aria-hidden="true">
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+        <span
+          class="notice-wave-bar w-1 bg-sc-accent/60 rounded-full"
+          style={`animation-delay: ${i * 0.12}s`}
+        />
+      ))}
+    </div>
+
+    <!-- Email sign-up form or fallback message -->
+    {shouldShowForm ? (
+      <div class="notice-form-container">
+        <notice-signup-form data-topic={topic} />
+      </div>
+    ) : (
+      <p class="text-sm text-sc-text-soft">Check back soon.</p>
+    )}
+
+    <!-- Back link -->
+    <div class="mt-12">
+      <a href="/studio" class="text-sm text-sc-text-soft hover:text-sc-text transition-colors">
+        ← Back to Studio
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .notice-wave-bar {
+    height: 8px;
+    animation: notice-wave 1.6s ease-in-out infinite;
+  }
+
+  @keyframes notice-wave {
+    0%, 100% { height: 8px; }
+    50% { height: 38px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .notice-wave-bar {
+      animation: none;
+      height: 22px;
+    }
+  }
+</style>
+
+<script>
+  import { checkEmail } from '../lib/emailCheck';
+  import { createSignup } from '../lib/signupClient';
+
+  class NoticeSignupForm extends HTMLElement {
+    connectedCallback() {
+      const topic = this.dataset.topic || 'unknown';
+
+      this.innerHTML = `
+        <form class="notice-signup-form" novalidate>
+          <!-- Honeypot field -->
+          <label class="sr-only" for="website-${topic}">
+            Leave this field empty
+            <input
+              type="text"
+              id="website-${topic}"
+              name="website"
+              tabindex="-1"
+              autocomplete="off"
+              class="absolute -left-[9999px] w-px h-px overflow-hidden"
+            />
+          </label>
+
+          <!-- Email input row -->
+          <div class="flex gap-2 mb-3">
+            <input
+              type="email"
+              id="email-${topic}"
+              name="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              aria-label="Your email address"
+              class="flex-1 min-w-0 bg-sc-surface border border-sc-line/30 rounded-lg px-4 py-3 text-sc-text focus:border-sc-accent focus:outline-none transition-colors"
+            />
+            <button
+              type="submit"
+              class="btn-primary px-6 py-3 whitespace-nowrap"
+            >
+              Notify me
+            </button>
+          </div>
+
+          <!-- Message area (validation errors, typo suggestions, success) -->
+          <div aria-live="polite" aria-atomic="true" class="notice-message min-h-[20px] text-sm mb-3"></div>
+
+          <!-- Typo suggestion buttons -->
+          <div class="notice-suggestions flex flex-wrap gap-2 mb-3"></div>
+
+          <!-- Fine print -->
+          <p class="text-xs text-sc-text-soft leading-relaxed">
+            We use your email only to tell you about this page, with a confirmation first.
+            One click unsubscribes. <a href="/privacy" class="underline hover:text-sc-text">Privacy</a><br/>
+            Under 18? Please ask a parent or guardian to enter their email.
+          </p>
+        </form>
+      `;
+
+      const form = this.querySelector('form') as HTMLFormElement;
+      const emailInput = this.querySelector('input[type="email"]') as HTMLInputElement;
+      const submitBtn = this.querySelector('button[type="submit"]') as HTMLButtonElement;
+      const messageDiv = this.querySelector('.notice-message') as HTMLDivElement;
+      const suggestionsDiv = this.querySelector('.notice-suggestions') as HTMLDivElement;
+
+      let pendingSuggestion: string | null = null;
+
+      const showMessage = (text: string, type: 'error' | 'success') => {
+        messageDiv.textContent = text;
+        messageDiv.className = `notice-message min-h-[20px] text-sm mb-3 ${
+          type === 'error' ? 'text-red-400' : 'text-green-400'
+        }`;
+      };
+
+      const clearMessage = () => {
+        messageDiv.textContent = '';
+        messageDiv.className = 'notice-message min-h-[20px] text-sm mb-3';
+      };
+
+      const showSuggestion = (suggestion: string, original: string) => {
+        pendingSuggestion = suggestion;
+        suggestionsDiv.innerHTML = `
+          <button type="button" class="suggestion-yes btn-secondary text-xs px-3 py-2">
+            Yes, use ${suggestion}
+          </button>
+          <button type="button" class="suggestion-no btn-secondary text-xs px-3 py-2">
+            No, keep mine
+          </button>
+        `;
+
+        const yesBtn = suggestionsDiv.querySelector('.suggestion-yes') as HTMLButtonElement;
+        const noBtn = suggestionsDiv.querySelector('.suggestion-no') as HTMLButtonElement;
+
+        yesBtn.onclick = () => {
+          emailInput.value = suggestion;
+          suggestionsDiv.innerHTML = '';
+          clearMessage();
+          emailInput.removeAttribute('aria-invalid');
+          pendingSuggestion = null;
+        };
+
+        noBtn.onclick = () => {
+          suggestionsDiv.innerHTML = '';
+          clearMessage();
+          pendingSuggestion = null;
+        };
+      };
+
+      const clearSuggestions = () => {
+        suggestionsDiv.innerHTML = '';
+        pendingSuggestion = null;
+      };
+
+      const showThankYou = () => {
+        form.innerHTML = `
+          <div class="notice-thank-you panel p-6 text-center">
+            <strong class="block font-serif text-2xl text-sc-text mb-2">Thank you</strong>
+            <p class="text-sm text-sc-text-soft leading-relaxed">
+              Check your inbox for a confirmation email. Click the link inside to complete your subscription.
+            </p>
+          </div>
+        `;
+      };
+
+      // Real-time validation on blur
+      emailInput.addEventListener('blur', () => {
+        const value = emailInput.value.trim();
+        if (!value) {
+          clearMessage();
+          clearSuggestions();
+          emailInput.removeAttribute('aria-invalid');
+          return;
+        }
+
+        const check = checkEmail(value);
+        if (!check.ok) {
+          emailInput.setAttribute('aria-invalid', 'true');
+          showMessage(check.message || 'Invalid email', 'error');
+
+          if (check.code === 'TYPO' && check.suggestion) {
+            showSuggestion(check.suggestion, value);
+          } else {
+            clearSuggestions();
+          }
+        } else {
+          emailInput.removeAttribute('aria-invalid');
+          clearMessage();
+          clearSuggestions();
+        }
+      });
+
+      // Clear validation on input
+      emailInput.addEventListener('input', () => {
+        if (emailInput.hasAttribute('aria-invalid')) {
+          emailInput.removeAttribute('aria-invalid');
+          clearMessage();
+          clearSuggestions();
+        }
+      });
+
+      // Form submission
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const email = emailInput.value.trim();
+        const honeypot = (form.querySelector('input[name="website"]') as HTMLInputElement).value;
+
+        // Honeypot check
+        if (honeypot) {
+          console.warn('Honeypot triggered');
+          return;
+        }
+
+        // Validate email
+        const check = checkEmail(email);
+        if (!check.ok) {
+          emailInput.setAttribute('aria-invalid', 'true');
+          showMessage(check.message || 'Invalid email', 'error');
+          if (check.code === 'TYPO' && check.suggestion) {
+            showSuggestion(check.suggestion, email);
+          }
+          return;
+        }
+
+        // Submit
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+
+        try {
+          const result = await createSignup({ email: check.email, topic });
+
+          if (result.ok) {
+            showThankYou();
+          } else {
+            showMessage(result.message || 'Something went wrong. Please try again.', 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Notify me';
+          }
+        } catch (err) {
+          showMessage('Network error. Please check your connection and try again.', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Notify me';
+        }
+      });
+    }
+  }
+
+  customElements.define('notice-signup-form', NoticeSignupForm);
+</script>

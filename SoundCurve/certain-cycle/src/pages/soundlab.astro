@@ -16,14 +16,15 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Navigation from '../components/Navigation.astro';
 import Footer from '../components/Footer.astro';
-import FeatureBuildingState from '../components/FeatureBuildingState.astro';
+import NoticePage from '../components/NoticePage.astro';
 // Statically referenced so Astro can hydrate it when released. Rollup still
 // tree-shakes this out of the emitted page unless the `enabled` branch below
 // is taken, so a disabled build ships no SoundLab JavaScript at all.
 import SoundLabWorkspace from '../components/SoundLab/SoundLabWorkspace';
-import { FEATURE_FLAGS } from '../config/featureFlags';
+import { statusOf, EMAIL_SIGNUP_ENABLED } from '../config/featureStatus';
 
-const enabled = FEATURE_FLAGS.soundLab;
+const status = statusOf('soundlab');
+const enabled = status === 'live';
 const description =
   'Original multi-track compositions, each one a system of equations rendered through instruments.';
 
