@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useStudioStore, type VisualizerMode } from '../store/studioStore';
 import { buildVerticalShiftEquation, type SamplePoint } from '../utils/equationParser';
@@ -25,7 +25,7 @@ function alpha(hex: string, a: number): string {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
-/* ── Curve editing helpers ─────────────────────────────────────── */
+/* â”€â”€ Curve editing helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /** Padded y-range shared by the graph renderer and the edit overlay. */
 function paddedYRange(pts: SamplePoint[]): { paddedMinY: number; paddedMaxY: number } {
@@ -73,9 +73,9 @@ export default function Visualizer() {
   progressRef.current = progress;
   isPlayingRef.current = isPlaying;
 
-  // ── Whole-curve vertical shift editing ──────────────────────────
+  // â”€â”€ Whole-curve vertical shift editing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // In edit mode the user drags up/down on the graph to shift the
-  // entire curve vertically — no individual handles, no Fourier fit.
+  // entire curve vertically â€” no individual handles, no Fourier fit.
   const editModeRef = useRef(false);
   const dragRef = useRef<{ lastY: number; lastCommit: number } | null>(null);
   const yOffsetRef = useRef(0); // accumulated vertical offset in math coords
@@ -95,7 +95,7 @@ export default function Visualizer() {
 
   const toggleEditMode = useCallback(() => {
     if (editModeRef.current) {
-      // Exit — commit any offset that has not already been committed on release.
+      // Exit â€” commit any offset that has not already been committed on release.
       if (Math.abs(yOffsetRef.current) > 0.001) {
         const newEq = buildVerticalShiftEquation(baseEquationRef.current, yOffsetRef.current);
         setEquation(newEq);
@@ -110,7 +110,7 @@ export default function Visualizer() {
       // `equationRef`'s store value, and doing it here was a second source of
       // truth that could disagree with it.
     } else {
-      // Enter — anchor the base equation and start fresh with zero offset.
+      // Enter â€” anchor the base equation and start fresh with zero offset.
       baseEquationRef.current = equationRef.current;
       yOffsetRef.current = 0;
       editModeRef.current = true;
@@ -132,11 +132,11 @@ export default function Visualizer() {
     });
   }, []);
 
-  // ── the ONE shared source of the active curve ─────────────────────
+  // â”€â”€ the ONE shared source of the active curve â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   //
   // Replaces the old `cachedPointsRef` + `freeformRef` pair. That pair was two
-  // sources of truth with no ordering guarantee, and `freeformRef` — cleared only
-  // on `pointerup` — could outlive the drag that created it, permanently masking
+  // sources of truth with no ordering guarantee, and `freeformRef` â€” cleared only
+  // on `pointerup` â€” could outlive the drag that created it, permanently masking
   // the real curve so that every later equation change was silently invisible.
   // Deriving with `useMemo` means the value is correct in the very render that
   // changed the equation, so no view can ever paint a stale frame.
@@ -181,7 +181,7 @@ export default function Visualizer() {
   const graphPointsRef = useRef<SamplePoint[]>(graphPoints);
   graphPointsRef.current = graphPoints;
 
-  // Main Canvas Render Loop — mounted ONCE, reads live state via refs.
+  // Main Canvas Render Loop â€” mounted ONCE, reads live state via refs.
   //
   // Performance: this only needs to run continuously while something is
   // actually moving. With a static equation and no audio the graph is
@@ -274,7 +274,7 @@ export default function Visualizer() {
   //
   // Keyed on the RESOLVED CURVE, not on the equation string. That distinction is
   // the whole staleness fix: the curve is what actually gets drawn, so when it
-  // changes identity this repaints — including when the change came from a
+  // changes identity this repaints â€” including when the change came from a
   // preset, a fitted curve, a sculpted spline, or a domain change rather than
   // from typing. Depending on `equation` alone left gaps between those paths.
   useEffect(() => {
@@ -290,7 +290,7 @@ export default function Visualizer() {
     return () => observer.disconnect();
   }, []);
 
-  // ── Pointer interaction (whole-curve vertical shift + hover) ──
+  // â”€â”€ Pointer interaction (whole-curve vertical shift + hover) â”€â”€
 
   const canvasMath = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
@@ -373,7 +373,7 @@ export default function Visualizer() {
    * for a pointerup delivered to the canvas. Release the mouse outside it, or
    * have the browser cancel the pointer (a system gesture, a second touch, a
    * context-menu interrupt), and the old code left the drag preview set
-   * forever — so every subsequent equation change was masked and the graph
+   * forever â€” so every subsequent equation change was masked and the graph
    * appeared frozen on the previous curve. Committing and clearing here as well
    * means the drag preview cannot outlive the gesture that created it.
    */
@@ -384,7 +384,7 @@ export default function Visualizer() {
     }
   };
 
-  // ── Parameterised equation editing (control points) ──────────────────
+  // â”€â”€ Parameterised equation editing (control points) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   //
   // The equation string is the single source of truth. When it parses into a
   // known family we expose draggable handles for its parameters; dragging a
@@ -475,11 +475,11 @@ export default function Visualizer() {
   }, [resetEquation]);
 
   const modeButtons: { id: VisualizerMode; label: string; icon: string }[] = [
-    { id: '2d-graph', label: '2D curve', icon: '📈' },
-    { id: 'waveform', label: 'Waveform', icon: '〰️' },
-    { id: 'spectrum', label: 'Spectrum', icon: '📊' },
-    { id: 'particles', label: 'Lissajous', icon: '◎' },
-    { id: 'mandala', label: 'Mandala', icon: '🏵️' },
+    { id: '2d-graph', label: '2D curve', icon: 'ðŸ“ˆ' },
+    { id: 'waveform', label: 'Waveform', icon: 'ã€°ï¸' },
+    { id: 'spectrum', label: 'Spectrum', icon: 'ðŸ“Š' },
+    { id: 'particles', label: 'Lissajous', icon: 'â—Ž' },
+    { id: 'mandala', label: 'Mandala', icon: 'ðŸµï¸' },
   ];
 
   return (
@@ -489,7 +489,7 @@ export default function Visualizer() {
         wrapper inherits it via `inset-0`, and this root and the canvas area fill
         what is left after the toolbar. Without the root's own `h-full`, the
         canvas area's percentage height would resolve against an auto-height
-        parent — which browsers treat as auto, collapsing the canvas to nothing.
+        parent â€” which browsers treat as auto, collapsing the canvas to nothing.
       */
     <div className="relative w-full h-full flex flex-col rounded-md border border-sc-ink/20 bg-sc-paper" style={{ contain: 'content' }}>
       {/* Toolbar strip */}
@@ -548,7 +548,7 @@ export default function Visualizer() {
             )}
           </AnimatePresence>
 
-          {/* Edit — drag to shift the curve vertically */}
+          {/* Edit â€” drag to shift the curve vertically */}
           <motion.button
             onClick={toggleEditMode}
             className={`px-2.5 py-1.5 min-h-[44px] text-xs rounded-md border transition-colors flex items-center gap-1.5 ` +
@@ -571,7 +571,7 @@ export default function Visualizer() {
             <span>{editMode ? 'Editing' : 'Edit'}</span>
           </motion.button>
 
-          {/* Reset — revert any edits back to the originally-picked equation */}
+          {/* Reset â€” revert any edits back to the originally-picked equation */}
           {hasEquationChanges && (
             <motion.button
               onClick={handleReset}
@@ -595,7 +595,7 @@ export default function Visualizer() {
       </div>
 
       {/* Paper canvas.
-          The height lives on GraphPanel's frame, and this fills it — the same
+          The height lives on GraphPanel's frame, and this fills it â€” the same
           responsive ladder the panel declares, so the canvas is still exactly
           400/480/520px and the image and video exports are unchanged. */}
       <div className="relative w-full h-full min-h-0 cursor-crosshair">
@@ -1305,3 +1305,4 @@ function drawRadialMandala(
 
   ctx.restore();
 }
+
