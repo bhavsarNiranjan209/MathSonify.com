@@ -63,7 +63,14 @@ const structuredData = enabled
       noindex
     >
       <Navigation />
-      <FeatureBuildingState feature="soundLab" description={description} />
+      <NoticePage
+        status={status}
+        badge="SoundLab"
+        title="Something is being composed"
+        description={description}
+        topic="soundlab"
+        showEmailForm={EMAIL_SIGNUP_ENABLED}
+      />
       <Footer />
     </BaseLayout>
   )
