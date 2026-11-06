@@ -10,7 +10,27 @@ import {
   UNSUPPORTED_RECORDING_MESSAGE,
   type VideoExportResult,
 } from '../utils/videoExporter';
+import { videoSize, type VideoOrientation, type VideoQuality } from '../utils/videoScene';
 import { performSave, type SaveOutcome } from '../utils/fileSave';
+
+/** localStorage key for the last video export orientation + quality. */
+export const VIDEO_EXPORT_PREFS_KEY = 'mathsonify-video-export';
+
+function loadVideoPrefs(): { orientation: VideoOrientation; quality: VideoQuality } {
+  const fallback = { orientation: 'landscape' as VideoOrientation, quality: '720p' as VideoQuality };
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = window.localStorage.getItem(VIDEO_EXPORT_PREFS_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as { orientation?: unknown; quality?: unknown };
+    return {
+      orientation: parsed.orientation === 'portrait' ? 'portrait' : 'landscape',
+      quality: parsed.quality === '1080p' ? '1080p' : '720p',
+    };
+  } catch {
+    return fallback;
+  }
+}
 
 export default function ExportModal() {
   const { t } = useTranslation();
@@ -49,6 +69,18 @@ export default function ExportModal() {
     typeof window === 'undefined' ? null : detectVideoMimeType(),
   );
   const videoBlocked = videoMime === null;
+
+  // Video orientation + quality, remembered from the last export.
+  const [videoPrefs, setVideoPrefs] = useState(loadVideoPrefs);
+  const videoOrientation = videoPrefs.orientation;
+  const videoQuality = videoPrefs.quality;
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(VIDEO_EXPORT_PREFS_KEY, JSON.stringify(videoPrefs));
+    } catch {
+      // Private mode / full storage: the export still works, it just forgets.
+    }
+  }, [videoPrefs]);
 
   // Release the previous clip's object URL whenever it is replaced or the modal
   // closes, so a long editing session does not leak a blob per export.
@@ -137,6 +169,8 @@ export default function ExportModal() {
         isCustomCurve: s.isCustomCurve,
         splineControlPoints: s.splineControlPoints,
         speed: s.speed,
+        orientation: videoOrientation,
+        quality: videoQuality,
       });
       // Show the clip; saving is a separate, explicit action.
       setVideo(result);
@@ -169,11 +203,14 @@ export default function ExportModal() {
 
   const audioSizeMB = ((duration * 44100 * 4) / 1024 / 1024).toFixed(2);
   const imageSizeLabel = imageFormat === 'png' ? '~180–350 KB' : '~90–160 KB';
-  const videoSizeLabel = `~${(duration * 0.31).toFixed(1)} MB`;
+  const videoDims = videoSize(videoOrientation, videoQuality);
+  const videoPixelScale = (videoDims.width * videoDims.height) / (1280 * 720);
+  const videoSizeLabel = `~${(duration * 0.31 * videoPixelScale).toFixed(1)} MB`;
   /** Human label for the container this browser will really record. */
   const videoFormatLabel = videoMime
-    ? `${videoExtensionForMimeType(videoMime).toUpperCase()} · ${videoMime.includes('mp4') ? 'H.264' : 'VP9'} · 720p60`
+    ? `${videoExtensionForMimeType(videoMime).toUpperCase()} · ${videoMime.includes('mp4') ? 'H.264' : 'VP9'} · ${videoQuality}60`
     : 'unavailable';
+  const videoResolutionLabel = `${videoDims.width} × ${videoDims.height} @ 60fps`;
 
   return (
     <div
@@ -353,7 +390,7 @@ export default function ExportModal() {
               {activeScientist && (
                 <div className="flex justify-between"><span className="text-sc-text-faint">Scientist</span><span className="font-mono text-sc-text">{activeScientist.name}</span></div>
               )}
-              <div className="flex justify-between"><span className="text-sc-text-faint">Resolution</span><span className="font-mono text-sc-text">1280 × 720 @ 60fps</span></div>
+              <div className="flex justify-between"><span className="text-sc-text-faint">Resolution</span><span className="font-mono text-sc-text">{videoResolutionLabel}</span></div>
             </>
           ) : (
             <>
@@ -397,6 +434,49 @@ export default function ExportModal() {
 
         {exportType === 'video' && (
           <div className="relative space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-sc-text-soft">Orientation</span>
+              <div className="flex rounded-full p-0.5 gap-0.5" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)' }}>
+                {([
+                  { id: 'landscape' as const, label: 'Landscape 16:9' },
+                  { id: 'portrait' as const, label: 'Portrait 9:16' },
+                ]).map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setVideoPrefs((p) => ({ ...p, orientation: opt.id }))}
+                    className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px]"
+                    style={{
+                      background: videoOrientation === opt.id ? 'var(--sc-accent)' : 'transparent',
+                      color: videoOrientation === opt.id ? 'var(--sc-on-accent)' : 'var(--sc-text-faint)',
+                      boxShadow: videoOrientation === opt.id ? '0 0 10px -2px rgba(var(--sc-accent)/0.35)' : 'none',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-sc-text-soft">Quality</span>
+              <div className="flex rounded-full p-0.5 gap-0.5" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)' }}>
+                {(['720p', '1080p'] as const).map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setVideoPrefs((p) => ({ ...p, quality: q }))}
+                    className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px]"
+                    style={{
+                      background: videoQuality === q ? 'var(--sc-accent)' : 'transparent',
+                      color: videoQuality === q ? 'var(--sc-on-accent)' : 'var(--sc-text-faint)',
+                      boxShadow: videoQuality === q ? '0 0 10px -2px rgba(var(--sc-accent)/0.35)' : 'none',
+                    }}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
             <p className="text-[11px] text-sc-text-faint">
               Est. file size: <span className="font-mono text-sc-text-soft">{videoSizeLabel}</span> · {videoFormatLabel}
             </p>
@@ -414,7 +494,7 @@ export default function ExportModal() {
                   playsInline
                   preload="metadata"
                   className="w-full rounded-lg border border-sc-line/20 bg-black"
-                  style={{ aspectRatio: '16 / 9' }}
+                  style={{ aspectRatio: videoOrientation === 'portrait' ? '9 / 16' : '16 / 9' }}
                 />
                 <div className="flex flex-col sm:flex-row gap-2">
                   <button

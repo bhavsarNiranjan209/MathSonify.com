@@ -13,29 +13,35 @@ import assert from 'node:assert/strict';
 import {
   bouncePosition,
   tickerOffset,
-  watermarkBounds,
   watermarkPosition,
   prepareVideoScene,
   phaseAt,
   drawExportFrame,
+  drawStaticLayer,
   totalDurationMs,
+  videoSize,
+  WATERMARK_TEXT,
+  SAFE_TOP,
+  SAFE_BOTTOM,
+  SAFE_RIGHT,
   INTRO_MS,
   FPS,
   VIDEO_W,
   VIDEO_H,
-  TICKER_TOP,
   type ExportMode,
+  type VideoOrientation,
+  type VideoQuality,
 } from './videoScene';
 import { resolveActiveCurve, paddedYRange } from './activeCurve';
 import { sampleEquationToControlPoints } from './curveSpline';
-import { targetBitrate, pickVideoMimeType, videoExtensionForMimeType, VIDEO_MIME_PREFERENCE } from './videoExporter';
+import { targetBitrate, videoBitrateForQuality, pickVideoMimeType, videoExtensionForMimeType, VIDEO_MIME_PREFERENCE } from './videoExporter';
 import { equationLabel, EQUATION_LABEL_PREFIX } from './equationLabel';
 
 /** Minimal ctx stub: prepareVideoScene only needs measureText. */
-function stubCtx(textWidth = 900): CanvasRenderingContext2D {
+function stubCtx(): CanvasRenderingContext2D {
   return {
     font: '',
-    measureText: () => ({ width: textWidth }),
+    measureText: (t: string) => ({ width: t.length * 11 }),
   } as unknown as CanvasRenderingContext2D;
 }
 
@@ -121,46 +127,129 @@ test('bouncePosition is continuous and reflects at both bounds', () => {
   assert.ok(max > hi - 1, 'never reached the high bound');
 });
 
-test('watermark reaches all four bounds over a long clip', () => {
-  // A full x traverse is 2*1140/78 ≈ 29s, so this deliberately runs longer
-  // than a typical clip to prove the path genuinely covers every edge rather
-  // than just drifting within one region.
-  const total = totalDurationMs(30_000);
-  const modes: ExportMode[] = ['user', 'scientist'];
-  for (const mode of modes) {
-    const b = watermarkBounds(mode);
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (let t = 0; t <= total; t += 16) {
-      const p = watermarkPosition(t, mode);
-      minX = Math.min(minX, p.x);
-      maxX = Math.max(maxX, p.x);
-      minY = Math.min(minY, p.y);
-      maxY = Math.max(maxY, p.y);
-    }
-    assert.ok(minX <= b.x0 + 1, `${mode}: never hit left edge (min ${minX} vs ${b.x0})`);
-    assert.ok(maxX >= b.x1 - 1, `${mode}: never hit right edge (max ${maxX} vs ${b.x1})`);
-    assert.ok(minY <= b.y0 + 1, `${mode}: never hit top edge (min ${minY} vs ${b.y0})`);
-    assert.ok(maxY >= b.y1 - 1, `${mode}: never hit bottom bound (max ${maxY} vs ${b.y1})`);
+/* ── watermark: the domain, below the graph, never on the curve ─── */
+
+test('the watermark text is exactly "mathsonify.com"', () => {
+  // The old label read "MathSonify  ·  mathsonify.com"; the owner wants the
+  // domain only. Both modes, same check.
+  for (const scientist of [null, SCIENTIST]) {
+    const scene = sceneFor('sin(x)', scientist);
+    const { ctx, texts } = recordingCtx();
+    drawExportFrame(ctx, scene, INTRO_MS + 500); // main phase
+    assert.ok(texts.includes(WATERMARK_TEXT), `watermark missing (got ${JSON.stringify(texts)})`);
+    assert.ok(
+      !texts.some((t) => t.includes('MathSonify') && t.includes('mathsonify.com')),
+      `the old two-part watermark label is back (got ${JSON.stringify(texts)})`,
+    );
   }
 });
 
-test('watermark crosses the frame during a typical 6s clip', () => {
-  // Guards the regression where a per-frame velocity was misread as
-  // px/second: the marker crawled a few px and never moved across the frame.
-  const total = totalDurationMs(6000);
-  const xs = [];
-  for (let t = 0; t <= total; t += 16) xs.push(watermarkPosition(t, 'user').x);
-  const travelled = Math.max(...xs) - Math.min(...xs);
-  assert.ok(travelled > 200, `watermark only travelled ${travelled.toFixed(1)}px in 6s`);
+test('the watermark strip sits below the graph and never overlaps it', () => {
+  const orientations: VideoOrientation[] = ['landscape', 'portrait'];
+  const modes: ExportMode[] = ['user', 'scientist'];
+  for (const orientation of orientations) {
+    for (const mode of modes) {
+      const scene = sceneFor('sin(x)', mode === 'scientist' ? SCIENTIST : null, orientation);
+      const strip = scene.watermarkStrip;
+      const pillH = 44 * scene.uiScale;
+      assert.ok(strip.y >= scene.panel.y + scene.panel.h, `${orientation}/${mode}: strip starts inside the panel`);
+      const floor = scene.ticker ? scene.ticker.top : scene.height;
+      assert.ok(strip.y + strip.h / 2 + pillH / 2 <= floor, `${orientation}/${mode}: watermark pill reaches the ticker/bottom edge`);
+      // Over a 6s clip the pill never leaves the strip or touches the graph.
+      const total = totalDurationMs(6000);
+      for (let t = 0; t <= total; t += 16) {
+        const { x, y } = watermarkPosition(t, scene);
+        assert.ok(
+          x - scene.watermarkPillW / 2 >= strip.x - 1 && x + scene.watermarkPillW / 2 <= strip.x + strip.w + 1,
+          `${orientation}/${mode}: watermark x escaped the strip at t=${t}`,
+        );
+        assert.ok(Math.abs(y - (strip.y + strip.h / 2)) < 1, `${orientation}/${mode}: watermark y drifted off the strip`);
+        assert.ok(y - pillH / 2 >= scene.panel.y + scene.panel.h, `${orientation}/${mode}: watermark pill overlaps the graph at t=${t}`);
+      }
+    }
+  }
 });
 
-test('watermark never overlaps the ticker strip in scientist mode', () => {
-  const b = watermarkBounds('scientist');
-  // Pill half-height is 22; its bottom edge must stay above the ticker.
-  assert.ok(b.y1 + 22 <= TICKER_TOP, `watermark bound ${b.y1} overlaps ticker at ${TICKER_TOP}`);
-  const total = totalDurationMs(4000);
-  for (let t = 0; t <= total; t += 8) {
-    const { y } = watermarkPosition(t, 'scientist');
+test('the watermark travels across its strip during a typical 6s clip', () => {
+  // Guards the regression where a per-frame velocity was misread as
+  // px/second: the marker crawled a few px and never moved across the frame.
+  const orientations: VideoOrientation[] = ['landscape', 'portrait'];
+  for (const orientation of orientations) {
+    const scene = sceneFor('sin(x)', null, orientation);
+    const total = totalDurationMs(6000);
+    const xs = [];
+    for (let t = 0; t <= total; t += 16) xs.push(watermarkPosition(t, scene).x);
+    const travelled = Math.max(...xs) - Math.min(...xs);
+    const span = scene.watermarkStrip.w - scene.watermarkPillW;
+    assert.ok(travelled > span * 0.4, `${orientation}: watermark only travelled ${travelled.toFixed(1)}px of a ${span.toFixed(1)}px strip in 6s`);
+  }
+});
+
+test('portrait keeps the graph out of the phone safe zones', () => {
+  // Reels / Shorts / TikTok cover the top 12%, the bottom 20% and the right
+  // 14% mid-height with buttons. Nothing that matters may sit under them.
+  for (const mode of ['user', 'scientist'] as const) {
+    const scene = sceneFor('sin(x)', mode === 'scientist' ? SCIENTIST : null, 'portrait');
+    const p = scene.panel;
+    assert.ok(p.y >= SAFE_TOP * scene.height, `${mode}: graph starts inside the top safe zone`);
+    assert.ok(p.y + p.h <= (1 - SAFE_BOTTOM) * scene.height, `${mode}: graph runs into the bottom safe zone`);
+    assert.ok(p.x + p.w <= (1 - SAFE_RIGHT) * scene.width, `${mode}: graph runs into the right safe zone`);
+    assert.ok(scene.labelY >= SAFE_TOP * scene.height, `${mode}: label pill inside the top safe zone`);
+    const strip = scene.watermarkStrip;
+    assert.ok(strip.y + strip.h <= (1 - SAFE_BOTTOM) * scene.height, `${mode}: watermark strip inside the bottom safe zone`);
+    if (scene.ticker) {
+      assert.ok(scene.ticker.top + scene.ticker.height <= (1 - SAFE_BOTTOM) * scene.height, `${mode}: ticker inside the bottom safe zone`);
+    }
+  }
+});
+
+test('tick numbers are about 2.7% of the short side', () => {
+  const combos: [VideoOrientation, VideoQuality][] = [
+    ['landscape', '720p'],
+    ['landscape', '1080p'],
+    ['portrait', '720p'],
+    ['portrait', '1080p'],
+  ];
+  for (const [orientation, quality] of combos) {
+    const scene = sceneFor('sin(x)', null, orientation, quality);
+    assert.equal(scene.tickFontPx, Math.round(0.027 * scene.shortSide), `${orientation} ${quality}`);
+  }
+});
+
+test('videoSize covers the four export sizes', () => {
+  assert.deepEqual(videoSize('landscape', '720p'), { width: 1280, height: 720 });
+  assert.deepEqual(videoSize('landscape', '1080p'), { width: 1920, height: 1080 });
+  assert.deepEqual(videoSize('portrait', '720p'), { width: 720, height: 1280 });
+  assert.deepEqual(videoSize('portrait', '1080p'), { width: 1080, height: 1920 });
+});
+
+test('the static layer holds the equation label and tick numbers, never the watermark', () => {
+  const scene = sceneFor('sin(x)', null);
+  const { ctx, texts } = recordingCtx();
+  drawStaticLayer(ctx, scene);
+  assert.ok(texts.includes('Equation: sin(x)'), `static layer missing the equation label (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.some((t) => /^-?\d/.test(t)), `static layer missing tick numbers (got ${JSON.stringify(texts)})`);
+  assert.ok(!texts.some((t) => t.includes('mathsonify.com')), 'the watermark must be dynamic, not baked into the static layer');
+});
+
+test('intro and outro cards are unchanged', () => {
+  const scene = sceneFor('sin(x)', null);
+  const a = recordingCtx();
+  drawExportFrame(a.ctx, scene, INTRO_MS / 2);
+  assert.ok(a.texts.includes('MathSonify'), `intro lost its title (got ${JSON.stringify(a.texts)})`);
+  assert.ok(a.texts.includes('Equation: sin(x)'), `intro lost the equation (got ${JSON.stringify(a.texts)})`);
+  const b = recordingCtx();
+  drawExportFrame(b.ctx, scene, totalDurationMs(4000) - 100);
+  assert.ok(b.texts.includes('Made with MathSonify.com'), `outro lost its line (got ${JSON.stringify(b.texts)})`);
+  assert.ok(b.texts.includes('Turn math into sound'), `outro lost its tagline (got ${JSON.stringify(b.texts)})`);
+});
+
+test('bitrate is 8 Mbps at 720p and 14 Mbps at 1080p', () => {
+  assert.equal(videoBitrateForQuality('720p'), 8_000_000);
+  assert.equal(videoBitrateForQuality('1080p'), 14_000_000);
+});
+
+
 /* ── mode selection ──────────────────────────────────────────────── */
 
 test('no scientist metadata selects user mode with no ticker', () => {
@@ -401,7 +490,7 @@ function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[] } {
     moveTo() {}, lineTo() {}, stroke() {}, fill() {}, arc() {},
     // `roundRect` is built from arcTo, so the stub must provide it.
     arcTo() {}, quadraticCurveTo() {}, bezierCurveTo() {},
-    fillRect() {}, strokeRect() {}, clearRect() {}, clip() {}, rect() {},
+    fillRect() {}, strokeRect() {}, clearRect() {}, clip() {}, rect() {}, drawImage() {},
     translate() {}, scale() {}, rotate() {}, setLineDash() {},
     createRadialGradient: () => ({ addColorStop() {} }),
     createLinearGradient: () => ({ addColorStop() {} }),
@@ -414,13 +503,18 @@ function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[] } {
 /** Structural stand-in for the Scientist record the scene builder needs. */
 type ScientistStub = Parameters<typeof prepareVideoScene>[0]['scientist'];
 
-function sceneFor(equation: string, scientist: ScientistStub) {
+function sceneFor(
+  equation: string,
+  scientist: ScientistStub,
+  orientation: VideoOrientation = 'landscape',
+  quality: VideoQuality = '720p',
+) {
   const curve = resolveActiveCurve({
     equation: 'sin(x)', minX: -Math.PI, maxX: Math.PI, isCustomCurve: false, splineControlPoints: [],
   });
   return prepareVideoScene({
     ctx: stubCtx(), equation, curve, minX: -Math.PI, maxX: Math.PI,
-    mainMs: 4000, scientist,
+    mainMs: 4000, scientist, orientation, quality,
   });
 }
 
@@ -505,15 +599,3 @@ test('the extension always matches the container it came from', () => {
   assert.equal(videoExtensionForMimeType('video/webm;codecs=vp9,opus'), 'webm');
   assert.equal(videoExtensionForMimeType(null), 'webm', 'unknown falls back to webm');
 });
-
-
-
-    assert.ok(y + 22 <= TICKER_TOP, `watermark at y=${y} overlaps ticker`);
-  }
-});
-
-test('user mode lets the watermark travel lower than scientist mode', () => {
-  assert.ok(watermarkBounds('user').y1 > watermarkBounds('scientist').y1);
-});
-
-

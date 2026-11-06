@@ -83,7 +83,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: 0,
         maxX: 6.283,
       },
-    ,
       {
         id: 'lovelace-punched-card-pattern',
         name: 'Punched card pattern',
@@ -173,7 +172,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: 0,
         maxX: 10,
       },
-    ,
       {
         id: 'turing-computability-wave',
         name: 'Computability wave',
@@ -263,7 +261,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: 0.1,
         maxX: 10,
       },
-    ,
       {
         id: 'einstein-curvature-well',
         name: 'Curvature well',
@@ -824,7 +821,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: 0,
         maxX: 4,
       },
-    ,
       {
         id: 'mandelbrot-julia-oscillation',
         name: 'Julia set oscillation',
@@ -891,7 +887,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: -6,
         maxX: 6,
       },
-    ,
       {
         id: 'riemann-zeta-magnitude',
         name: 'Zeta magnitude wave',
@@ -947,7 +942,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: -4,
         maxX: 4,
       },
-    ,
       {
         id: 'pascal-exponential-tower',
         name: 'Exponential tower',
@@ -983,9 +977,9 @@ export const SCIENTISTS: Scientist[] = [
       },
       {
         id: 'brahmagupta-zero-rule',
-        name: 'Zero rule',
-        equation: 'x*0 + 1',
-        description: 'Multiplying by zero collapses to one as his rules first declared.',
+        name: 'Perfect square',
+        equation: 'x^2 - 2*x + 1',
+        description: 'A square that dips to exactly zero at x = 1 — Brahmagupta\'s rules for zero made such algebra possible.',
         instrument: 'sine',
         sonificationMode: 'note',
         duration: 12,
@@ -1093,7 +1087,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: -6,
         maxX: 6,
       },
-    ,
       {
         id: 'gauss-euler-sum',
         name: 'Euler-Maclaurin bridge',
@@ -1442,7 +1435,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: 0,
         maxX: 10,
       },
-    ,
       {
         id: 'hubble-deceleration-parameter',
         name: 'Deceleration parameter',
@@ -1521,7 +1513,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: -6,
         maxX: 6,
       },
-    ,
       {
         id: 'noether-lagrangian-peak',
         name: 'Lagrangian peak',
@@ -1588,7 +1579,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: 0.2,
         maxX: 8,
       },
-    ,
       {
         id: 'fermi-resonance-peak',
         name: 'Resonance peak',
@@ -1689,7 +1679,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: 0,
         maxX: 12,
       },
-    ,
       {
         id: 'schroedinger-tunneling-probability',
         name: 'Tunneling probability',
@@ -1756,7 +1745,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: -6,
         maxX: 6,
       },
-    ,
       {
         id: 'euclid-golden-ratio',
         name: 'Golden ratio spiral',
@@ -2239,7 +2227,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: 0,
         maxX: 12,
       },
-    ,
       {
         id: 'lorentz-velocity-addition',
         name: 'Velocity addition',
@@ -2419,7 +2406,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: 0,
         maxX: 6.283,
       },
-    ,
       {
         id: 'hypatia-astrolabe-precession',
         name: 'Astrolabe precession',
@@ -2464,7 +2450,6 @@ export const SCIENTISTS: Scientist[] = [
         minX: -5,
         maxX: 5,
       },
-    ,
       {
         id: 'newton-prism-spectrum',
         name: 'Prism spectrum',
@@ -3604,8 +3589,8 @@ export const SCIENTISTS: Scientist[] = [
       {
         id: 'bohr-complementarity-wave',
         name: 'Complementarity wave',
-        equation: 'sin(x)^2 + cos(x)^2',
-        description: 'Wave and particle complement each other in a flat unity that never wavers.',
+        equation: 'sin(x)^2 - cos(x)^2',
+        description: 'Wave and particle trade off — when one grows the other shrinks, their difference tracing a clean cosine.',
         instrument: 'triangle',
         sonificationMode: 'chord',
         duration: 12,

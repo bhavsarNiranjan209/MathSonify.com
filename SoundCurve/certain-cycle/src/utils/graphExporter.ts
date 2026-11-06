@@ -9,7 +9,8 @@
  *   5. Centered "MathSonify.com" watermark pill
  *
  * The graph interior is never obstructed: no pill or text sits on it.
- * Only the watermark pill sits centered over the graph.
+ * The watermark pill sits in the bottom-right corner of the graph area,
+ * small and quiet, so the curve stays the subject.
  */
 
 import { drawWatermark } from './watermark';
@@ -26,6 +27,40 @@ export interface GraphExportOptions {
   equationText?: string;
   equationName?: string;
   scientistName?: string;
+}
+
+/**
+ * Geometry of the image-export watermark pill.
+ *
+ * The pill sits in the BOTTOM-RIGHT corner of the graph area — never in the
+ * middle of the curve, never over the axes. It is deliberately small
+ * (~11px font at 1x) and quiet (opacity 0.5) so the graph stays the subject
+ * and the watermark stays the signature.
+ */
+export function imageWatermarkRect(
+  exportWidth: number,
+  graphH: number,
+  scaleFactor: number,
+): { x: number; y: number; w: number; h: number; fontSize: number; padH: number; padV: number } {
+  const fontSize = Math.round(11 * scaleFactor);
+  // Width is measured against the real font at draw time; this estimate only
+  // positions the rect for tests and for the pre-measure layout. The draw
+  // code re-measures and re-anchors to the same corner.
+  const estTextW = 'MathSonify.com'.length * fontSize * 0.58;
+  const padH = Math.round(fontSize * 0.7);
+  const padV = Math.round(fontSize * 0.38);
+  const w = Math.round(estTextW + padH * 2);
+  const h = fontSize + padV * 2 + 2;
+  const margin = Math.round(16 * scaleFactor);
+  return {
+    x: exportWidth - margin - w,
+    y: graphH - margin - h,
+    w,
+    h,
+    fontSize,
+    padH,
+    padV,
+  };
 }
 
 export async function captureCanvasAsBlob(
@@ -191,33 +226,28 @@ export async function captureCanvasAsBlob(
     }
   }
 
-  // ── 6. Watermark — centered over the graph area only ──────────────
+  // ── 6. Watermark — bottom-right corner of the graph area ──────────
+  //    Never in the middle of the curve, never over the axes: the graph
+  //    stays the subject and the watermark stays the signature.
   if (showWatermark) {
-    // Position centered inside the graph rect (not the whole export)
-    // so the info bar below never gets covered.
-    // We achieve this by asking drawWatermark to center in a virtual
-    // canvas that is graphH tall.
-    ctx.save();
-    // Clip the watermark draw to keep its logic simple — just override
-    // the centering math by translating.
-    // Easiest: call a local centered pill directly sized to the graph.
     const wmText = 'MathSonify.com';
-    const wmFontSize = Math.max(10, Math.min(15, Math.round(Math.min(displayWidth, displayHeight) * 0.022 * scaleFactor * 0.95)));
+    const wmFontSize = Math.round(11 * scaleFactor);
     ctx.font = `600 ${wmFontSize}px "Inter", system-ui, sans-serif`;
     const tw = ctx.measureText(wmText).width;
     const padH = Math.round(wmFontSize * 0.7);
     const padV = Math.round(wmFontSize * 0.38);
     const pillW = tw + padH * 2;
     const pillH = wmFontSize + padV * 2 + 2;
-    const pillX = (exportWidth - pillW) / 2;
-    const pillY = (graphH - pillH) / 2;
+    const margin = Math.round(16 * scaleFactor);
+    const pillX = exportWidth - margin - pillW;
+    const pillY = graphH - margin - pillH;
     const pillR = pillH / 2;
 
     const wmBg = isLight ? 'rgba(255,255,255,0.88)' : isDark ? 'rgba(255,255,255,0.10)' : 'rgba(27,36,48,0.62)';
     const wmBorder = isLight ? 'rgba(0,0,0,0.08)' : isDark ? 'rgba(255,255,255,0.14)' : 'rgba(237,231,217,0.14)';
     const wmTextColor = isLight ? 'rgba(0,0,0,0.58)' : isDark ? 'rgba(255,255,255,0.74)' : '#C9A24B';
 
-    const opacity = 0.55;
+    const opacity = 0.5;
     ctx.globalAlpha = opacity;
 
     // Shadow

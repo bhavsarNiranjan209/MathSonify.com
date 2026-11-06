@@ -17,12 +17,13 @@ import {
   drawExportFrame,
   prepareVideoScene,
   totalDurationMs,
+  videoSize,
   INTRO_MS,
   OUTRO_MS,
   FPS,
-  VIDEO_W,
-  VIDEO_H,
   type VideoScene,
+  type VideoOrientation,
+  type VideoQuality,
 } from './videoScene';
 import type { SamplePoint, ScaleKey } from './equationParser';
 import type { InstrumentType, SonificationMode } from '../store/studioStore';
@@ -49,6 +50,10 @@ export interface VideoExportOptions {
   splineControlPoints?: SplineControlPoint[];
   /** Playback speed; the clip is `duration / speed` seconds long. */
   speed?: number;
+  /** Landscape 16:9 (default) or portrait 9:16 for Reels / Shorts / TikTok. */
+  orientation?: VideoOrientation;
+  /** 720p (default) or 1080p. */
+  quality?: VideoQuality;
 }
 
 /**
@@ -62,6 +67,15 @@ const BITRATE_720P_PIXELS = 1280 * 720;
 export function targetBitrate(width: number, height: number): number {
   const scale = (width * height) / BITRATE_720P_PIXELS;
   return Math.round(BITRATE_FLOOR * Math.max(1, scale));
+}
+
+/**
+ * The bitrate actually used for an export: 8 Mbps at 720p, 14 Mbps at 1080p.
+ * The old export used 2.5 Mbps at 720p, which is what made the large flat
+ * dark regions quantise into visible blocks.
+ */
+export function videoBitrateForQuality(quality: VideoQuality): number {
+  return quality === '1080p' ? 14_000_000 : 8_000_000;
 }
 
 /**
@@ -190,6 +204,8 @@ export async function exportEquationVideo(
     isCustomCurve = false,
     splineControlPoints = [],
     speed = 1,
+    orientation = 'landscape',
+    quality = '720p',
   } = opts;
 
   // ── Resolve live state ONCE. This is the single source of truth for the
@@ -200,6 +216,8 @@ export async function exportEquationVideo(
   const mainSeconds = Math.max(0.5, duration / (speed || 1));
   const mainMs = mainSeconds * 1000;
   const totalMs = totalDurationMs(mainMs);
+
+  const { width: VIDEO_W, height: VIDEO_H } = videoSize(orientation, quality);
 
   const canvas = document.createElement('canvas');
   canvas.width = VIDEO_W;
@@ -216,6 +234,8 @@ export async function exportEquationVideo(
     mainMs,
     scientist,
     scientistName: scientist?.name ?? null,
+    orientation,
+    quality,
   });
 
   // Paint frame 0 before recording so the first captured frame is the intro
@@ -287,7 +307,7 @@ export async function exportEquationVideo(
 
     const recorder = new MediaRecorder(combined, {
       mimeType,
-      videoBitsPerSecond: targetBitrate(VIDEO_W, VIDEO_H),
+      videoBitsPerSecond: videoBitrateForQuality(quality),
     });
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => {
@@ -336,7 +356,8 @@ export async function exportEquationVideo(
 
     const label = equationName || equation || 'export';
     const safeName = label.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
-    const filename = `mathsonify.com-${safeName}.${videoExtensionForMimeType(mimeType)}`;
+    const suffix = orientation === 'portrait' ? '-portrait' : '';
+    const filename = `mathsonify.com-${safeName}${suffix}.${videoExtensionForMimeType(mimeType)}`;
 
     // The URL is deliberately NOT revoked here. The caller shows this clip
     // inline and owns its lifetime; revoking on a timer (as the old download
