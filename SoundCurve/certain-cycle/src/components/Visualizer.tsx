@@ -1,7 +1,9 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { useStudioStore, type VisualizerMode } from '../store/studioStore';
+import { useStudioStore } from '../store/studioStore';
+import { VISUALIZER_MODES } from '../utils/visualizerModes';
 import { buildVerticalShiftEquation, type SamplePoint } from '../utils/equationParser';
+import { deformControlPointsWithBrush, type SplineControlPoint } from '../utils/curveSpline';
 import { useActiveCurve } from '../utils/useActiveCurve';
 import {
   applyParameter,
@@ -25,7 +27,7 @@ function alpha(hex: string, a: number): string {
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
-/* â”€â”€ Curve editing helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Curve editing helpers ─────────────────────────────────────── */
 
 /** Padded y-range shared by the graph renderer and the edit overlay. */
 function paddedYRange(pts: SamplePoint[]): { paddedMinY: number; paddedMaxY: number } {
@@ -58,6 +60,10 @@ export default function Visualizer() {
   // points the audio engine and the exporters already use.
   const isCustomCurve = useStudioStore((s) => s.isCustomCurve);
   const splineControlPoints = useStudioStore((s) => s.splineControlPoints);
+  const brushRadius = useStudioStore((s) => s.brushRadius);
+  const initSplineFromCurrent = useStudioStore((s) => s.initSplineFromCurrent);
+  const setSplineControlPoints = useStudioStore((s) => s.setSplineControlPoints);
+  const pushSplineHistory = useStudioStore((s) => s.pushSplineHistory);
 
   const hasEquationChanges = equation !== originalEquation;
 
@@ -73,9 +79,9 @@ export default function Visualizer() {
   progressRef.current = progress;
   isPlayingRef.current = isPlaying;
 
-  // â”€â”€ Whole-curve vertical shift editing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Whole-curve vertical shift editing ──────────────────────────
   // In edit mode the user drags up/down on the graph to shift the
-  // entire curve vertically â€” no individual handles, no Fourier fit.
+  // entire curve vertically — no individual handles, no Fourier fit.
   const editModeRef = useRef(false);
   const dragRef = useRef<{ lastY: number; lastCommit: number } | null>(null);
   const yOffsetRef = useRef(0); // accumulated vertical offset in math coords
@@ -95,7 +101,7 @@ export default function Visualizer() {
 
   const toggleEditMode = useCallback(() => {
     if (editModeRef.current) {
-      // Exit â€” commit any offset that has not already been committed on release.
+      // Exit — commit any offset that has not already been committed on release.
       if (Math.abs(yOffsetRef.current) > 0.001) {
         const newEq = buildVerticalShiftEquation(baseEquationRef.current, yOffsetRef.current);
         setEquation(newEq);
@@ -110,14 +116,29 @@ export default function Visualizer() {
       // `equationRef`'s store value, and doing it here was a second source of
       // truth that could disagree with it.
     } else {
-      // Enter â€” anchor the base equation and start fresh with zero offset.
+      // Enter — anchor the base equation and start fresh with zero offset.
       baseEquationRef.current = equationRef.current;
       yOffsetRef.current = 0;
       editModeRef.current = true;
       setEditMode(true);
       setFreeform(null);
-      // Show the base equation in the chip
-      requestAnimationFrame(() => writeChip(equationRef.current));
+      // Sculpt points, not a vertical shift, for equations we cannot
+      // parameterise: sample the curve into spline points (unless a sculpt
+      // from an earlier session is still in the store) so the line itself
+      // can be grabbed and reshaped. Parameterised equations keep their
+      // parameter handles and the whole-curve shift instead.
+      if (!paramsRef.current && useStudioStore.getState().splineControlPoints.length === 0) {
+        initSplineFromCurrent(32);
+      }
+      // Show the base equation in the chip — or the sculpt hint, when the
+      // points are the interaction.
+      requestAnimationFrame(() =>
+        writeChip(
+          paramsRef.current
+            ? equationRef.current
+            : 'Custom curve — drag the points to reshape the line',
+        ),
+      );
     }
   }, []);
 
@@ -132,11 +153,11 @@ export default function Visualizer() {
     });
   }, []);
 
-  // â”€â”€ the ONE shared source of the active curve â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── the ONE shared source of the active curve ─────────────────────
   //
   // Replaces the old `cachedPointsRef` + `freeformRef` pair. That pair was two
-  // sources of truth with no ordering guarantee, and `freeformRef` â€” cleared only
-  // on `pointerup` â€” could outlive the drag that created it, permanently masking
+  // sources of truth with no ordering guarantee, and `freeformRef` — cleared only
+  // on `pointerup` — could outlive the drag that created it, permanently masking
   // the real curve so that every later equation change was silently invisible.
   // Deriving with `useMemo` means the value is correct in the very render that
   // changed the equation, so no view can ever paint a stale frame.
@@ -181,7 +202,7 @@ export default function Visualizer() {
   const graphPointsRef = useRef<SamplePoint[]>(graphPoints);
   graphPointsRef.current = graphPoints;
 
-  // Main Canvas Render Loop â€” mounted ONCE, reads live state via refs.
+  // Main Canvas Render Loop — mounted ONCE, reads live state via refs.
   //
   // Performance: this only needs to run continuously while something is
   // actually moving. With a static equation and no audio the graph is
@@ -274,7 +295,7 @@ export default function Visualizer() {
   //
   // Keyed on the RESOLVED CURVE, not on the equation string. That distinction is
   // the whole staleness fix: the curve is what actually gets drawn, so when it
-  // changes identity this repaints â€” including when the change came from a
+  // changes identity this repaints — including when the change came from a
   // preset, a fitted curve, a sculpted spline, or a domain change rather than
   // from typing. Depending on `equation` alone left gaps between those paths.
   useEffect(() => {
@@ -290,7 +311,7 @@ export default function Visualizer() {
     return () => observer.disconnect();
   }, []);
 
-  // â”€â”€ Pointer interaction (whole-curve vertical shift + hover) â”€â”€
+  // ── Pointer interaction (whole-curve vertical shift + hover) ──
 
   const canvasMath = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
@@ -308,6 +329,11 @@ export default function Visualizer() {
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!editModeRef.current || visualizerMode !== '2d-graph') return;
+    // Sculpt mode (no parameter handles): the points are the interaction.
+    // Dragging empty canvas must not also shift the whole curve, because
+    // that shift commits via setEquation — and setEquation clears the
+    // spline points.
+    if (paramsRef.current === null) return;
     e.preventDefault();
     (e.currentTarget as HTMLCanvasElement).setPointerCapture(e.pointerId);
     const m = canvasMath(e.clientX, e.clientY);
@@ -373,7 +399,7 @@ export default function Visualizer() {
    * for a pointerup delivered to the canvas. Release the mouse outside it, or
    * have the browser cancel the pointer (a system gesture, a second touch, a
    * context-menu interrupt), and the old code left the drag preview set
-   * forever â€” so every subsequent equation change was masked and the graph
+   * forever — so every subsequent equation change was masked and the graph
    * appeared frozen on the previous curve. Committing and clearing here as well
    * means the drag preview cannot outlive the gesture that created it.
    */
@@ -384,7 +410,7 @@ export default function Visualizer() {
     }
   };
 
-  // â”€â”€ Parameterised equation editing (control points) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Parameterised equation editing (control points) ──────────────────
   //
   // The equation string is the single source of truth. When it parses into a
   // known family we expose draggable handles for its parameters; dragging a
@@ -434,18 +460,21 @@ export default function Visualizer() {
     };
   }, [minX, maxX]);
 
-  const handleParamDrag = useCallback((key: ParamKey, dxPx: number, dyPx: number) => {
+  // The key is a string (not ParamKey): the same layer also carries the
+  // sculpt points, whose keys are `sculpt-<index>`.
+  const handleParamDrag = useCallback((key: string, dxPx: number, dyPx: number) => {
     const current = paramsRef.current;
     if (!current) return;
     draggingRef.current = true;
+    const paramKey = key as ParamKey;
 
     // Horizontal drags move the x-axis parameters (frequency, phase, the
     // constant inside a radical); vertical drags move amplitude/offset.
-    const horizontal = key === 'frequency' || key === 'phase'
-      || key === 'rootConstant' || key === 'rate';
+    const horizontal = paramKey === 'frequency' || paramKey === 'phase'
+      || paramKey === 'rootConstant' || paramKey === 'rate';
     const delta = horizontal ? dxPx : -dyPx;
-    const currentValue = readParameter(current, key);
-    const next = applyParameter(current, key, clampParamValue(key, currentValue + delta));
+    const currentValue = readParameter(current, paramKey);
+    const next = applyParameter(current, paramKey, clampParamValue(paramKey, currentValue + delta));
     paramsRef.current = next;
     setParams(next);
 
@@ -463,6 +492,60 @@ export default function Visualizer() {
     if (isPlayingRef.current) setHasPendingChanges(true);
   }, [setEquation, setHasPendingChanges]);
 
+  // ── Curve sculpting (draggable points ON the line) ──────────────────────
+  //
+  // For equations we cannot parameterise (a cubic, say), edit mode used to
+  // offer only the whole-curve vertical shift — drag anywhere and the entire
+  // line moved, which reads as "only the reading changes". Sculpting is the
+  // other half of editing: the spline points ARE the curve, so grabbing one
+  // reshapes the line itself, with a soft brush falloff to its neighbours.
+  // The points live in the store (useActiveCurve resolves them, so the 2D
+  // graph, the 3D view, the audio and the exporters all follow the sculpt),
+  // and Reset reverts to the original equation.
+  //
+  // The drag works from a snapshot taken on the first move of each gesture:
+  // ControlPointLayer reports the TOTAL displacement from the press point,
+  // so every move re-applies the brush from the untouched shape — never
+  // accumulating the delta on top of itself.
+  const sculptStartRef = useRef<SplineControlPoint[] | null>(null);
+
+  /** Sparse handles over the (dense) spline points: 9 grabs, not 32. */
+  const sculptHandles: { point: SplineControlPoint; index: number }[] = (() => {
+    if (splineControlPoints.length === 0) return [];
+    const idxs: number[] = [];
+    for (let i = 0; i < splineControlPoints.length; i += 4) idxs.push(i);
+    const last = splineControlPoints.length - 1;
+    if (idxs[idxs.length - 1] !== last) idxs.push(last);
+    return idxs.map((index) => ({ point: splineControlPoints[index], index }));
+  })();
+
+  const showSculptHandles = editMode && params === null && sculptHandles.length > 0;
+
+  const handleSculptDrag = useCallback((key: string, _dxPx: number, dyPx: number) => {
+    const index = Number(key.slice('sculpt-'.length));
+    if (!Number.isInteger(index)) return;
+    if (!sculptStartRef.current) {
+      const start = useStudioStore.getState().splineControlPoints;
+      if (start.length === 0 || index < 0 || index >= start.length) return;
+      sculptStartRef.current = start;
+      // Snapshot the pre-drag shape once so one undo restores it.
+      pushSplineHistory(start);
+    }
+    const start = sculptStartRef.current;
+    // Dragging up (negative dy) raises the point; down lowers it.
+    const deltaY = -dyPx;
+    const updated = deformControlPointsWithBrush(start, index, deltaY, brushRadius, minX, maxX);
+    // setSplineControlPoints flips isCustomCurve on, so the live curve
+    // switches to the sculpted spline the moment the finger moves.
+    setSplineControlPoints(updated);
+    drawRef.current();
+  }, [brushRadius, minX, maxX, pushSplineHistory, setSplineControlPoints]);
+
+  const handleSculptCommit = useCallback(() => {
+    sculptStartRef.current = null;
+    if (isPlayingRef.current) setHasPendingChanges(true);
+  }, [setHasPendingChanges]);
+
   const handleReset = useCallback(() => {
     dragRef.current = null;
     if (editModeRef.current) {
@@ -474,13 +557,9 @@ export default function Visualizer() {
     resetEquation();
   }, [resetEquation]);
 
-  const modeButtons: { id: VisualizerMode; label: string; icon: string }[] = [
-    { id: '2d-graph', label: '2D curve', icon: 'ðŸ“ˆ' },
-    { id: 'waveform', label: 'Waveform', icon: 'ã€°ï¸' },
-    { id: 'spectrum', label: 'Spectrum', icon: 'ðŸ“Š' },
-    { id: 'particles', label: 'Lissajous', icon: 'â—Ž' },
-    { id: 'mandala', label: 'Mandala', icon: 'ðŸµï¸' },
-  ];
+  // Mode tabs live in utils/visualizerModes (with a test): their icons were
+  // once destroyed by a Latin-1/UTF-8 double-encoding and rendered as garbage.
+  const modeButtons = VISUALIZER_MODES;
 
   return (
     /*
@@ -489,7 +568,7 @@ export default function Visualizer() {
         wrapper inherits it via `inset-0`, and this root and the canvas area fill
         what is left after the toolbar. Without the root's own `h-full`, the
         canvas area's percentage height would resolve against an auto-height
-        parent â€” which browsers treat as auto, collapsing the canvas to nothing.
+        parent — which browsers treat as auto, collapsing the canvas to nothing.
       */
     <div className="relative w-full h-full flex flex-col rounded-md border border-sc-ink/20 bg-sc-paper" style={{ contain: 'content' }}>
       {/* Toolbar strip */}
@@ -548,14 +627,20 @@ export default function Visualizer() {
             )}
           </AnimatePresence>
 
-          {/* Edit â€” drag to shift the curve vertically */}
+          {/* Edit — drag the points to reshape the curve, or shift it vertically */}
           <motion.button
             onClick={toggleEditMode}
             className={`px-2.5 py-1.5 min-h-[44px] text-xs rounded-md border transition-colors flex items-center gap-1.5 ` +
               (editMode
                 ? 'bg-sc-accent text-sc-on-accent border-sc-accent'
                 : 'text-sc-text-soft border-sc-line/25 hover:text-sc-text hover:border-sc-accent')}
-            title={editMode ? 'Exit curve editing' : 'Drag up/down to shift the curve'}
+            title={
+              editMode
+                ? 'Exit curve editing'
+                : params === null
+                  ? 'Drag the points to reshape the curve'
+                  : 'Drag up/down to shift the curve'
+            }
             whileTap={reduceMotion ? undefined : { scale: 0.93 }}
             transition={reduceMotion ? { duration: 0 } : { duration: 0.1 }}
             aria-pressed={editMode}
@@ -571,8 +656,8 @@ export default function Visualizer() {
             <span>{editMode ? 'Editing' : 'Edit'}</span>
           </motion.button>
 
-          {/* Reset â€” revert any edits back to the originally-picked equation */}
-          {hasEquationChanges && (
+          {/* Reset — revert any edits (equation or sculpt) back to the originally-picked equation */}
+          {(hasEquationChanges || isCustomCurve) && (
             <motion.button
               onClick={handleReset}
               className="px-2.5 py-1.5 min-h-[44px] text-xs rounded-md border transition-colors flex items-center gap-1.5 text-sc-text-soft border-sc-line/25 hover:text-sc-text hover:border-sc-accent"
@@ -595,7 +680,7 @@ export default function Visualizer() {
       </div>
 
       {/* Paper canvas.
-          The height lives on GraphPanel's frame, and this fills it â€” the same
+          The height lives on GraphPanel's frame, and this fills it — the same
           responsive ladder the panel declares, so the canvas is still exactly
           400/480/520px and the image and video exports are unchanged. */}
       <div className="relative w-full h-full min-h-0 cursor-crosshair">
@@ -618,7 +703,7 @@ export default function Visualizer() {
         {params && (
           <ControlPointLayer
             handles={handlePositions(params, minX, maxX)
-              .map((handle) => {
+              .map((handle): HandlePixel | null => {
                 const pixel = toPixels(handle.at);
                 if (!pixel) return null;
                 return {
@@ -627,11 +712,39 @@ export default function Visualizer() {
                   display: handle.display,
                   x: pixel.x,
                   y: pixel.y,
-                } satisfies HandlePixel;
+                };
               })
               .filter((handle): handle is HandlePixel => handle !== null)}
             onDrag={handleParamDrag}
             onCommit={handleParamCommit}
+            {...scales()}
+            disabled={visualizerMode !== '2d-graph'}
+          />
+        )}
+
+        {/*
+          Sculpt points. Only for equations we cannot parameterise: the
+          spline points ARE the curve, so dragging one reshapes the line
+          itself instead of shifting the whole graph. Parameterised
+          equations keep their parameter handles above.
+        */}
+        {showSculptHandles && (
+          <ControlPointLayer
+            handles={sculptHandles
+              .map((h): HandlePixel | null => {
+                const pixel = toPixels(h.point);
+                if (!pixel) return null;
+                return {
+                  key: `sculpt-${h.index}`,
+                  label: `Point ${h.index + 1}`,
+                  display: `y ${h.point.y.toFixed(2)}`,
+                  x: pixel.x,
+                  y: pixel.y,
+                };
+              })
+              .filter((handle): handle is HandlePixel => handle !== null)}
+            onDrag={handleSculptDrag}
+            onCommit={handleSculptCommit}
             {...scales()}
             disabled={visualizerMode !== '2d-graph'}
           />
@@ -703,7 +816,9 @@ export default function Visualizer() {
         {editMode ? (
           <>
             <div className="min-w-0 flex-1 truncate">
-              <span className="text-sc-accent">Drag to shift curve</span>
+              <span className="text-sc-accent">
+                {showSculptHandles ? 'Drag the points to reshape the curve' : 'Drag to shift curve'}
+              </span>
             </div>
             <button
               type="button"

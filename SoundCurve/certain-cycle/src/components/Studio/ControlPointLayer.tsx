@@ -20,10 +20,12 @@
  */
 
 import { useCallback, useRef, useState } from 'react';
-import type { ControlHandle, ParamKey } from '../../utils/equationParams';
+import type { ControlHandle } from '../../utils/equationParams';
 
 export interface HandlePixel {
-  key: ParamKey;
+  // A string, not ParamKey: the same layer also carries the sculpt points,
+  // whose keys are `sculpt-<index>`.
+  key: string;
   label: string;
   display: string;
   /** Pixel position within the overlay box. */
@@ -34,7 +36,7 @@ export interface HandlePixel {
 interface Props {
   handles: HandlePixel[];
   /** Fired continuously while dragging. */
-  onDrag: (key: ParamKey, dxPx: number, dyPx: number) => void;
+  onDrag: (key: string, dxPx: number, dyPx: number) => void;
   /** Fired once on release so the caller can commit + restart audio. */
   onCommit: () => void;
   /** Pixels per unit, so a drag distance becomes a parameter delta. */
@@ -53,12 +55,12 @@ export default function ControlPointLayer({
   scaleY,
   disabled = false,
 }: Props) {
-  const [activeKey, setActiveKey] = useState<ParamKey | null>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   // Refs, not state: these change on every pointermove and must not trigger a
   // React re-render of the whole layer mid-drag.
   const originRef = useRef<{ x: number; y: number } | null>(null);
 
-  const handleDown = useCallback((event: React.PointerEvent<HTMLButtonElement>, key: ParamKey) => {
+  const handleDown = useCallback((event: React.PointerEvent<HTMLButtonElement>, key: string) => {
     if (disabled) return;
     // Stop the canvas from also handling this gesture as a curve drag.
     event.stopPropagation();
@@ -68,7 +70,7 @@ export default function ControlPointLayer({
     setActiveKey(key);
   }, [disabled]);
 
-  const handleMove = useCallback((event: React.PointerEvent<HTMLButtonElement>, key: ParamKey) => {
+  const handleMove = useCallback((event: React.PointerEvent<HTMLButtonElement>, key: string) => {
     if (activeKey !== key || !originRef.current) return;
     event.stopPropagation();
     event.preventDefault();
@@ -79,7 +81,7 @@ export default function ControlPointLayer({
     );
   }, [activeKey, onDrag, scaleX, scaleY]);
 
-  const handleUp = useCallback((event: React.PointerEvent<HTMLButtonElement>, key: ParamKey) => {
+  const handleUp = useCallback((event: React.PointerEvent<HTMLButtonElement>, key: string) => {
     if (activeKey !== key) return;
     event.stopPropagation();
     try {

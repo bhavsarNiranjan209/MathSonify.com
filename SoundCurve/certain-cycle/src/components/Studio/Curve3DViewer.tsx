@@ -2,7 +2,8 @@
  * Curve3DViewer — drop-in replacement for the current 3D viewer (same props + optional getProgress).
  *  - Negative values use the SAME affine map as positives; tick numbers come from the shared
  *    plotMath used by the 2D graph, so both views always agree.
- *  - Light mode has NO filled base: the floor is a shadow-catcher + black grid lines.
+ *  - Light mode: brass curve on a warm paper floor with an ink grid — the
+ *    old black tube with no glow on a shadow-only floor read as broken.
  *  - Tall / wide / asymptotic curves are normalised (no NaN geometry, never a blank canvas).
  *  - Curve draws itself in while playing (ghost curve + bright traced tube), parametrised by
  *    sample index so it matches the 2D graph and audio playhead exactly.
@@ -16,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { computeView, formatTick, type View, type XY } from '../../utils/plotMath';
 import { resolveBackground, watchTheme, type BgInfo } from '../../utils/themeWatch';
+import { curve3DPalette, type Curve3DPalette } from '../../utils/curve3dPalette';
 
 export interface Curve3DViewerProps {
   points: XY[];
@@ -29,21 +31,9 @@ export interface Curve3DViewerProps {
 
 const W3 = 8, H3 = 4, D3 = 3; // plot box in scene units
 
-const PAL = {
-  dark: {
-    tube: 0xffffff, emissive: 0x9db4ff, emissiveI: 0.22, metal: 0.5, rough: 0.22,
-    axis: 0xe8e8ea, grid: 0xffffff, gridOp: 0.12, wallOp: 0.08, box: 0x6a6a74, boxOp: 0.6,
-    text: '#F2F2F0', tick: '#C3C6CD', chip: 'rgba(10,10,12,0.82)', head: 0xffffff, floor: 0x0a0a0c,
-    key: 1.3, fill: 0.5, rim: 0.4, amb: 0.55,
-  },
-  light: {
-    tube: 0x14161a, emissive: 0x000000, emissiveI: 0, metal: 0.25, rough: 0.35,
-    axis: 0x14161a, grid: 0x14161a, gridOp: 0.38, wallOp: 0.22, box: 0x14161a, boxOp: 0.55,
-    text: '#14161A', tick: '#2b2e35', chip: 'rgba(255,255,255,0.9)', head: 0x14161a, floor: 0,
-    key: 1.6, fill: 0.5, rim: 0.3, amb: 0.9,
-  },
-} as const;
-type Pal = typeof PAL.dark | typeof PAL.light;
+// Scene palette lives in utils/curve3dPalette (plain data, tested without a
+// GPU). Light mode is designed, not inverted: brass curve on a paper floor.
+type Pal = Curve3DPalette;
 
 type SceneApi = {
   setPoints(p: XY[]): { ok: boolean; clipped: boolean };
@@ -220,7 +210,7 @@ function createScene(
     for (const o of sprites) o.s.scale.set(o.pxW * k * small, o.pxH * k * small, 1);
   }
   function applyLightsAndFog() {
-    const pal = bg.dark ? PAL.dark : PAL.light;
+    const pal = curve3DPalette(bg.dark);
     key.intensity = pal.key * K; fill.intensity = pal.fill * K; rim.intensity = pal.rim * K; amb.intensity = pal.amb * K;
     scene.fog = new THREE.Fog((bg.r << 16) | (bg.g << 8) | bg.b, fitRadius * 1.15, fitRadius * 3.0); // far grid fades into the card colour
   }
@@ -231,17 +221,18 @@ function createScene(
     view = computeView(points, W3, H3);
     if (!view.segments.length) return { ok: false, clipped: view.clipped };
     const v = view;
-    const pal: Pal = bg.dark ? PAL.dark : PAL.light;
+    const pal: Pal = curve3DPalette(bg.dark);
     applyLightsAndFog();
     const X = (x: number) => v.toX(x) - W3 / 2;
     const Y = (y: number) => v.toY(y) - H3 / 2;
     const floorY = -H3 / 2;
 
-    // FLOOR: dark = filled; light = shadow catcher only (NO filled base — just the lines below)
+    // FLOOR: a filled base in both modes — near-black in dark, warm paper in
+    // light — so the box grounds itself instead of floating on the card.
+    // (Light used to be a shadow-catcher only, which read as an empty page.)
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(W3 + 2, D3 + 2),
-      bg.dark ? new THREE.MeshStandardMaterial({ color: PAL.dark.floor, roughness: 0.95, metalness: 0.05 })
-              : new THREE.ShadowMaterial({ opacity: 0.14 }),
+      new THREE.MeshStandardMaterial({ color: pal.floor, roughness: bg.dark ? 0.95 : 1, metalness: bg.dark ? 0.05 : 0 }),
     );
     floor.rotation.x = -Math.PI / 2; floor.position.y = floorY - 0.01; floor.receiveShadow = true;
     data.add(floor);
@@ -300,7 +291,7 @@ function createScene(
       (curve as any).getUtoTmapping = (u: number) => u;
       const n = Math.min(1200, (vecs.length - 1) * 2);
       const bright = new THREE.Mesh(
-        new THREE.TubeGeometry(curve, n, 0.04, 10, false),
+        new THREE.TubeGeometry(curve, n, pal.tubeR, 10, false),
         new THREE.MeshPhysicalMaterial({
           color: pal.tube, emissive: pal.emissive, emissiveIntensity: pal.emissiveI,
           metalness: pal.metal, roughness: pal.rough, clearcoat: 0.6, clearcoatRoughness: 0.25,
