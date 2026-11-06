@@ -357,7 +357,7 @@ export default function AudioControls() {
 
       {/* Instrument selection */}
       <div>
-        <label className="block text-xs font-semibold text-sc-text-soft mb-2">
+        <label className="font-display block text-xs font-semibold tracking-wide text-sc-text-soft mb-2">
           {t('audio.chooseInstrument')}
         </label>
         <div
@@ -392,7 +392,7 @@ export default function AudioControls() {
 
       {/* Sonification mode */}
       <div>
-        <label className="block text-xs font-semibold text-sc-text-soft mb-2">
+        <label className="font-display block text-xs font-semibold tracking-wide text-sc-text-soft mb-2">
           {t('audio.howMathMakesSound')}
         </label>
         <div
@@ -584,6 +584,15 @@ export default function AudioControls() {
             <span>🔗</span>
             <span>{t('audio.share')}</span>
           </button>
+
+          <a
+            href="/support"
+            className="px-3.5 py-2 min-h-[44px] btn-ghost text-xs"
+            title={t('audio.supportTooltip')}
+          >
+            <span>☕</span>
+            <span>{t('audio.support')}</span>
+          </a>
         </div>
       </div>
     </div>

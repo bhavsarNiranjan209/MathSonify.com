@@ -53,7 +53,7 @@ const es = {
   'studio.cannotUndo': 'No hay deshacer disponible',
   'studio.cannotRedo': 'No hay rehacer disponible',
   'studio.pasteEquation': 'Ecuación pegada',
-  'studio.useEquationBar': 'Escriba una ecuación — ej. sin(x) * cos(3*x)',
+  'studio.useEquationBar': 'Volver a la barra de ecuaciones',
   'studio.use': 'Usar',
   'studio.clear': 'Limpiar',
 

@@ -41,17 +41,26 @@ export function getCanvasPalette(theme: ThemeMode = getThemeMode()): CanvasPalet
   if (cachedPalette && cachedTheme === theme) return cachedPalette;
 
   if (theme === 'light') {
+    // Light — pure white / pure black / one black accent.
+    //
+    // The "core" hairline is deliberately the CURVE colour here, not the
+    // canvas colour. Dark mode inks a dark hairline down the middle of a
+    // white curve (an outlined stroke that reads well on black), but the
+    // mirror image — a white hairline down a black curve on a WHITE canvas —
+    // is invisible, leaving only two ~1px black edges: the curve looked thin
+    // and washed out, and the playhead's white centre dot vanished entirely.
+    // A solid black curve with a soft grey halo is the legible equivalent.
     cachedPalette = {
       canvas: '#ffffff',
       grid: 'rgba(0, 0, 0, 0.06)',
-      axis: 'rgba(0, 0, 0, 0.20)',
-      label: 'rgba(0, 0, 0, 0.60)',
+      axis: 'rgba(0, 0, 0, 0.32)',
+      label: 'rgba(0, 0, 0, 0.78)',
       curve: '#000000',
-      curveGlow: 'rgba(0, 0, 0, 0.20)',
-      curveCore: '#ffffff',
+      curveGlow: 'rgba(0, 0, 0, 0.30)',
+      curveCore: '#000000',
       live: '#000000',
-      liveGlow: 'rgba(0, 0, 0, 0.35)',
-      liveCore: '#ffffff',
+      liveGlow: 'rgba(0, 0, 0, 0.50)',
+      liveCore: '#000000',
     };
   } else {
     // Dark — spec palette:

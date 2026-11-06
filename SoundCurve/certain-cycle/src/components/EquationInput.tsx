@@ -23,6 +23,7 @@ export default function EquationInput() {
   const { t } = useTranslation();
   const equation = useStudioStore((s) => s.equation);
   const setEquation = useStudioStore((s) => s.setEquation);
+  const setInputMode = useStudioStore((s) => s.setInputMode);
   const isPlaying = useStudioStore((s) => s.isPlaying);
   const setHasPendingChanges = useStudioStore((s) => s.setHasPendingChanges);
   const minX = useStudioStore((s) => s.minX);
@@ -113,7 +114,7 @@ export default function EquationInput() {
       {/* Wide tactile equation slot */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label htmlFor="eq-input" className="text-xs font-semibold text-sc-text-soft">
+          <label htmlFor="eq-input" className="font-display text-xs font-semibold tracking-wide text-sc-text-soft">
             {t('eq.mathEquation')}
           </label>
           <div className="flex items-center gap-3">
@@ -132,6 +133,15 @@ export default function EquationInput() {
               className="text-xs text-sc-accent hover:underline transition-colors font-medium py-1 min-h-[44px]"
             >
               {t('eq.library')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setInputMode('paste')}
+              className="flex items-center gap-1.5 py-1 min-h-[44px] text-xs font-medium text-sc-accent hover:underline transition-colors"
+              title="Paste an equation from a book, a website or LaTeX"
+            >
+              <span aria-hidden>📋</span>
+              <span>{t('studio.pasteEquation')}</span>
             </button>
           </div>
         </div>

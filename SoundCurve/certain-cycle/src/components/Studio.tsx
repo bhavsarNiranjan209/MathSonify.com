@@ -352,10 +352,15 @@ function StudioInner() {
       <motion.div variants={entranceItem} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Equation Input & Audio Controls (5 cols) */}
         <div className="lg:col-span-5 space-y-6 w-full min-w-0">
-          <PasteCard />
-          <div className="panel p-5 sm:p-6 border-t-2 border-sc-accent/60">
-            <EquationInput />
-          </div>
+          {/* The paste card replaces the equation bar while pasting: the bar
+              stays hidden so the two inputs can never disagree. */}
+          {inputMode === 'paste' ? (
+            <PasteCard />
+          ) : (
+            <div className="panel p-5 sm:p-6 border-t-2 border-sc-accent/60">
+              <EquationInput />
+            </div>
+          )}
 
           <div className="panel p-5 sm:p-6 border-t-2 border-sc-accent/40">
             <AudioControls />

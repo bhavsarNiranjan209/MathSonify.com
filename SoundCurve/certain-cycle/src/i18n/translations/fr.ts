@@ -43,7 +43,7 @@ const fr = {
   'studio.spaceHint': 'lire ou arrêter',
   'studio.howMathTitle': 'Comment les maths créent le son :',
   'studio.howMathDesc': "tandis que le curseur parcourt x, l'élévation verticale y(x) contrôle la fréquence de l'oscillateur tandis que la pente dy/dx module la luminosité et le timbre du filtre.",
-  'studio.useEquationBar': 'Saisissez une équation — ex. sin(x) * cos(3*x)',
+  'studio.useEquationBar': "Retour à la barre d'équation",
   'audio.play': 'Lire audio',
   'audio.stop': 'Arrêter',
   'audio.exportWav': 'Exporter WAV',

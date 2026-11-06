@@ -175,15 +175,18 @@ test('GraphPanel is one shared component with an in-panel toggle', () => {
   assert.doesNotMatch(source, /<a\s+href|navigate\(|<Link/);
 });
 
-test('the 3D viewer takes shared points, subscribing to the transport itself', () => {
+test('the 3D viewer takes shared points, and playback arrives without re-renders', () => {
   // Accepting an equation string and parsing it internally is how 3D became stale
   // independently: it could only show the curve it was mounted with.
   //
-  // Playback is the mirror image. It must NOT arrive as a prop, because the store
-  // publishes progress 30-60x/second and a prop would re-render React on every
-  // tick. The viewer subscribes to the store imperatively and writes to a ref.
+  // Playback is the mirror image. It must NOT arrive as a React prop, because the
+  // store publishes progress 30-60x/second and a prop would re-render React on
+  // every tick. The shipped design reads it through a `getProgress` callback the
+  // viewer calls from inside its own animation frame — no React state, no
+  // subscription, no re-renders — and draws the curve in live (ghost curve
+  // behind the bright traced tube), exactly like the 2D playhead.
   const source = read(VIEWER);
-  assert.match(source, /points: SamplePoint\[\]/);
+  assert.match(source, /points: XY\[\]/);
   // The PROPS interface must not carry progress. Checked on that interface rather
   // than by searching for the text "progress: number", which also appears in the
   // store-subscription's state type and would be a false positive.
@@ -191,14 +194,20 @@ test('the 3D viewer takes shared points, subscribing to the transport itself', (
     source.indexOf('export interface Curve3DViewerProps'),
     source.indexOf('export interface Curve3DViewerProps') + 500,
   );
-  assert.doesNotMatch(propsBlock, /progress/, 'progress must not be a React prop');
-  assert.match(source, /useStudioStore\.subscribe\(/, 'progress must arrive by subscription');
-  assert.match(source, /progressRef\.current = state\.progress/);
+  assert.doesNotMatch(propsBlock, /progress: number/, 'progress must not be a React prop');
+  assert.match(propsBlock, /getProgress\?: \(\) => number \| null \| undefined/);
+  assert.match(source, /progressRef\.current = getProgress/);
   assert.doesNotMatch(code(VIEWER), /parseEquation\(/, 'the viewer must not sample; the hook did');
 
-  // And the panel must not subscribe either, or the 2D subtree re-renders too.
-  assert.doesNotMatch(code(PANEL), /useStudioStore\(\(s\) => s\.progress\)/);
-  assert.doesNotMatch(code(PANEL), /useStudioStore\(\(s\) => s\.isPlaying\)/);
+  // And the panel must pass that callback — reading the store imperatively
+  // (getState), never by subscription, or the 2D subtree re-renders too.
+  const panel = code(PANEL);
+  assert.match(panel, /<Curve3DViewer/);
+  assert.match(panel, /getProgress=\{\(\) => \{/);
+  assert.match(panel, /useStudioStore\.getState\(\)/);
+  assert.match(panel, /s\.isPlaying \? s\.progress : null/);
+  assert.doesNotMatch(panel, /useStudioStore\(\(s\) => s\.progress\)/);
+  assert.doesNotMatch(panel, /useStudioStore\(\(s\) => s\.isPlaying\)/);
 });
 
 test('the scene rebuilds on a new curve but not on every frame', () => {

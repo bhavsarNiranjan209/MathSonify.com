@@ -123,10 +123,13 @@ export default function ControlPointLayer({
             title={`${handle.label} — ${handle.display}`}
           >
             <span
+              // Idle: a tinted dot with a solid accent border. The old fill
+              // was the page background — white on a white graph in light
+              // mode, so the handles vanished until you happened to hover one.
               className={`block rounded-full border-2 transition-[transform,background-color,border-color] ${
                 active
                   ? 'scale-125 border-sc-accent bg-sc-accent'
-                  : 'border-sc-accent bg-sc-bg'
+                  : 'border-sc-accent bg-sc-accent/25'
               }`}
               style={{ width: active ? 16 : 12, height: active ? 16 : 12 }}
             />

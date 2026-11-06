@@ -24,6 +24,10 @@ export default {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         serif: ['Fraunces', 'Georgia', 'serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        // Space Grotesk — the wordmark voice (nav logo, loading screen).
+        // Used for UI headings so the Studio reads as one family with the
+        // logo; the editorial serif (Fraunces) stays on the big titles.
+        display: ['Space Grotesk', 'Inter', 'sans-serif'],
       },
       fontSize: {
         'display-xl': ['48px', { lineHeight: '48px', letterSpacing: '-1px', fontWeight: '600' }],

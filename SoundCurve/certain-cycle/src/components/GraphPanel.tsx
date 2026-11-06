@@ -66,10 +66,12 @@ export default function GraphPanel({
 
   // Playback progress is deliberately NOT subscribed to here. It used to be, which
   // meant every audio tick (30-60x/second) re-rendered this panel AND its 2D
-  // Visualizer subtree, on a page that has suffered from lag before. The 3D
-  // viewer subscribes to the store itself and writes straight into a ref, so the
-  // playhead now costs no React work at all. This panel only needs to know whether
-  // there is a curve to draw.
+  // Visualizer subtree, on a page that has suffered from lag before. Instead
+  // the 3D viewer reads progress through the `getProgress` callback below,
+  // called from inside its own animation frame — so the playhead costs no
+  // React work at all, and the 3D curve draws itself in live, exactly like
+  // the 2D playhead. This panel only needs to know whether there is a curve
+  // to draw.
   const canDraw3D = curve.points.length > 1 && !curve.error && analysis.kind !== 'unsupported';
   const show3D = allow3D && mode === '3d' && canDraw3D;
 
@@ -158,7 +160,20 @@ export default function GraphPanel({
             className="absolute inset-0"
             style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
           >
-            {show3D && <Curve3DViewer points={curve.points} label={label} />}
+            {show3D && (
+              <Curve3DViewer
+                points={curve.points}
+                label={label}
+                // Live playback in 3D, mirroring the 2D playhead: the viewer
+                // calls this every animation frame and draws the curve in up
+                // to the current position (ghost curve behind it). Reading
+                // the store imperatively here costs no React re-renders.
+                getProgress={() => {
+                  const s = useStudioStore.getState();
+                  return s.isPlaying ? s.progress : null;
+                }}
+              />
+            )}
           </div>
         </div>
 

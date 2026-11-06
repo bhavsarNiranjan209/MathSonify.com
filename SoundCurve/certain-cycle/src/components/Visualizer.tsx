@@ -18,6 +18,7 @@ import {
 import ControlPointLayer, { type HandlePixel } from './Studio/ControlPointLayer';
 import { audioEngine } from '../utils/audioEngine';
 import { getCanvasPalette, onThemeChange, type CanvasPalette } from '../utils/theme';
+import { clampTickLabelX, clampTickLabelY } from '../utils/tickLabels';
 
 /** Converts a #RRGGBB color into an rgba() string at given alpha. */
 function alpha(hex: string, a: number): string {
@@ -692,7 +693,11 @@ export default function Visualizer() {
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerLeave}
-          className={`w-full h-full block ${editMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
+          // Crosshair in every mode, including edit mode. The grab hand was
+          // near-invisible on the white graph (white hand, thin dark outline)
+          // — the cursor seemed to vanish while editing in light mode. The
+          // draggable handles themselves still show grab / grabbing.
+          className="w-full h-full block cursor-crosshair"
         />
 
         {/*
@@ -1061,7 +1066,11 @@ function draw2DGraph(
       ctx.lineTo(sx, tickBaseY + 3);
       ctx.stroke();
       ctx.textAlign = 'center';
-      ctx.fillText(fmt(xVal), sx, xAxisVisible ? tickBaseY + 11 : height - 8);
+      // Edge labels are pulled inside the frame: the first/last tick sits
+      // exactly on the canvas edge, so a centred label would be half-clipped.
+      const xLabel = fmt(xVal);
+      const labelX = clampTickLabelX(sx, ctx.measureText(xLabel).width / 2, width);
+      ctx.fillText(xLabel, labelX, xAxisVisible ? tickBaseY + 11 : height - 8);
     }
 
     const x0 = toScreenX(0);
@@ -1077,7 +1086,10 @@ function draw2DGraph(
       ctx.lineTo(tickBaseX + 3, sy);
       ctx.stroke();
       ctx.textAlign = yAxisVisible ? 'right' : 'left';
-      ctx.fillText(fmt(yVal), yAxisVisible ? tickBaseX - 5 : tickBaseX + 5, sy + 3);
+      // The outermost ticks sit exactly on the canvas edge (y = 0 / height),
+      // so their labels are clamped inside — unclamped, the top and bottom
+      // labels were drawn half outside the frame and cut by the panel.
+      ctx.fillText(fmt(yVal), yAxisVisible ? tickBaseX - 5 : tickBaseX + 5, clampTickLabelY(sy + 3, height));
     }
   };
 
