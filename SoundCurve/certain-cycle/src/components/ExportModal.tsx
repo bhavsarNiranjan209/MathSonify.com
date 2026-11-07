@@ -340,12 +340,12 @@ export default function ExportModal() {
           ) : downloadReady ? (
             <div className="relative flex flex-col items-center gap-2 py-1">
               <span
-                className="w-11 h-11 rounded-full flex items-center justify-center text-lg font-bold"
-                style={{ background: 'rgba(34,197,94,0.16)', border: '1px solid rgba(34,197,94,0.28)', color: '#22C55E' }}
+                className="w-11 h-11 rounded-full flex items-center justify-center text-lg font-bold status-ok"
+                style={{ background: 'rgba(34,197,94,0.16)', border: '1px solid rgba(34,197,94,0.28)' }}
               >
                 ✓
               </span>
-              <span className="text-xs font-semibold text-emerald-400">
+              <span className="text-xs font-semibold status-ok">
                 {exportType === 'video' ? t('export.videoReady') : exportType === 'image' ? t('export.imageDownloaded') : t('export.downloaded')}
               </span>
               <span className="text-[11px] font-mono px-2.5 py-1 rounded-full" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', color: 'var(--sc-text-faint)', border: '1px solid color-mix(in srgb, var(--sc-line) 12%, transparent)' }}>
@@ -401,7 +401,7 @@ export default function ExportModal() {
         </div>
 
         {exportError && (
-          <div className="relative p-3 rounded-xl text-xs" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', color: '#F87171' }}>
+          <div className="relative p-3 rounded-xl text-xs status-error" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)' }}>
             {exportError}
           </div>
         )}
@@ -481,7 +481,7 @@ export default function ExportModal() {
               Est. file size: <span className="font-mono text-sc-text-soft">{videoSizeLabel}</span> · {videoFormatLabel}
             </p>
             {videoBlocked && (
-              <p className="p-3 rounded-xl text-xs" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)', color: '#F87171' }}>
+              <p className="p-3 rounded-xl text-xs status-error" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)' }}>
                 {UNSUPPORTED_RECORDING_MESSAGE}
               </p>
             )}

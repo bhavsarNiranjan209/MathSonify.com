@@ -345,7 +345,7 @@ export default function AudioControls() {
       </AnimatePresence>
 
       {audioError && (
-        <div className="p-3 bg-red-500/10 border border-red-500/40 rounded-md text-red-400 text-xs">
+        <div className="p-3 bg-red-500/10 border border-red-500/40 rounded-md status-error text-xs">
           {audioError}
         </div>
       )}

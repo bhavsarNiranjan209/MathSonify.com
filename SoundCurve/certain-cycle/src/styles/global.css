@@ -30,11 +30,11 @@
 :root[data-theme='light'] {
   /* Light — pure white / pure black / one black accent */
   --sc-bg: 255 255 255;
-  --sc-surface: 244 244 244;
+  --sc-surface: 238 238 238;
   --sc-sunken: 235 235 235;
   --sc-text: 0 0 0;
   --sc-text-soft: 64 64 64;
-  --sc-text-faint: 128 128 128;
+  --sc-text-faint: 96 96 96;
   --sc-line: 0 0 0;
   --sc-paper: 255 255 255;
   --sc-ink: 0 0 0;
@@ -90,6 +90,39 @@ body {
 }
 
 :focus-visible {
+  outline: 2px solid rgb(var(--sc-accent));
+  outline-offset: 2px;
+}
+
+/* Status text — one shared pair, theme-aware (plain CSS, not Tailwind:
+   the colour must flip with the theme, which a static utility cannot do).
+   Dark values are the familiar light red/green; in light mode they deepen
+   to red-600 / emerald-700 so a 12px message still clears AA on white. */
+.status-error { color: #f87171; }
+.status-ok { color: #4ade80; }
+:root[data-theme='light'] .status-error { color: #dc2626; }
+:root[data-theme='light'] .status-ok { color: #047857; }
+
+/* Secondary button — a quiet action beside a primary one. Used by the
+   notice-page email typo suggestions; previously undefined, so those
+   buttons rendered as bare text. */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(var(--sc-line) / 0.25);
+  border-radius: 0.5rem;
+  background: rgb(var(--sc-surface));
+  color: rgb(var(--sc-text-soft));
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.btn-secondary:hover {
+  border-color: rgb(var(--sc-accent) / 0.5);
+  color: rgb(var(--sc-text));
+}
+.btn-secondary:focus-visible {
   outline: 2px solid rgb(var(--sc-accent));
   outline-offset: 2px;
 }

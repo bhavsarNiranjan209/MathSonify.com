@@ -281,7 +281,7 @@ function isCurrent(href: string) {
       btn.classList.toggle('bg-sc-accent', isActive);
       btn.classList.toggle('text-sc-on-accent', isActive);
       btn.classList.toggle('border-sc-accent', isActive);
-      btn.classList.toggle('text-sc-text_soft', !isActive);
+      btn.classList.toggle('text-sc-text-soft', !isActive);
     });
   }
 
@@ -474,6 +474,21 @@ function isCurrent(href: string) {
       drop-shadow(0 0 3px rgba(102, 210, 255, 0.4));
   }
 
+  /* Light mode: the pastel stops wash out to ~1.2:1 on white, so the same
+     sweep runs on deeper stops. */
+  :root[data-theme='light'] .nav-soundlab-text {
+    background-image: linear-gradient(
+      120deg,
+      #be185d 0%,
+      #6d28d9 18%,
+      #0369a1 36%,
+      #047857 52%,
+      #b45309 70%,
+      #be185d 88%,
+      #be185d 100%
+    );
+  }
+
   .nav-soundlab::after {
     content: '';
     position: absolute;
@@ -517,6 +532,17 @@ function isCurrent(href: string) {
     animation: nav-musiclab-glow 4s ease-in-out infinite;
     filter: drop-shadow(0 0 10px rgba(102, 210, 255, 0.4))
       drop-shadow(0 0 2px rgba(166, 106, 255, 0.3));
+  }
+
+  /* Light mode: same sweep, deeper stops — cyan/violet pastels are ~1.7:1. */
+  :root[data-theme='light'] .nav-musiclab-text {
+    background-image: linear-gradient(
+      120deg,
+      #0369a1 0%,
+      #6d28d9 30%,
+      #7c3aed 60%,
+      #0369a1 100%
+    );
   }
 
   .nav-musiclab-glow {

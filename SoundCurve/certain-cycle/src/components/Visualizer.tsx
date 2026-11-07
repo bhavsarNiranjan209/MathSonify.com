@@ -765,7 +765,7 @@ export default function Visualizer() {
               transition={reduceMotion ? { duration: 0 } : { duration: 0.3 }}
             >
               <motion.div
-                className="max-w-md text-center p-4 rounded-md bg-red-500/10 border border-red-500/40 text-red-400"
+                className="max-w-md text-center p-4 rounded-md bg-red-500/10 border border-red-500/40 status-error"
                 initial={reduceMotion ? { scale: 1, y: 0 } : { scale: 0.8, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={reduceMotion ? { scale: 1, y: 0 } : { scale: 0.8, y: 20 }}

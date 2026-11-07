@@ -89,7 +89,7 @@ export default function ShareQrPanel({ url }: { url: string }) {
           aria-label={`QR code linking to ${url}`}
         />
         {status === 'loading' && <p className="text-[11px] text-sc-text-faint">Generating…</p>}
-        {status === 'error' && <p className="text-[11px] text-red-400">{message}</p>}
+        {status === 'error' && <p className="text-[11px] status-error">{message}</p>}
         {message && status === 'ready' && <p className="text-[11px] text-sc-text-faint">{message}</p>}
       </div>
       <div className="flex gap-2">

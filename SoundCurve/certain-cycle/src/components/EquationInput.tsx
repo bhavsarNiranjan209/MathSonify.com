@@ -188,7 +188,7 @@ export default function EquationInput() {
             onSelect={trackCaret}
             onClick={trackCaret}
             placeholder={t('eq.placeholder')}
-            className={`w-full min-h-[44px] pl-16 pr-16 py-3.5 bg-transparent text-sc-text placeholder:text-sc-text-faint/70 font-mono text-sm rounded-[4px] focus:outline-none transition-all duration-200 ${
+            className={`w-full min-h-[44px] pl-16 pr-16 py-3.5 bg-transparent text-sc-text placeholder:text-sc-text-faint font-mono text-sm rounded-[4px] focus:outline-none transition-all duration-200 ${
               error
                 ? 'ring-1 ring-red-500/60 ring-inset'
                 : 'ring-1 ring-transparent focus:ring-sc-accent/50 focus:ring-2'
@@ -222,7 +222,7 @@ export default function EquationInput() {
         <AnimatePresence mode="wait">
           {error ? (
             <motion.p
-              className="mt-2 text-xs text-red-400 font-medium flex items-center gap-1.5"
+              className="mt-2 text-xs status-error font-medium flex items-center gap-1.5"
               initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -5 }}
@@ -232,13 +232,13 @@ export default function EquationInput() {
             </motion.p>
           ) : (
             <motion.p
-              className="mt-1.5 text-[11px] text-emerald-500/90 font-medium flex items-center gap-1"
+              className="mt-1.5 text-[11px] status-ok font-medium flex items-center gap-1"
               initial={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={reduceMotion ? { opacity: 1 } : { opacity: 0 }}
               key="success"
             >
-              <span className="text-emerald-500">✓</span> {t('eq.validExpression')}
+              <span className="status-ok">✓</span> {t('eq.validExpression')}
             </motion.p>
           )}
         </AnimatePresence>

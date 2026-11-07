@@ -10,6 +10,7 @@ import {
 } from '../../utils/guessDaily';
 import type { GuessRound } from '../../utils/guessRounds';
 import { useTranslation } from '../../i18n/index';
+import { getThemeMode, onThemeChange, type ThemeMode } from '../../utils/theme';
 
 /**
  * The "Daily challenge" card that sits beside normal play on /guess.
@@ -33,6 +34,10 @@ export default function GuessDailyCard({ onDailyStart }: { onDailyStart: (rounds
   const [streak, setStreak] = useState(() => readDailyStorage().streak);
   const [playedToday, setPlayedToday] = useState(() => !canPlayDaily(readDailyStorage().lastPlayedKey, todayKey));
   const [msUntil, setMsUntil] = useState(() => msUntilNextReset());
+
+  // The streak chip is mint text; in light mode it needs the darker green.
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getThemeMode());
+  useEffect(() => onThemeChange(setThemeMode), []);
 
   // On mount, roll the streak forward if the last played day was yesterday and
   // the calendar has since advanced. This is what makes a streak survive an
@@ -73,7 +78,11 @@ export default function GuessDailyCard({ onDailyStart }: { onDailyStart: (rounds
         {streak > 0 && (
           <span
             className="shrink-0 font-mono text-sm rounded px-2 py-1"
-            style={{ backgroundColor: 'rgb(93 214 160 / 0.18)', color: '#5DD6A0' }}
+            style={{
+              backgroundColor: 'rgb(93 214 160 / 0.18)',
+              // Mint text is 1.81:1 on white; the v7 green clears AA.
+              color: themeMode === 'light' ? '#15803d' : '#5DD6A0',
+            }}
             aria-live="polite"
           >
             {t('guess.daily.streak')} {streak}

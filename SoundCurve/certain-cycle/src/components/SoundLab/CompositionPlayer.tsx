@@ -711,7 +711,7 @@ export default function CompositionPlayer({ initialId, playable = true, phase = 
                 <button
                   type="button"
                   onClick={() => handleMuteToggle(track.id)}
-                  className={`h-11 w-11 shrink-0 rounded text-[10px] font-bold border transition-colors flex items-center justify-center ${isMuted ? 'bg-red-500/15 text-red-400 border-red-500/40' : 'border-sc-line/20 text-sc-text-faint hover:text-sc-text hover:border-sc-accent'}`}
+                  className={`h-11 w-11 shrink-0 rounded text-[10px] font-bold border transition-colors flex items-center justify-center ${isMuted ? 'bg-red-500/15 status-error border-red-500/40' : 'border-sc-line/20 text-sc-text-faint hover:text-sc-text hover:border-sc-accent'}`}
                   aria-label={`Mute ${track.label}`}
                   aria-pressed={Boolean(isMuted)}
                 >

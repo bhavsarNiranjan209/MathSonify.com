@@ -35,7 +35,7 @@ export default function ShortcutModal() {
 
   return (
     <div id="shortcut-modal-overlay" className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6" role="dialog" aria-modal="true" aria-label={t('shortcuts') || 'Keyboard shortcuts'}>
-      <div className="bg-sc-surface border border-sc-line rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+      <div className="bg-sc-surface border border-sc-line/20 rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
         <button onClick={() => setOpen(false)} aria-label="Close" className="absolute top-3 right-3 text-sc-text hover:text-sc-accent">✕</button>
         <h2 className="text-xl font-bold text-sc-text mb-4">Keyboard shortcuts</h2>
         <ul className="space-y-2 text-sm text-sc-text">

@@ -57,7 +57,7 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
       </section>
 
       <!-- Pay card -->
-      <div id="pay" data-donate-url={donateUrl} class="mx-auto mt-1.5 max-w-[640px] rounded-[22px] border border-sc-line/15 bg-gradient-to-b from-white/[.045] to-white/[.012] p-[22px] shadow-[0_30px_80px_-40px_rgba(201,162,75,.45)] max-sm:p-4">
+      <div id="pay" data-donate-url={donateUrl} class="mx-auto mt-1.5 max-w-[640px] rounded-[22px] border border-sc-line/15 bg-gradient-to-b from-white/[.045] to-white/[.012] p-[22px] shadow-[0_30px_80px_-40px_rgb(var(--sc-accent)/0.25)] max-sm:p-4">
         <div id="tiers" class="grid grid-cols-3 gap-2.5" role="group" aria-label="Choose a size">
           {
             SUPPORT.tiers.map((tier) => (
@@ -118,7 +118,7 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
               href={initialDonateUrl}
               target="_blank"
               rel="noopener noreferrer"
-              class="cta flex w-full items-center justify-center gap-2.5 rounded-[14px] border-0 bg-sc-accent px-4 py-[17px] text-base font-semibold text-sc-on-accent shadow-[0_12px_36px_-14px_rgba(201,162,75,.7)] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-white"
+              class="cta flex w-full items-center justify-center gap-2.5 rounded-[14px] border-0 bg-sc-accent px-4 py-[17px] text-base font-semibold text-sc-on-accent shadow-[0_12px_36px_-14px_rgb(var(--sc-accent)/0.25)] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sc-accent"
             >
               Continue to secure payment <span aria-hidden="true">→</span>
             </a>
@@ -177,19 +177,19 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
         <button
           id="share"
           type="button"
-          class="flex w-full items-center justify-center gap-2 rounded-xl border border-sc-line/15 bg-sc-surface px-[18px] py-3.5 text-[14.5px] font-semibold text-sc-text transition hover:-translate-y-0.5 hover:border-sc-line/40 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-white"
+          class="flex w-full items-center justify-center gap-2 rounded-xl border border-sc-line/15 bg-sc-surface px-[18px] py-3.5 text-[14.5px] font-semibold text-sc-text transition hover:-translate-y-0.5 hover:border-sc-line/40 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sc-accent"
         >
           ↗ Share MathSonify
         </button>
         <a
           href="/contact"
-          class="flex w-full items-center justify-center gap-2 rounded-xl border border-sc-line/15 bg-sc-surface px-[18px] py-3.5 text-[14.5px] font-semibold text-sc-text transition hover:-translate-y-0.5 hover:border-sc-line/40 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-white"
+          class="flex w-full items-center justify-center gap-2 rounded-xl border border-sc-line/15 bg-sc-surface px-[18px] py-3.5 text-[14.5px] font-semibold text-sc-text transition hover:-translate-y-0.5 hover:border-sc-line/40 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sc-accent"
         >
           ∑ Suggest an equation
         </a>
         <a
           href="/guess"
-          class="flex w-full items-center justify-center gap-2 rounded-xl border border-sc-line/15 bg-sc-surface px-[18px] py-3.5 text-[14.5px] font-semibold text-sc-text transition hover:-translate-y-0.5 hover:border-sc-line/40 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-white"
+          class="flex w-full items-center justify-center gap-2 rounded-xl border border-sc-line/15 bg-sc-surface px-[18px] py-3.5 text-[14.5px] font-semibold text-sc-text transition hover:-translate-y-0.5 hover:border-sc-line/40 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sc-accent"
         >
           🎧 Challenge a friend in Guess
         </a>
@@ -213,7 +213,7 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
           href={initialDonateUrl}
           target="_blank"
           rel="noopener noreferrer"
-          class="cta flex w-full items-center justify-center gap-2.5 rounded-[14px] border-0 bg-sc-accent px-4 py-3.5 text-base font-semibold text-sc-on-accent shadow-[0_12px_36px_-14px_rgba(201,162,75,.7)] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-white"
+          class="cta flex w-full items-center justify-center gap-2.5 rounded-[14px] border-0 bg-sc-accent px-4 py-3.5 text-base font-semibold text-sc-on-accent shadow-[0_12px_36px_-14px_rgb(var(--sc-accent)/0.25)] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sc-accent"
         >
           Continue to payment →
         </a>
@@ -554,6 +554,7 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
     .custom:focus-within { border-color: rgb(var(--sc-accent)); box-shadow: 0 0 0 4px rgb(var(--sc-accent) / 0.14); }
     .custom.bad { border-color: #d86a6a; box-shadow: 0 0 0 4px rgba(216, 106, 106, 0.12); }
     .err { color: #e06565; }
+    :root[data-theme='light'] .err { color: #dc2626; }
     .err.note { color: rgb(var(--sc-text-soft)); }
     .cta-off { opacity: 0.4; cursor: not-allowed; box-shadow: none !important; }
     #coffee, #crema { transition: transform 0.7s cubic-bezier(0.3, 1.35, 0.5, 1); }

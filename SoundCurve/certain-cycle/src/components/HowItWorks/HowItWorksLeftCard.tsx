@@ -83,7 +83,7 @@ export default function HowItWorksLeftCard({
       </div>
 
       {curve.error && (
-        <p id="hwi-eq-err" className="min-h-4 text-xs text-red-400 -mt-1.5 mb-2" role="status">
+        <p id="hwi-eq-err" className="min-h-4 text-xs status-error -mt-1.5 mb-2" role="status">
           That equation couldn&apos;t be read — try something like sin(x) or x^2.
         </p>
       )}

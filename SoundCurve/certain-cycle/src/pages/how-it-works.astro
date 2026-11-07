@@ -54,10 +54,10 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
         <span class="hwi-cap">A curve</span>
         <span class="hwi-cap">A journey</span>
         <span class="hwi-cap">A sound</span>
-        <hr class="w-[26px] border-0 border-t border-sc-line/60 mt-2.5" />
+        <hr class="w-[26px] border-0 border-t border-sc-line/25 mt-2.5" />
       </div>
       <span
-        class="inline-flex font-mono text-[10.5px] tracking-[0.2em] uppercase border border-sc-line/60 bg-sc-surface rounded-full px-3.5 py-1.5 mb-[18px] relative"
+        class="inline-flex font-mono text-[10.5px] tracking-[0.2em] uppercase border border-sc-line/25 bg-sc-surface rounded-full px-3.5 py-1.5 mb-[18px] relative"
       >
         Try it yourself
       </span>
@@ -89,7 +89,7 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
             const v = getComputedStyle(document.documentElement).getPropertyValue('--sc-text').trim();
             return v ? v.split(/\s+/).join(', ') : '242, 242, 240';
           };
-          const isLight = () => document.documentElement.classList.contains('light');
+          const isLight = () => document.documentElement.dataset.theme === 'light';
           const ink = (a) => `rgba(${inkTriplet()}, ${Math.min(1, isLight() ? a * 1.2 : a)})`;
           const halo = (a) => ink(a * (isLight() ? 0.35 : 1));
           const smooth = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -224,7 +224,7 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
 
     <!-- ── EXPLORE: continue the journey (redesign mockup) ── -->
     <section class="max-w-5xl mx-auto mt-24 sm:mt-32 relative" aria-labelledby="hwi-deeper">
-      <span class="inline-flex font-mono text-[10.5px] tracking-[0.2em] uppercase border border-sc-line/60 bg-sc-surface rounded-full px-3.5 py-1.5">
+      <span class="inline-flex font-mono text-[10.5px] tracking-[0.2em] uppercase border border-sc-line/25 bg-sc-surface rounded-full px-3.5 py-1.5">
         Explore
       </span>
       <h2 id="hwi-deeper" class="font-instrument font-normal text-[clamp(34px,5vw,46px)] leading-[1.05] mt-3.5 mb-2.5">
@@ -236,7 +236,7 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
       <div class="hwi-eside" aria-hidden="true">
         <span class="hwi-cap">One idea</span>
         <span class="hwi-cap">Many perspectives</span>
-        <hr class="w-[26px] border-0 border-t border-sc-line/60 mt-2" />
+        <hr class="w-[26px] border-0 border-t border-sc-line/25 mt-2" />
       </div>
       <div class="grid gap-4 sm:grid-cols-3">
         <a class="hwi-go group" href="/guess">
@@ -285,7 +285,7 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
           const v = getComputedStyle(document.documentElement).getPropertyValue('--sc-text').trim();
           return v ? v.split(/\s+/).join(', ') : '242, 242, 240';
         };
-        const isLight = () => document.documentElement.classList.contains('light');
+        const isLight = () => document.documentElement.dataset.theme === 'light';
         const ink = (a) => `rgba(${inkTriplet()}, ${Math.min(1, isLight() ? a * 1.2 : a)})`;
         const fit = (c) => {
           const w = c.clientWidth, h = c.clientHeight;
@@ -376,7 +376,7 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
      a number + icon + serif title, and a lift on hover. */
   .hwi-eside { position: absolute; right: 0; top: 34px; text-align: left; }
   .hwi-go { position: relative; overflow: hidden; display: flex; flex-direction: column; min-height: 222px;
-    background: rgb(var(--sc-surface)); border: 1px solid rgb(var(--sc-line)); border-radius: 14px;
+    background: rgb(var(--sc-surface)); border: 1px solid rgb(var(--sc-line) / 0.15); border-radius: 14px;
     padding: 20px; text-decoration: none; color: rgb(var(--sc-text));
     transition: border-color .3s, transform .3s; }
   .hwi-go:hover { border-color: rgb(var(--sc-accent)); transform: translateY(-3px); }

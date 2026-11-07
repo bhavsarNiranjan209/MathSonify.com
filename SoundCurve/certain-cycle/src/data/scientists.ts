@@ -6,7 +6,9 @@ function generateColor(str: string): string {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 55%, 50%)`;
+  // 40% lightness (not 50%) so white initials clear AA on every hue —
+  // at 50%, yellow/green/cyan avatars were ~2:1 in light mode.
+  return `hsl(${hue}, 55%, 40%)`;
 }
 
 export interface ScientistEquation {

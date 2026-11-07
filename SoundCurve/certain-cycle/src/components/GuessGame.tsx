@@ -26,6 +26,8 @@ import {
   TIER_BURSTS,
   TIER_GLOW,
 } from '../utils/celebrationTiers';
+import { getThemeMode, onThemeChange, type ThemeMode } from '../utils/theme';
+import { darkenHex } from '../utils/lightAccent';
 import { CURVE_SAMPLE_COUNT } from '../utils/activeCurve';
 import { sampleEquationDetailed } from '../utils/equationParser';
 import { equationLabel } from '../utils/equationLabel';
@@ -85,6 +87,11 @@ type RoundResult = 'correct' | 'wrong' | null;
 
 export default function GuessGame() {
   const { t } = useTranslation();
+
+  // Family accents are brand hues tuned for dark canvases; in light mode
+  // they wash out to ~2:1, so the game re-renders with darkened accents.
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getThemeMode());
+  useEffect(() => onThemeChange(setThemeMode), []);
 
   /**
    * Normal-play difficulty. `null` means "all 30 equations" — the default the
@@ -545,6 +552,9 @@ export default function GuessGame() {
 
   const wasCorrect = chosenId === round.correct.id;
   const accent = GUESS_FAMILY_ACCENT[round.correct.family];
+  // Darkened for light mode (no-op in dark) so badges, rings and the
+  // reveal curve stay legible on white.
+  const displayAccent = themeMode === 'light' ? darkenHex(accent) : accent;
 
   /**
    * Which of the three feedback lines applies.
@@ -588,7 +598,7 @@ export default function GuessGame() {
                 }`}
                 // The ring colour is set inline because it must be the live family
                 // accent, which is data-driven and cannot be a static class.
-                style={isCurrent ? { boxShadow: `0 0 0 2px ${accent}` } : undefined}
+                style={isCurrent ? { boxShadow: `0 0 0 2px ${displayAccent}` } : undefined}
               />
             );
           })}
@@ -661,7 +671,7 @@ export default function GuessGame() {
               cy="50"
               r="48"
               fill="none"
-              stroke={accent}
+              stroke={displayAccent}
               strokeWidth="3"
               strokeLinecap="round"
               strokeDasharray={2 * Math.PI * 48}
@@ -775,13 +785,13 @@ export default function GuessGame() {
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-sc-text-soft">
             <span
               className="font-mono rounded px-2 py-1"
-              style={{ backgroundColor: `${accent}22`, color: accent }}
+              style={{ backgroundColor: `${displayAccent}22`, color: displayAccent }}
             >
               {round.correct.difficulty}
             </span>
             <span
               className="font-mono rounded px-2 py-1"
-              style={{ backgroundColor: `${accent}22`, color: accent }}
+              style={{ backgroundColor: `${displayAccent}22`, color: displayAccent }}
             >
               {GUESS_FAMILIES[round.correct.family].label}
             </span>

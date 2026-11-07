@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { sampleEquationDetailed } from '../../utils/equationParser';
 import { CURVE_SAMPLE_COUNT } from '../../utils/activeCurve';
 import { getCanvasPalette, onThemeChange } from '../../utils/theme';
+import { lightAccent } from '../../utils/lightAccent';
 import type { GuessEquation } from '../../data/guessLibrary';
 
 /**
@@ -90,7 +91,9 @@ export default function GuessCurveReveal({
 
     // The curve itself. Invalid samples break the path rather than being
     // bridged, so a singularity reads as a gap instead of a vertical cliff.
-    const strokeColor = accent ?? palette.curve;
+    // Family accents are tuned for dark canvases; in light mode the raw
+    // pastel falls to ~2:1 on white, so the stroke is darkened there.
+    const strokeColor = accent ? lightAccent(accent) : palette.curve;
     ctx.strokeStyle = strokeColor;
     ctx.lineWidth = 2;
     ctx.lineJoin = 'round';
