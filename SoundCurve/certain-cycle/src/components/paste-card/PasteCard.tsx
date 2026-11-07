@@ -10,15 +10,16 @@
  *
  * The card is only visible while the store's inputMode is 'paste' (the
  * "Paste" button in the equation bar switches it on); in 'bar' mode it renders
- * nothing. Free parameters (k, a, b…) get no sliders here — once applied, the
- * Studio's own parameter handles take over for them.
+ * nothing. Free parameters (k, a, b, x̄…) have no sliders in the Studio, so on
+ * "Use" each one is set to 1 (see `substituteParams`) and the number lands in
+ * the equation, where the user can edit it directly.
  *
  * © 2026 MathSonify
  */
 import { useState } from 'react';
 import { useStudioStore } from '../../store/studioStore';
 import { useTranslation } from '../../i18n/index';
-import { normalizePasted } from '../../utils/pasteNormalizer';
+import { normalizePasted, substituteParams } from '../../utils/pasteNormalizer';
 import { fitDomainForExpression } from '../../utils/pasteDomainFit';
 
 const CHIPS = [
@@ -77,8 +78,12 @@ export default function PasteCard() {
     setDisplay(result.display);
     setParams(result.params ?? []);
 
-    const fit = fitDomainForExpression(result.expr, result.params ?? [], [minX, maxX]);
-    setEquation(result.expr);
+    // Option A: the Studio's parser only allows x, pi, e and tau, so every
+    // free parameter is set to 1 before the equation is applied — otherwise
+    // the Studio refuses it as an unknown symbol and nothing draws.
+    const appliedExpr = substituteParams(result.expr, result.params ?? []);
+    const fit = fitDomainForExpression(appliedExpr, [], [minX, maxX]);
+    setEquation(appliedExpr);
     setDomain(fit.domain[0], fit.domain[1]);
     backToBar();
   };

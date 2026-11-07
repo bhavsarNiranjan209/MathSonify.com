@@ -1,7 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizePasted } from './pasteNormalizer';
+import { normalizePasted, substituteParams } from './pasteNormalizer';
 import { compile } from './miniEval';
+import { parseEquation } from './equationParser';
 
 const same = (a: number, b: number) => (Number.isNaN(a) && Number.isNaN(b)) || (Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b)));
 const XS = [-3.1, -2.2, -1.3, -0.4, 0.3, 0.9, 1.7, 2.6, 4.2];
@@ -88,6 +89,21 @@ const CASES: Case[] = [
   { name: 'Σ alternating (-1)^k', input: '\\sum_{k=0}^{10} \\frac{(-1)^k x^{2k+1}}{(2k+1)!}', ref: x => sumK(0, 10, k => ((-1) ** k * x ** (2 * k + 1)) / [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200, 1307674368000, 20922789888000, 355687428096000, 6402373705728000, 121645100408832000, 2432902008176640000, 51090942171709440000, 1124000727777607680000][2 * k + 1]) },
   { name: 'Π product', input: '\\prod_{k=1}^{4} (x + k)', ref: x => (x + 1) * (x + 2) * (x + 3) * (x + 4) },
   { name: 'nested Σ', input: 'sum(i=1,3, sum(j=1,2, i*j*x))', ref: x => sumK(1, 3, i => sumK(1, 2, j => i * j * x)) },
+  // MEAN BAR (x̄ / ȳ) — the mean symbol is a variable, not a decoration
+  { name: 'mean bar x̄ alone is the horizontal variable', input: 'x̄', ref: x => x },
+  { name: 'mean bar ȳ = sin(x)', input: 'ȳ = sin(x)', ref: Math.sin },
+  { name: 'mean bar ȳ = 2x + 1', input: 'ȳ = 2x + 1', ref: x => 2 * x + 1 },
+  { name: 'mean bar x̄ as a slider parameter', input: 'sin(x̄) + cos(x)', params: { xbar: 2 }, ref: x => Math.sin(2) + Math.cos(x) },
+  { name: 'mean bar x̄ + ȳ as two parameters', input: 'x̄ + ȳ + x', params: { xbar: 2, ybar: 3 }, ref: x => 2 + 3 + x },
+  { name: 'mean bar LaTeX \\bar{y} = sin(x)', input: '\\bar{y} = sin(x)', ref: Math.sin },
+  { name: 'mean bar LaTeX \\bar{x} as a parameter', input: 'y = \\bar{x} + cos(x)', params: { xbar: 2 }, ref: x => 2 + Math.cos(x) },
+  { name: 'mean bar overline \\overline{x}', input: 'y = \\overline{x} + 1', ref: x => x + 1 },
+  // Σ with the bounds in parentheses, body inside the same brackets
+  { name: 'Σ paren comma form', input: 'Σ(k=0,12, 1/2^k)', ref: () => sumK(0, 12, k => 1 / 2 ** k) },
+  { name: 'Σ paren "to" form', input: 'Σ(k=0 to 12, 1/2^k)', ref: () => sumK(0, 12, k => 1 / 2 ** k) },
+  { name: 'Σ paren dotdot form', input: 'Σ(k=0..12, 1/2^k)', ref: () => sumK(0, 12, k => 1 / 2 ** k) },
+  { name: 'Σ paren, body outside the brackets', input: 'Σ(k=0,12) 1/2^k', ref: () => sumK(0, 12, k => 1 / 2 ** k) },
+  { name: '∏ paren comma form', input: '∏(k=1,5, k)', ref: () => 120 },
 ];
 
 describe('pasteNormalizer: every notation converts to the SAME math', () => {
@@ -110,6 +126,9 @@ describe('pasteNormalizer: unsupported input gives a clear message, never a cras
     ['', /Paste an equation/], ['sin(', /brackets/i], ['foo(x)', /isn't a function/], ['constructor(1)', /isn't a function/],
     ['__proto__', /Subscripts|isn't supported/], ['toString(1)', /isn't a function/], ['x_1 + 2', /Subscripts/], ['Σ x', /bounds/],
     ['\\unknowncmd{x}', /isn't supported/], ['2 + * 3 )', /./],
+    // bare words must fail clearly, never silently split into a product
+    ['mean', /average of a curve/], ['mean(sin(x))', /average of a curve/], ['median', /isn't a function of x/],
+    ['hello', /isn't a known function/], ['x̄ = 2', /Only y = f\(x\)/],
   ];
   for (const [input, re] of BAD) test(`rejects ${JSON.stringify(input)}`, () => {
     const r = normalizePasted(input);
@@ -134,12 +153,58 @@ describe('pasteNormalizer: display and notes', () => {
   test('notes mention parameters and renamed variable', () => {
     const r = normalizePasted('a sin(bt)');
     assert.equal(r.ok, true); assert.equal(r.xVar, 't'); assert.deepEqual(r.params, ['a', 'b']);
-    assert.ok(r.notes.some(n => /Treated t/.test(n))); assert.ok(r.notes.some(n => /sliders/.test(n)));
+    assert.ok(r.notes.some(n => /Treated t/.test(n))); assert.ok(r.notes.some(n => /set to 1/.test(n)));
   });
   test('log is flagged as natural log', () => {
     assert.ok(normalizePasted('log(x^2+1)').notes.some(n => /natural/.test(n)));
   });
   test('Σ bound index is not reported as a parameter', () => {
     assert.deepEqual(normalizePasted('sum(k=0,5, k*x)').params, []);
+  });
+});
+
+describe('pasteNormalizer: option A — parameters are set to 1 on Use', () => {
+  test('substituteParams replaces each parameter with 1', () => {
+    assert.equal(substituteParams('sin(xbar)+cos(x)', ['xbar']), 'sin(1)+cos(x)');
+    assert.equal(substituteParams('a*sin(b*x)', ['a', 'b']), '1*sin(1*x)');
+    assert.equal(substituteParams('alpha*x', ['alpha']), '1*x');
+    assert.equal(substituteParams('xbar', ['xbar']), '1');
+    assert.equal(substituteParams('sin(x)', []), 'sin(x)');
+    assert.equal(substituteParams('x', ['a']), 'x');
+  });
+  test('substituteParams never corrupts a longer name', () => {
+    // "a" must not touch "alpha"; "xbar" must not touch a standalone "x".
+    assert.equal(substituteParams('alpha*x', ['a']), 'alpha*x');
+    assert.equal(substituteParams('xbar+x', ['xbar']), '1+x');
+    assert.equal(substituteParams('mu*x+min(x,2)', ['mu']), '1*x+min(x,2)');
+  });
+
+  // The Studio layer: its parser only allows x, pi, e and tau, so a pasted
+  // equation with parameters must be substituted BEFORE it reaches the
+  // Studio — this is the check v9 originally missed.
+  const applied = (input: string) => {
+    const r = normalizePasted(input);
+    assert.equal(r.ok, true, `${input} -> ${r.error}`);
+    return substituteParams(r.expr, r.params ?? []);
+  };
+  test('substituted equations parse in the Studio parser', () => {
+    for (const input of ['ȳ = sin(x)', 'sin(x̄) + cos(x)', 'Σ(k=0,12, 1/2^k)', 'a*sin(b*x)', 'y = μx']) {
+      const expr = applied(input);
+      const parsed = parseEquation(expr);
+      assert.equal(parsed.success, true, `${input} -> applied as ${expr} -> ${parsed.error}`);
+      assert.equal(typeof parsed.evaluate, 'function');
+    }
+  });
+  test('the unsubstituted equation is refused by the Studio parser (the gap A closes)', () => {
+    const r = normalizePasted('sin(x̄) + cos(x)');
+    assert.equal(r.ok, true);
+    const parsed = parseEquation(r.expr);
+    assert.equal(parsed.success, false);
+    assert.match(parsed.error ?? '', /We couldn't understand/);
+  });
+  test('substituted mean-bar equation evaluates like sin(x)', () => {
+    const parsed = parseEquation(applied('ȳ = sin(x)'));
+    assert.equal(parsed.success, true);
+    for (const x of XS) assert.ok(same(parsed.evaluate!(x), Math.sin(x)));
   });
 });

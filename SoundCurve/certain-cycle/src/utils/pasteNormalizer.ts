@@ -42,6 +42,24 @@ const SUB: Record<string, string> = { '₀': '0', '₁': '1', '₂': '2', '₃':
 const GREEK_CHARS: Record<string, string> = { 'α': 'alpha', 'β': 'beta', 'γ': 'gamma', 'δ': 'delta', 'ε': 'epsilon', 'θ': 'theta', 'λ': 'lambda', 'ω': 'omega', 'σ': 'sigma', 'κ': 'kappa', 'ζ': 'zeta', 'φ': 'phi', 'ψ': 'psi', 'ρ': 'rho', 'μ': 'mu', 'ν': 'nu', 'η': 'eta', 'χ': 'chi' };
 const VULGAR: Record<string, string> = { '½': '(1/2)', '⅓': '(1/3)', '⅔': '(2/3)', '¼': '(1/4)', '¾': '(3/4)', '⅕': '(1/5)', '⅖': '(2/5)', '⅗': '(3/5)', '⅘': '(4/5)', '⅙': '(1/6)', '⅛': '(1/8)' };
 const SIMPLE: Record<string, string> = { '−': '-', '–': '-', '—': '-', '‒': '-', '×': '*', '·': '*', '⋅': '*', '∙': '*', '∗': '*', '÷': '/', '⁄': '/', 'π': 'pi', 'τ': 'tau', 'ℯ': 'e', '“': '"', '”': '"', '\u00a0': ' ', '\u200b': '', '\u200c': '', '\u200d': '', '\ufeff': '', '\u2009': ' ', '\u202f': ' ' };
+/** Precomposed letters with a macron (the mean bar) -> base letter, e.g. ȳ -> y. */
+const MACRON_PRE: Record<string, string> = { 'ā': 'a', 'ē': 'e', 'ī': 'i', 'ō': 'o', 'ū': 'u', 'ȳ': 'y', 'Ā': 'A', 'Ē': 'E', 'Ī': 'I', 'Ō': 'O', 'Ū': 'U', 'Ȳ': 'Y' };
+
+/**
+ * Mean bar: x̄ (x + combining macron U+0304 / overline U+0305) and precomposed
+ * ȳ become a distinct variable named "<letter>bar" (xbar, ybar), wrapped in the
+ * same GV markers Greek letters use, so the tokenizer sees one variable.
+ * x̄ is a DIFFERENT variable from x — the bar is not stripped, it is named.
+ */
+function barToPlain(s: string): string {
+  return s
+    // LaTeX \bar{x} / \overline{x} (braced or bare) — converted early so a
+    // \bar{y} on the left of = is recognised as the dependent variable.
+    .replace(/\\(?:bar|overline)\{([A-Za-z])\}/g, (_, l) => `${GV}${l}bar${GV}`)
+    .replace(/\\(?:bar|overline)\s+([A-Za-z])(?![A-Za-z])/g, (_, l) => `${GV}${l}bar${GV}`)
+    .replace(/([A-Za-z])([\u0304\u0305])/g, (_, l) => `${GV}${l}bar${GV}`)
+    .replace(/[āēīōūȳĀĒĪŌŪȲ]/g, (ch) => `${GV}${MACRON_PRE[ch]}bar${GV}`);
+}
 
 /* ---------------------------------------------------------------- guards */
 function unsupported(src: string): string | null {
@@ -120,6 +138,12 @@ function latexToPlain(s: string, depth = 0): string {
       if (cmd === 'div') { out += '/'; continue; }
       if (cmd === 'pi') { out += 'pi'; continue; }
       if (cmd === 'tau') { out += 'tau'; continue; }
+      if (cmd === 'bar' || cmd === 'overline') {
+        const a = readArg(s, i); i = a.end;
+        const body = a.body.trim();
+        if (!/^[A-Za-z]$/.test(body)) throw new NormErr('\\bar only works on a single letter, e.g. \\bar{x}.');
+        out += `${GV}${body}bar${GV}`; continue;
+      }
       if (cmd === 'lfloor') { out += 'floor('; continue; } if (cmd === 'rfloor') { out += ')'; continue; }
       if (cmd === 'lceil') { out += 'ceil('; continue; } if (cmd === 'rceil') { out += ')'; continue; }
       if (cmd === 'circ' || cmd === 'degree') { out += '*(pi/180)'; continue; }
@@ -165,24 +189,56 @@ function parseHeader(h: string): { idx: string; lo: string; hi: string } | null 
   const m = /^\s*([A-Za-z])\s*(?:=|:|\bfrom\b)\s*(.+?)\s*(?:\.\.\.?|…|\bto\b|→|\bthrough\b)\s*(.+?)\s*$/i.exec(h);
   return m ? { idx: m[1], lo: m[2], hi: m[3] } : null;
 }
+/** Split on top-level commas only (commas inside brackets don't split). */
+function splitTopCommas(s: string): string[] {
+  const parts: string[] = []; let d = 0, last = 0;
+  for (let k = 0; k < s.length; k++) { const ch = s[k]; if ('([{'.includes(ch)) d++; else if (')]}'.includes(ch)) d--; else if (ch === ',' && d === 0) { parts.push(s.slice(last, k)); last = k + 1; } }
+  parts.push(s.slice(last)); return parts;
+}
+/**
+ * Bounds + optional body inside Σ(...) / ∏(...): "k=0 to 12, 1/2^k",
+ * "k=0..12, 1/2^k" and "k=0,12, 1/2^k". The body is the remainder after
+ * the header parts; without a body the term follows outside the brackets.
+ */
+function parseSigmaParen(inside: string): { idx: string; lo: string; hi: string; body: string } | null {
+  const parts = splitTopCommas(inside);
+  const h1 = parseHeader(parts[0]);
+  if (h1) return { ...h1, body: parts.slice(1).join(',').trim() };
+  if (parts.length >= 2) {
+    const m0 = /^\s*([A-Za-z])\s*=\s*(.+?)\s*$/.exec(parts[0]);
+    if (m0 && parts[1].trim()) return { idx: m0[1], lo: m0[2], hi: parts[1].trim(), body: parts.slice(2).join(',').trim() };
+  }
+  return null;
+}
 function unicodeToPlain(s: string): string {
+  s = barToPlain(s);
   let out = '', i = 0;
   while (i < s.length) {
     const c = s[i];
     if (c === '∑' || c === 'Σ' || c === '∏') {
       const kind = c === '∏' ? 'prod' : 'sum';
-      let j = i + 1, lower = '', upper = '', header: ReturnType<typeof parseHeader> = null;
+      let j = i + 1, lower = '', upper = '', emitted = false;
       for (let k = 0; k < 3; k++) {
         j = skipSp(s, j);
         if (SUB[s[j]] !== undefined) { const r = mapRun(s, j, SUB); lower = r.text; j = r.end; }
         else if (s[j] === '_') { const a = readArg(s, j + 1); lower = a.body; j = a.end; }
         else if (SUP[s[j]] !== undefined) { const r = mapRun(s, j, SUP); upper = r.text; j = r.end; }
         else if (s[j] === '^') { const a = readArg(s, j + 1); upper = a.body; j = a.end; }
-        else if (s[j] === '(' && !lower && !upper) { const e = matching(s, j, '(', ')'); if (e > 0) { header = parseHeader(s.slice(j + 1, e)); if (header) { j = e + 1; } } break; }
+        else if (s[j] === '(' && !lower && !upper) {
+          const e = matching(s, j, '(', ')');
+          if (e > 0) {
+            const h = parseSigmaParen(s.slice(j + 1, e));
+            if (h) {
+              out += `${MO}S${SEP}${kind}${SEP}${h.idx}${SEP}${h.lo}${SEP}${h.hi}${MC}`;
+              if (h.body) out += `${BO}${unicodeToPlain(h.body)}${BC}`;
+              j = e + 1; emitted = true;
+            }
+          }
+          break;
+        }
         else break;
       }
-      if (header) out += `${MO}S${SEP}${kind}${SEP}${header.idx}${SEP}${header.lo}${SEP}${header.hi}${MC}`;
-      else out += sigmaMarker(kind, lower, upper);
+      if (!emitted) out += sigmaMarker(kind, lower, upper);
       i = j; continue;
     }
     if (c === '√' || c === '∛' || c === '∜') {
@@ -261,6 +317,10 @@ type Tok =
 function splitRun(run: string, nextIsLP: boolean, notes: string[]): Tok[] {
   const low = run.toLowerCase();
   if (low === 'sum' || low === 'prod') throw new NormErr('Σ needs bounds. Type it as sum(k=0,12, …).');
+  // "mean" is the average of a curve, not a function of x — and a bare word
+  // must never silently split into a product (mean -> m*e*a*n was wrong).
+  if (low === 'mean') throw new NormErr('"mean" is the average of a curve, not a function of x. Enter the function itself (e.g. sin(x)) — or use the mean symbol x̄ for a mean value.');
+  if (low === 'median' || low === 'mode' || low === 'average') throw new NormErr(`"${run}" isn't a function of x — enter the function itself (e.g. sin(x)).`);
   if (nextIsLP && run.length > 2 && !NAMES.some(n => n.toLowerCase() === low)) throw new NormErr(`"${run}(" isn't a function MathSonify knows.`);
   const toks: Tok[] = []; let i = 0, singles = 0;
   while (i < run.length) {
@@ -270,7 +330,10 @@ function splitRun(run: string, nextIsLP: boolean, notes: string[]): Tok[] {
     if (hit) {
       if (FN_ALIAS[hit]) toks.push({ t: 'fn', v: FN_ALIAS[hit] });
       else if (FN_NAMES.includes(hit)) { if (hit === 'log') notes.push('log is read as the natural logarithm (ln). Use log10(x) for base 10.'); toks.push({ t: 'fn', v: hit }); }
-      else if (CONSTS.includes(hit)) toks.push({ t: 'const', v: hit });
+      // A one-letter constant ('e') is still a single letter: a long run made
+      // only of single letters is a word, not a product — "hello" must fail,
+      // not become h*e*l*l*o. Multi-letter names (pi, theta, sin) don't count.
+      else if (CONSTS.includes(hit)) { toks.push({ t: 'const', v: hit }); if (hit.length === 1) singles++; }
       else toks.push({ t: 'var', v: hit });
       i += hit.length;
     } else { toks.push({ t: 'var', v: rest[0] }); singles++; i++; }
@@ -432,12 +495,28 @@ function pretty(toks: Tok[]): string {
     if (t.t === 'op' && (t.v === '+' || t.v === '-') && binary) s += ` ${t.v} `;
     else if (t.t === 'op' && (t.v === '*' || t.v === '/')) s += t.v === '*' ? '·' : '/';
     else if (t.t === 'comma') s += ', ';
+    else if (t.t === 'var' && t.v.length > 3 && t.v.endsWith('bar')) s += `${t.v.slice(0, -3)}\u0304`;
     else s += render([t]);
   });
   return s;
 }
 
 /* ---------------------------------------------------------------- public API */
+/**
+ * Option A (Nov 7, 2026): the Studio's parser only allows x, pi, e and tau,
+ * and there are no parameter sliders — so on "Use" every free parameter is
+ * set to 1 and the number lands in the equation, where the user can edit it.
+ * Word-boundary replacement, longest names first, so "a" never corrupts
+ * "alpha" and "xbar" never corrupts "x".
+ */
+export function substituteParams(expr: string, params: string[], value = 1): string {
+  if (!params.length) return expr;
+  const escaped = [...params]
+    .sort((a, b) => b.length - a.length)
+    .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return expr.replace(new RegExp(`\\b(${escaped.join('|')})\\b`, 'g'), String(value));
+}
+
 export function normalizePasted(raw: string): NormalizeResult {
   const fail = (error: string): NormalizeResult => ({ ok: false, expr: '', display: '', notes: [], params: [], xVar: 'x', error });
   try {
@@ -445,10 +524,17 @@ export function normalizePasted(raw: string): NormalizeResult {
     if (!src) return fail('Paste an equation to graph it.');
     if (src.length > 1000) return fail('That is too long to graph (limit 1000 characters).');
     src = src.replace(/^\${1,2}|\${1,2}$/g, '').replace(/^\\\(|\\\)$/g, '').replace(/^\\\[|\\\]$/g, '').replace(/[.;]\s*$/, '').trim();
+    src = barToPlain(src);
     const un = unsupported(src); if (un) return fail(un);
     const lhs = /^\s*(?:(?:y|f|g|h|Y|F)\s*(?:\(\s*[A-Za-z]\s*\))?)\s*(?:=|:=)\s*/.exec(src);
     if (lhs) src = src.slice(lhs[0].length);
     else if (/^\s*(?:x|r|ρ|θ|t)\s*(?:\(\s*[A-Za-z]\s*\))?\s*=/i.test(src)) return fail('Only y = f(x) style equations can be graphed (not x = f(y), polar, or parametric ones). Solve for y first.');
+    // A mean-bar on the left: ȳ = … is the dependent variable; x̄ = … is not.
+    const barLhs = /^\s*\u2064([A-Za-z]+)bar\u2064\s*(?:\(\s*[A-Za-z]+\s*\))?\s*(?:=|:=)\s*/.exec(src);
+    if (barLhs) {
+      if (barLhs[1] === 'y' || barLhs[1] === 'Y') src = src.slice(barLhs[0].length);
+      else return fail('Only y = f(x) style equations can be graphed (not x = f(y), polar, or parametric ones). Solve for y first.');
+    }
     const plain = toPlain(src);
     if (plain.replace(/\u27e6[^\u27e7]*\u27e7/g, '').includes('=')) return fail('That looks like an implicit equation (it has = in the middle). Rewrite it as y = f(x).');
     const notes: string[] = [];
@@ -471,7 +557,7 @@ export function normalizePasted(raw: string): NormalizeResult {
     const params = unbound.filter(v => v !== xVar);
     if (params.length > 6) return fail('Too many unknown constants (' + params.join(', ') + '). Put numbers in for some of them.');
     if (xVar !== 'x') toks = toks.map(t => (t.t === 'var' && !t.bound && t.v === xVar ? { ...t, v: 'x' } : t));
-    if (params.length) notes.push(`Unknown constants found: ${params.join(', ')}. Use the sliders to set them.`);
+    if (params.length) notes.push(`Unknown constants found: ${params.join(', ')}. They are set to 1 when applied — edit the number in the equation to change them.`);
     if (toks.length > 4000) return fail('That formula is too large to graph.');
     return { ok: true, expr: render(toks), display: pretty(toks), notes: Array.from(new Set(notes)), params, xVar };
   } catch (e) {

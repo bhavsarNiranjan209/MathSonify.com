@@ -67,7 +67,7 @@ const en = {
   'studio.pasteEquation': 'Paste equation',
   'studio.useEquationBar': 'Back to equation bar',
   'studio.pasteHint': 'Paste an equation from a book, a website or LaTeX — we clean it up and graph it.',
-  'studio.pasteParamsNote': 'Parameters in your equation (like a or k) get sliders in the Studio once applied.',
+  'studio.pasteParamsNote': 'Parameters in your equation (like a or k) are set to 1 when applied — edit the number in the equation to change them.',
   'studio.use': 'Use',
   'studio.clear': 'Clear',
 
