@@ -277,8 +277,7 @@ export default function HowItWorksRightCard({
   return (
     <div ref={cardRef} className="panel p-3 sm:p-4 w-full min-w-0">
       <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="font-mono text-[10px] uppercase tracking-wider text-sc-text-faint shrink-0">Now playing</span>
-        <div className="flex rounded-md p-0.5 gap-0.5" style={{ background: 'rgb(var(--sc-sunken))' }} role="group" aria-label="Demo graph view mode">
+        <div className="flex rounded-[10px] p-0.5 gap-1 bg-sc-sunken border border-sc-line/20" role="group" aria-label="Demo graph view mode">
           {(['2d', '3d'] as const).map((v) => (
             <button
               key={v} type="button" onClick={() => onViewChange(v)}
@@ -286,13 +285,17 @@ export default function HowItWorksRightCard({
               onFocus={v === '3d' ? () => import('../Studio/Curve3DViewer') : undefined}
               aria-pressed={view === v}
               disabled={v === '3d' && !canDraw3D}
-              className="px-2.5 min-h-[40px] rounded text-xs font-semibold whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              style={view === v ? { background: 'rgb(var(--sc-accent))', color: 'rgb(var(--sc-on-accent))' } : { color: 'rgb(var(--sc-text-soft))' }}
+              className={`px-3.5 py-2 rounded-lg text-xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                view === v ? 'bg-sc-accent text-sc-on-accent font-semibold' : 'text-sc-text-soft hover:text-sc-text'
+              }`}
             >
               {v === '2d' ? '2D Graph' : '3D Graph'}
             </button>
           ))}
         </div>
+        <span className="font-mono text-[10px] uppercase tracking-wider text-sc-text-faint shrink-0">
+          {view === '3d' ? '3D view' : 'Waveform view'}
+        </span>
       </div>
 
       <div className="flex items-baseline justify-between gap-2 mb-2">
@@ -325,13 +328,25 @@ export default function HowItWorksRightCard({
             </p>
           </div>
         )}
+
+        {/* Equation chip over the graph + drag hint in 3D (redesign mockup) */}
+        <div className="absolute right-2.5 top-2.5 pointer-events-none font-mono text-[11.5px] border border-sc-line/40 bg-sc-bg/80 rounded-lg px-2.5 py-1.5">
+          f(x) = {equation}
+        </div>
+        {view === '3d' && canDraw3D && (
+          <div className="absolute left-2.5 bottom-2 font-mono text-[10px] text-sc-text-faint pointer-events-none">
+            drag to rotate
+          </div>
+        )}
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <button type="button" onClick={onPlay} disabled={!!curve.error} aria-pressed={playing} className="btn-primary inline-flex flex-1 items-center justify-center gap-2 px-4 min-h-[44px] text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+      <div className="mt-3.5 grid grid-cols-[1fr_auto] gap-3">
+        <button type="button" onClick={onPlay} disabled={!!curve.error} aria-pressed={playing} className="btn-primary inline-flex items-center justify-center gap-2.5 px-4 py-4 text-[15px] font-semibold disabled:opacity-40 disabled:cursor-not-allowed">
           <span aria-hidden="true">{playing ? '❚❚' : '▶'}</span> {playing ? 'Pause' : 'Play'}
         </button>
-        <button type="button" onClick={onStop} aria-label="Reset to the start" className="px-3 min-h-[44px] rounded border border-sc-line/25 text-sc-text-soft hover:text-sc-text hover:border-sc-line/50 transition-colors">↺</button>
+        <button type="button" onClick={onStop} aria-label="Reset to the start" className="inline-flex items-center justify-center gap-2 px-5 rounded-[11px] border border-sc-line/40 text-[13px] text-sc-text hover:bg-sc-sunken transition-colors">
+          <span aria-hidden="true">↺</span> Reset
+        </button>
       </div>
     </div>
   );

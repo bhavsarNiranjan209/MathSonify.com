@@ -28,6 +28,9 @@ export default {
         // Used for UI headings so the Studio reads as one family with the
         // logo; the editorial serif (Fraunces) stays on the big titles.
         display: ['Space Grotesk', 'Inter', 'sans-serif'],
+        // Instrument Serif — the How It Works page voice (hero title and
+        // card titles, per the redesign mockup). Loaded in BaseLayout.
+        instrument: ['"Instrument Serif"', 'Georgia', 'serif'],
       },
       fontSize: {
         'display-xl': ['48px', { lineHeight: '48px', letterSpacing: '-1px', fontWeight: '600' }],

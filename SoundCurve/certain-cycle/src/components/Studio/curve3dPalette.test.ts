@@ -4,18 +4,19 @@
  * The first light palette was a black tube (0x14161a) with zero emissive on
  * a shadow-only floor — a thin black worm in a faint grey cage. It read as
  * broken in the light-mode screenshot. Light mode is designed on its own
- * terms now: brass curve, real glow, readable grid, paper floor.
+ * terms now: green curve (was brass #C9A24B until Nov 7, when the user asked
+ * for green), real glow, readable grid, paper floor.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { curve3DPalette } from '../../utils/curve3dPalette';
 
-test('light: the curve is the brass accent, with a real glow', () => {
+test('light: the curve is green (#15803d), with a real glow', () => {
   const light = curve3DPalette(false);
-  assert.equal(light.tube, 0xc9a24b);
-  assert.equal(light.emissive, 0xc9a24b);
+  assert.equal(light.tube, 0x15803d);
+  assert.equal(light.emissive, 0x15803d);
   assert.ok(light.emissiveI > 0, 'emissive intensity must be > 0 in light mode');
-  assert.equal(light.head, 0xc9a24b);
+  assert.equal(light.head, 0x15803d);
 });
 
 test('light: the tube is thicker than dark, so it reads as an object', () => {

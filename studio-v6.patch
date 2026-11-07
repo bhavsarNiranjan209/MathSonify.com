@@ -1,0 +1,995 @@
+diff --git a/SoundCurve/certain-cycle/src/components/AudioControls.tsx b/SoundCurve/certain-cycle/src/components/AudioControls.tsx
+index 28044df..6d1016f 100644
+--- a/SoundCurve/certain-cycle/src/components/AudioControls.tsx
++++ b/SoundCurve/certain-cycle/src/components/AudioControls.tsx
+@@ -357,7 +357,7 @@ export default function AudioControls() {
+ 
+       {/* Instrument selection */}
+       <div>
+-        <label className="block text-xs font-semibold text-sc-text-soft mb-2">
++        <label className="font-display block text-xs font-semibold tracking-wide text-sc-text-soft mb-2">
+           {t('audio.chooseInstrument')}
+         </label>
+         <div
+@@ -392,7 +392,7 @@ export default function AudioControls() {
+ 
+       {/* Sonification mode */}
+       <div>
+-        <label className="block text-xs font-semibold text-sc-text-soft mb-2">
++        <label className="font-display block text-xs font-semibold tracking-wide text-sc-text-soft mb-2">
+           {t('audio.howMathMakesSound')}
+         </label>
+         <div
+@@ -584,6 +584,15 @@ export default function AudioControls() {
+             <span>🔗</span>
+             <span>{t('audio.share')}</span>
+           </button>
++
++          <a
++            href="/support"
++            className="px-3.5 py-2 min-h-[44px] btn-ghost text-xs"
++            title={t('audio.supportTooltip')}
++          >
++            <span>☕</span>
++            <span>{t('audio.support')}</span>
++          </a>
+         </div>
+       </div>
+     </div>
+diff --git a/SoundCurve/certain-cycle/src/components/EquationInput.tsx b/SoundCurve/certain-cycle/src/components/EquationInput.tsx
+index 6017fd2..3c83311 100644
+--- a/SoundCurve/certain-cycle/src/components/EquationInput.tsx
++++ b/SoundCurve/certain-cycle/src/components/EquationInput.tsx
+@@ -23,6 +23,7 @@ export default function EquationInput() {
+   const { t } = useTranslation();
+   const equation = useStudioStore((s) => s.equation);
+   const setEquation = useStudioStore((s) => s.setEquation);
++  const setInputMode = useStudioStore((s) => s.setInputMode);
+   const isPlaying = useStudioStore((s) => s.isPlaying);
+   const setHasPendingChanges = useStudioStore((s) => s.setHasPendingChanges);
+   const minX = useStudioStore((s) => s.minX);
+@@ -113,7 +114,7 @@ export default function EquationInput() {
+       {/* Wide tactile equation slot */}
+       <div>
+         <div className="flex items-center justify-between mb-2">
+-          <label htmlFor="eq-input" className="text-xs font-semibold text-sc-text-soft">
++          <label htmlFor="eq-input" className="font-display text-xs font-semibold tracking-wide text-sc-text-soft">
+             {t('eq.mathEquation')}
+           </label>
+           <div className="flex items-center gap-3">
+@@ -133,6 +134,15 @@ export default function EquationInput() {
+             >
+               {t('eq.library')}
+             </button>
++            <button
++              type="button"
++              onClick={() => setInputMode('paste')}
++              className="flex items-center gap-1.5 py-1 min-h-[44px] text-xs font-medium text-sc-accent hover:underline transition-colors"
++              title="Paste an equation from a book, a website or LaTeX"
++            >
++              <span aria-hidden>📋</span>
++              <span>{t('studio.pasteEquation')}</span>
++            </button>
+           </div>
+         </div>
+ 
+diff --git a/SoundCurve/certain-cycle/src/components/GraphPanel.tsx b/SoundCurve/certain-cycle/src/components/GraphPanel.tsx
+index 3559e62..145f282 100644
+--- a/SoundCurve/certain-cycle/src/components/GraphPanel.tsx
++++ b/SoundCurve/certain-cycle/src/components/GraphPanel.tsx
+@@ -66,10 +66,12 @@ export default function GraphPanel({
+ 
+   // Playback progress is deliberately NOT subscribed to here. It used to be, which
+   // meant every audio tick (30-60x/second) re-rendered this panel AND its 2D
+-  // Visualizer subtree, on a page that has suffered from lag before. The 3D
+-  // viewer subscribes to the store itself and writes straight into a ref, so the
+-  // playhead now costs no React work at all. This panel only needs to know whether
+-  // there is a curve to draw.
++  // Visualizer subtree, on a page that has suffered from lag before. Instead
++  // the 3D viewer reads progress through the `getProgress` callback below,
++  // called from inside its own animation frame — so the playhead costs no
++  // React work at all, and the 3D curve draws itself in live, exactly like
++  // the 2D playhead. This panel only needs to know whether there is a curve
++  // to draw.
+   const canDraw3D = curve.points.length > 1 && !curve.error && analysis.kind !== 'unsupported';
+   const show3D = allow3D && mode === '3d' && canDraw3D;
+ 
+@@ -158,7 +160,20 @@ export default function GraphPanel({
+             className="absolute inset-0"
+             style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+           >
+-            {show3D && <Curve3DViewer points={curve.points} label={label} />}
++            {show3D && (
++              <Curve3DViewer
++                points={curve.points}
++                label={label}
++                // Live playback in 3D, mirroring the 2D playhead: the viewer
++                // calls this every animation frame and draws the curve in up
++                // to the current position (ghost curve behind it). Reading
++                // the store imperatively here costs no React re-renders.
++                getProgress={() => {
++                  const s = useStudioStore.getState();
++                  return s.isPlaying ? s.progress : null;
++                }}
++              />
++            )}
+           </div>
+         </div>
+ 
+diff --git a/SoundCurve/certain-cycle/src/components/Navigation.astro b/SoundCurve/certain-cycle/src/components/Navigation.astro
+index add9615..c0a1f49 100644
+--- a/SoundCurve/certain-cycle/src/components/Navigation.astro
++++ b/SoundCurve/certain-cycle/src/components/Navigation.astro
+@@ -14,6 +14,7 @@ const allNavLinks: { name: string; href: string; feature: FeatureId | null; i18n
+   { name: 'Equations', href: '/equations', feature: null, i18nKey: 'nav.equations' },
+   { name: 'Music Lab', href: '/music-lab', feature: 'musicLab', i18nKey: 'nav.musicLab' },
+   { name: 'About', href: '/about', feature: null, i18nKey: 'nav.about' },
++  { name: 'Support', href: '/support', feature: null, i18nKey: 'nav.support' },
+ ];
+ 
+ // Release-controlled links are removed from the array entirely, so an
+diff --git a/SoundCurve/certain-cycle/src/components/Studio.tsx b/SoundCurve/certain-cycle/src/components/Studio.tsx
+index f4de1a2..1f8d482 100644
+--- a/SoundCurve/certain-cycle/src/components/Studio.tsx
++++ b/SoundCurve/certain-cycle/src/components/Studio.tsx
+@@ -352,10 +352,15 @@ function StudioInner() {
+       <motion.div variants={entranceItem} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+         {/* Left Column: Equation Input & Audio Controls (5 cols) */}
+         <div className="lg:col-span-5 space-y-6 w-full min-w-0">
+-          <PasteCard />
+-          <div className="panel p-5 sm:p-6 border-t-2 border-sc-accent/60">
+-            <EquationInput />
+-          </div>
++          {/* The paste card replaces the equation bar while pasting: the bar
++              stays hidden so the two inputs can never disagree. */}
++          {inputMode === 'paste' ? (
++            <PasteCard />
++          ) : (
++            <div className="panel p-5 sm:p-6 border-t-2 border-sc-accent/60">
++              <EquationInput />
++            </div>
++          )}
+ 
+           <div className="panel p-5 sm:p-6 border-t-2 border-sc-accent/40">
+             <AudioControls />
+diff --git a/SoundCurve/certain-cycle/src/components/Studio/ControlPointLayer.tsx b/SoundCurve/certain-cycle/src/components/Studio/ControlPointLayer.tsx
+index e8b2899..525386a 100644
+--- a/SoundCurve/certain-cycle/src/components/Studio/ControlPointLayer.tsx
++++ b/SoundCurve/certain-cycle/src/components/Studio/ControlPointLayer.tsx
+@@ -123,10 +123,13 @@ export default function ControlPointLayer({
+             title={`${handle.label} — ${handle.display}`}
+           >
+             <span
++              // Idle: a tinted dot with a solid accent border. The old fill
++              // was the page background — white on a white graph in light
++              // mode, so the handles vanished until you happened to hover one.
+               className={`block rounded-full border-2 transition-[transform,background-color,border-color] ${
+                 active
+                   ? 'scale-125 border-sc-accent bg-sc-accent'
+-                  : 'border-sc-accent bg-sc-bg'
++                  : 'border-sc-accent bg-sc-accent/25'
+               }`}
+               style={{ width: active ? 16 : 12, height: active ? 16 : 12 }}
+             />
+diff --git a/SoundCurve/certain-cycle/src/components/Visualizer.tsx b/SoundCurve/certain-cycle/src/components/Visualizer.tsx
+index e750724..795b51e 100644
+--- a/SoundCurve/certain-cycle/src/components/Visualizer.tsx
++++ b/SoundCurve/certain-cycle/src/components/Visualizer.tsx
+@@ -18,6 +18,7 @@ import {
+ import ControlPointLayer, { type HandlePixel } from './Studio/ControlPointLayer';
+ import { audioEngine } from '../utils/audioEngine';
+ import { getCanvasPalette, onThemeChange, type CanvasPalette } from '../utils/theme';
++import { clampTickLabelX, clampTickLabelY } from '../utils/tickLabels';
+ 
+ /** Converts a #RRGGBB color into an rgba() string at given alpha. */
+ function alpha(hex: string, a: number): string {
+@@ -692,7 +693,11 @@ export default function Visualizer() {
+           onPointerUp={handlePointerUp}
+           onPointerCancel={handlePointerUp}
+           onPointerLeave={handlePointerLeave}
+-          className={`w-full h-full block ${editMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-crosshair'}`}
++          // Crosshair in every mode, including edit mode. The grab hand was
++          // near-invisible on the white graph (white hand, thin dark outline)
++          // — the cursor seemed to vanish while editing in light mode. The
++          // draggable handles themselves still show grab / grabbing.
++          className="w-full h-full block cursor-crosshair"
+         />
+ 
+         {/*
+@@ -1061,7 +1066,11 @@ function draw2DGraph(
+       ctx.lineTo(sx, tickBaseY + 3);
+       ctx.stroke();
+       ctx.textAlign = 'center';
+-      ctx.fillText(fmt(xVal), sx, xAxisVisible ? tickBaseY + 11 : height - 8);
++      // Edge labels are pulled inside the frame: the first/last tick sits
++      // exactly on the canvas edge, so a centred label would be half-clipped.
++      const xLabel = fmt(xVal);
++      const labelX = clampTickLabelX(sx, ctx.measureText(xLabel).width / 2, width);
++      ctx.fillText(xLabel, labelX, xAxisVisible ? tickBaseY + 11 : height - 8);
+     }
+ 
+     const x0 = toScreenX(0);
+@@ -1077,7 +1086,10 @@ function draw2DGraph(
+       ctx.lineTo(tickBaseX + 3, sy);
+       ctx.stroke();
+       ctx.textAlign = yAxisVisible ? 'right' : 'left';
+-      ctx.fillText(fmt(yVal), yAxisVisible ? tickBaseX - 5 : tickBaseX + 5, sy + 3);
++      // The outermost ticks sit exactly on the canvas edge (y = 0 / height),
++      // so their labels are clamped inside — unclamped, the top and bottom
++      // labels were drawn half outside the frame and cut by the panel.
++      ctx.fillText(fmt(yVal), yAxisVisible ? tickBaseX - 5 : tickBaseX + 5, clampTickLabelY(sy + 3, height));
+     }
+   };
+ 
+diff --git a/SoundCurve/certain-cycle/src/components/graphPanel.test.ts b/SoundCurve/certain-cycle/src/components/graphPanel.test.ts
+index 42d9c49..bfbf61b 100644
+--- a/SoundCurve/certain-cycle/src/components/graphPanel.test.ts
++++ b/SoundCurve/certain-cycle/src/components/graphPanel.test.ts
+@@ -175,15 +175,18 @@ test('GraphPanel is one shared component with an in-panel toggle', () => {
+   assert.doesNotMatch(source, /<a\s+href|navigate\(|<Link/);
+ });
+ 
+-test('the 3D viewer takes shared points, subscribing to the transport itself', () => {
++test('the 3D viewer takes shared points, and playback arrives without re-renders', () => {
+   // Accepting an equation string and parsing it internally is how 3D became stale
+   // independently: it could only show the curve it was mounted with.
+   //
+-  // Playback is the mirror image. It must NOT arrive as a prop, because the store
+-  // publishes progress 30-60x/second and a prop would re-render React on every
+-  // tick. The viewer subscribes to the store imperatively and writes to a ref.
++  // Playback is the mirror image. It must NOT arrive as a React prop, because the
++  // store publishes progress 30-60x/second and a prop would re-render React on
++  // every tick. The shipped design reads it through a `getProgress` callback the
++  // viewer calls from inside its own animation frame — no React state, no
++  // subscription, no re-renders — and draws the curve in live (ghost curve
++  // behind the bright traced tube), exactly like the 2D playhead.
+   const source = read(VIEWER);
+-  assert.match(source, /points: SamplePoint\[\]/);
++  assert.match(source, /points: XY\[\]/);
+   // The PROPS interface must not carry progress. Checked on that interface rather
+   // than by searching for the text "progress: number", which also appears in the
+   // store-subscription's state type and would be a false positive.
+@@ -191,14 +194,20 @@ test('the 3D viewer takes shared points, subscribing to the transport itself', (
+     source.indexOf('export interface Curve3DViewerProps'),
+     source.indexOf('export interface Curve3DViewerProps') + 500,
+   );
+-  assert.doesNotMatch(propsBlock, /progress/, 'progress must not be a React prop');
+-  assert.match(source, /useStudioStore\.subscribe\(/, 'progress must arrive by subscription');
+-  assert.match(source, /progressRef\.current = state\.progress/);
++  assert.doesNotMatch(propsBlock, /progress: number/, 'progress must not be a React prop');
++  assert.match(propsBlock, /getProgress\?: \(\) => number \| null \| undefined/);
++  assert.match(source, /progressRef\.current = getProgress/);
+   assert.doesNotMatch(code(VIEWER), /parseEquation\(/, 'the viewer must not sample; the hook did');
+ 
+-  // And the panel must not subscribe either, or the 2D subtree re-renders too.
+-  assert.doesNotMatch(code(PANEL), /useStudioStore\(\(s\) => s\.progress\)/);
+-  assert.doesNotMatch(code(PANEL), /useStudioStore\(\(s\) => s\.isPlaying\)/);
++  // And the panel must pass that callback — reading the store imperatively
++  // (getState), never by subscription, or the 2D subtree re-renders too.
++  const panel = code(PANEL);
++  assert.match(panel, /<Curve3DViewer/);
++  assert.match(panel, /getProgress=\{\(\) => \{/);
++  assert.match(panel, /useStudioStore\.getState\(\)/);
++  assert.match(panel, /s\.isPlaying \? s\.progress : null/);
++  assert.doesNotMatch(panel, /useStudioStore\(\(s\) => s\.progress\)/);
++  assert.doesNotMatch(panel, /useStudioStore\(\(s\) => s\.isPlaying\)/);
+ });
+ 
+ test('the scene rebuilds on a new curve but not on every frame', () => {
+diff --git a/SoundCurve/certain-cycle/src/components/paste-card/PasteCard.tsx b/SoundCurve/certain-cycle/src/components/paste-card/PasteCard.tsx
+index b7d8c2c..4f4a609 100644
+--- a/SoundCurve/certain-cycle/src/components/paste-card/PasteCard.tsx
++++ b/SoundCurve/certain-cycle/src/components/paste-card/PasteCard.tsx
+@@ -1,91 +1,70 @@
+-import { useEffect, useState } from 'react';
++/**
++ * PasteCard — paste a messy equation from anywhere and graph it.
++ *
++ * Textbooks, Wikipedia and lecture notes write equations in a dozen dialects:
++ * `y = sin(x)`, `f(x) = x^2`, LaTeX `$\sin x$`, `2sinx`, `x²`. The equation bar
++ * only accepts the Studio's canonical syntax, so this card is the front door
++ * for pasted text: it normalises the paste (see `pasteNormalizer`), shows what
++ * changed, and on "Use" applies the equation to the Studio — with a domain
++ * fitted so the curve actually draws (see `pasteDomainFit`).
++ *
++ * The card is only visible while the store's inputMode is 'paste' (the
++ * "Paste" button in the equation bar switches it on); in 'bar' mode it renders
++ * nothing. Free parameters (k, a, b…) get no sliders here — once applied, the
++ * Studio's own parameter handles take over for them.
++ *
++ * © 2026 MathSonify
++ */
++import { useState } from 'react';
+ import { useStudioStore } from '../../store/studioStore';
+ import { useTranslation } from '../../i18n/index';
+ import { normalizePasted } from '../../utils/pasteNormalizer';
+-import { compile } from '../../utils/miniEval';
+-
+-/** Sample an expression over a domain and check finiteness ratio. */
+-function useAutoFitDomain(expr: string, params: number[] = []): { domain: [number, number]; ratio: number } {
+-  const defaultMin = -20;
+-  const defaultMax = 60;
+-  const step = 0.5;
+-  const sampleCount = Math.max(10, Math.round((defaultMax - defaultMin) / step));
+-  let finite = 0;
+-  let total = 0;
+-  try {
+-    const f = compile(expr, params.length > 0 ? { p: params[0] } : {});
+-    for (let i = 0; i <= sampleCount; i++) {
+-      const x = defaultMin + (defaultMax - defaultMin) * (i / sampleCount);
+-      const y = f(x);
+-      total++;
+-      if (Number.isFinite(y)) finite++;
+-    }
+-  } catch {
+-    // If compilation fails, treat all as non-finite
+-  }
+-  const nonFiniteRatio = total > 0 ? 1 - finite / total : 1;
+-  // If >40% non-finite, expand domain to reduce non-finite ratio
+-  let [min, max] = [defaultMin, defaultMax];
+-  if (nonFiniteRatio > 0.4) {
+-    // Try narrowing the domain from each side
+-    for (const tryMin of [defaultMin, -10, 0, 10]) {
+-      for (const tryMax of [defaultMax, 10, 20, 30, 40, 50, 60]) {
+-        if (tryMax <= tryMin) continue;
+-        let fin = 0, tot = 0;
+-        try {
+-          const f2 = compile(expr, params.length > 0 ? { p: params[0] } : {});
+-          for (let i = 0; i <= sampleCount; i++) {
+-            const x = tryMin + (tryMax - tryMin) * (i / sampleCount);
+-            const y = f2(x);
+-            tot++;
+-            if (Number.isFinite(y)) fin++;
+-          }
+-        } catch {
+-          // keep existing counts
+-        }
+-        const ratio = tot > 0 ? 1 - fin / tot : 1;
+-        if (ratio <= 0.4) {
+-          min = tryMin;
+-          max = tryMax;
+-          break;
+-        }
+-      }
+-      if (max - min > 0) break;
+-    }
+-  }
+-  return { domain: [min, max], ratio: nonFiniteRatio };
+-}
+-
+-interface Chip {
+-  label: string;
+-  onCopy: () => void;
+-}
++import { fitDomainForExpression } from '../../utils/pasteDomainFit';
++
++const CHIPS = [
++  'sin(x)',
++  'cos(3*x)',
++  'tan(x/2)',
++  'e^x',
++  'ln(x)',
++  'abs(x)',
++  'x^2',
++  '√x',
++  'x³ - x',
++];
+ 
+ export default function PasteCard() {
+   const { t } = useTranslation();
+-  const { inputMode, equation, setInputMode, raw, expr, display, params, setRaw, setExpr, setDisplay, setParams } = useStudioStore();
+-  const [text, setText] = useState(equation);
+-  const [error, setError] = useState<string>('');
++  const inputMode = useStudioStore((s) => s.inputMode);
++  const setInputMode = useStudioStore((s) => s.setInputMode);
++  const setEquation = useStudioStore((s) => s.setEquation);
++  const setDomain = useStudioStore((s) => s.setDomain);
++  const minX = useStudioStore((s) => s.minX);
++  const maxX = useStudioStore((s) => s.maxX);
++
++  const [text, setText] = useState('');
++  const [error, setError] = useState('');
+   const [notes, setNotes] = useState<string[]>([]);
+-  const [showVeil, setShowVeil] = useState(false);
+-  const [mode, setMode] = useState<'bar' | 'paste'>('bar');
+-  const [autoFitDomain, setAutoFitDomain] = useState<{ domain: [number, number]; ratio: number }>({ domain: [-20, 60], ratio: 0 });
+-
+-  // Handle switching between bar and paste mode
+-  const switchMode = (newMode: 'bar' | 'paste') => {
+-    setMode(newMode);
+-    setInputMode(newMode);
+-    setShowVeil(newMode === 'bar');
+-    // Restore text from the other mode when switching
+-    if (newMode === 'bar') {
+-      setText(equation); // Restore bar equation
+-    } else {
+-      setText(raw || ''); // Use raw pasted text
+-    }
++  const [display, setDisplay] = useState('');
++  const [params, setParams] = useState<string[]>([]);
++
++  if (inputMode !== 'paste') return null;
++
++  const backToBar = () => {
++    setInputMode('bar');
++  };
++
++  const handleChange = (val: string) => {
++    setText(val);
++    setError('');
++    setNotes([]);
++    setParams([]);
++    setDisplay('');
+   };
+ 
+-  // Normalize the pasted equation
+-  const normalize = () => {
++  // Normalise, then APPLY: the old card stopped at normalising and never
++  // loaded the equation into the Studio, which is why it felt unfinished.
++  const useEquation = () => {
+     const result = normalizePasted(text);
+     if (!result.ok) {
+       setError(result.error || 'Invalid equation');
+@@ -98,147 +77,94 @@ export default function PasteCard() {
+     setDisplay(result.display);
+     setParams(result.params ?? []);
+ 
+-    // Compile the expression for evaluation
+-    try {
+-      const f = compile(result.expr, result.params ?? {});
+-      // Store the compiled function for later use
+-      // (the app uses its own evaluator, so we just validate here)
+-    } catch (e) {
+-      setError('Error compiling equation');
+-    }
+-  };
+-
+-  // Auto-fit domain logic on text change
+-  useEffect(() => {
+-    const result = useAutoFitDomain(text);
+-    setAutoFitDomain(result);
+-  }, [text]);
+-
+-  // Handle input change
+-  const handleChange = (val: string) => {
+-    setText(val);
+-    setError('');
+-    setNotes([]);
+-    setParams([]);
+-    setDisplay('');
++    const fit = fitDomainForExpression(result.expr, result.params ?? [], [minX, maxX]);
++    setEquation(result.expr);
++    setDomain(fit.domain[0], fit.domain[1]);
++    backToBar();
+   };
+ 
+-  // Clear the equation
+-  const clearEquation = () => {
+-    setText('');
+-    setError('');
+-    setNotes([]);
+-    setParams([]);
+-    setDisplay('');
+-  };
+-
+-  // Example chips
+-  const chips: Chip[] = [
+-    { label: 'sin(x)', onCopy: () => setText('sin(x)') },
+-    { label: 'cos(3*x)', onCopy: () => setText('cos(3*x)') },
+-    { label: 'tan(x/2)', onCopy: () => setText('tan(x/2)') },
+-    { label: 'e^x', onCopy: () => setText('exp(x)') },
+-    { label: 'ln(x)', onCopy: () => setText('log(x)') },
+-    { label: 'abs(x)', onCopy: () => setText('abs(x)') },
+-    { label: 'x^2', onCopy: () => setText('x^2') },
+-    { label: '√x', onCopy: () => setText('sqrt(x)') },
+-    { label: 'x³ - x', onCopy: () => setText('x^3 - x') },
+-  ];
+-
+-  if (mode === 'bar') {
+-    // When paste mode is active, bar is blank and disabled
+-    return null;
+-  }
+-
+   return (
+-    <div className="card paste-card mb-4">
+-      <div className="head">
+-        <h3 className="title">{t('studio.pasteEquation')}</h3>
++    <div className="panel p-5 sm:p-6 border-t-2 border-sc-accent/60">
++      <div className="flex items-center justify-between gap-3 mb-3">
++        <h3 className="font-display text-base font-semibold text-sc-text">
++          {t('studio.pasteEquation')}
++        </h3>
+         <button
+-          onClick={() => switchMode('bar')}
+-          className="btn solid"
+-          title={t('studio.useEquationBar')}
++          type="button"
++          onClick={backToBar}
++          className="text-xs text-sc-accent hover:underline transition-colors font-medium py-1 min-h-[44px]"
+         >
+           {t('studio.useEquationBar')}
+         </button>
+       </div>
+ 
++      <p className="text-xs text-sc-text-soft mb-3">{t('studio.pasteHint')}</p>
++
+       <textarea
+         value={text}
+         onChange={(e) => handleChange(e.target.value)}
+         rows={4}
+-        placeholder="Enter an equation"
+-        className="eq"
+-        disabled={false}
++        placeholder="y = sin(x) · cos(3x)"
++        autoFocus
++        className="w-full rounded-lg border border-sc-line/20 bg-sc-sunken px-3 py-2 font-mono text-sm text-sc-text placeholder:text-sc-text-faint focus:outline-none focus-visible:ring-2 focus-visible:ring-sc-accent"
+       />
+ 
+-      <div className="chips">
+-        {chips.map((chip) => (
+-          <div
+-            key={chip.label}
+-            className="chip"
+-            onClick={chip.onCopy}
++      <div className="flex flex-wrap gap-1.5 mt-3">
++        {CHIPS.map((chip) => (
++          <button
++            key={chip}
++            type="button"
++            onClick={() => handleChange(chip)}
++            className="px-2.5 py-1 rounded-full border border-sc-line/20 bg-sc-surface text-xs font-mono text-sc-text-soft hover:text-sc-text hover:border-sc-accent/50 transition-colors"
+           >
+-            {chip.label}
+-          </div>
++            {chip}
++          </button>
+         ))}
+       </div>
+ 
+-      <div className="eqline">
+-        <span>Equation: {display || '—'}</span>
+-      </div>
++      {display && (
++        <p className="mt-3 font-mono text-xs text-sc-text-soft">
++          Equation: <span className="text-sc-text">{display}</span>
++        </p>
++      )}
+ 
+       {notes.length > 0 && (
+-        <div className="notes">
++        <ul className="mt-2 space-y-1">
+           {notes.map((note) => (
+-            <div key={note}>{note}</div>
++            <li key={note} className="text-xs text-sc-text-soft">
++              • {note}
++            </li>
+           ))}
+-        </div>
++        </ul>
+       )}
+ 
+-      {error && (
+-        <div className="err">
+-          {error}
+-        </div>
++      {params.length > 0 && (
++        <p className="mt-2 text-xs text-sc-text-soft">{t('studio.pasteParamsNote')}</p>
+       )}
+ 
+-      {params.length > 0 && (
+-        <div className="params">
+-          {params.map((prm) => (
+-            <div key={prm} className="prm">
+-              <label>
+-                {prm}
+-                <input
+-                  type="range"
+-                  min="-20"
+-                  max="60"
+-                  step="0.1"
+-                  value={0}
+-                  disabled={true}
+-                />
+-                <output>{prm} = 1</output>
+-              </label>
+-            </div>
+-          ))}
+-        </div>
++      {error && (
++        <p role="alert" className="mt-3 text-xs font-medium text-red-500">
++          {error}
++        </p>
+       )}
+ 
+-      <button onClick={clearEquation} className="btn">
+-        {t('studio.clear')}
+-      </button>
+-      <button
+-        onClick={() => normalize()}
+-        className="btn solid"
+-        disabled={!text}
+-      >
+-        {t('studio.use')}
+-      </button>
+-      <button
+-        onClick={() => switchMode('bar')}
+-        className="btn"
+-      >
+-        {t('studio.useEquationBar')}
+-      </button>
++      <div className="flex items-center gap-2 mt-4">
++        <button
++          type="button"
++          onClick={() => handleChange('')}
++          className="px-3.5 py-2 min-h-[44px] btn-ghost text-xs"
++        >
++          {t('studio.clear')}
++        </button>
++        <button
++          type="button"
++          onClick={useEquation}
++          disabled={!text.trim()}
++          className="px-3.5 py-2 min-h-[44px] btn-primary text-xs disabled:opacity-40"
++        >
++          {t('studio.use')}
++        </button>
++      </div>
+     </div>
+   );
+-}
+\ No newline at end of file
++}
+diff --git a/SoundCurve/certain-cycle/src/i18n/translations/en.ts b/SoundCurve/certain-cycle/src/i18n/translations/en.ts
+index 1d955c7..bf1e9b3 100644
+--- a/SoundCurve/certain-cycle/src/i18n/translations/en.ts
++++ b/SoundCurve/certain-cycle/src/i18n/translations/en.ts
+@@ -10,6 +10,7 @@ const en = {
+   'nav.howItWorks': 'How It Works',
+   'nav.equations': 'Equations',
+   'nav.about': 'About',
++  'nav.support': 'Support',
+   'nav.displayMode': 'Display mode',
+   'nav.analog': 'Analog',
+   'nav.light': 'Light',
+@@ -64,7 +65,9 @@ const en = {
+   'studio.cannotUndo': 'No undo available',
+   'studio.cannotRedo': 'No redo available',
+   'studio.pasteEquation': 'Paste equation',
+-  'studio.useEquationBar': 'Type an equation — e.g. sin(x) * cos(3*x)',
++  'studio.useEquationBar': 'Back to equation bar',
++  'studio.pasteHint': 'Paste an equation from a book, a website or LaTeX — we clean it up and graph it.',
++  'studio.pasteParamsNote': 'Parameters in your equation (like a or k) get sliders in the Studio once applied.',
+   'studio.use': 'Use',
+   'studio.clear': 'Clear',
+ 
+@@ -145,6 +148,8 @@ const en = {
+   'audio.stop': 'Stop',
+   'audio.exportWav': 'Export WAV',
+   'audio.share': 'Share',
++  'audio.support': 'Support',
++  'audio.supportTooltip': 'Support MathSonify — keep the music playing',
+   'audio.chooseInstrument': 'Choose an instrument',
+   'audio.howMathMakesSound': 'How the math makes sound',
+   'audio.musicalScale': 'Musical scale quantization',
+diff --git a/SoundCurve/certain-cycle/src/i18n/translations/es.ts b/SoundCurve/certain-cycle/src/i18n/translations/es.ts
+index 8820995..c0bb6f9 100644
+--- a/SoundCurve/certain-cycle/src/i18n/translations/es.ts
++++ b/SoundCurve/certain-cycle/src/i18n/translations/es.ts
+@@ -53,7 +53,7 @@ const es = {
+   'studio.cannotUndo': 'No hay deshacer disponible',
+   'studio.cannotRedo': 'No hay rehacer disponible',
+   'studio.pasteEquation': 'Ecuación pegada',
+-  'studio.useEquationBar': 'Escriba una ecuación — ej. sin(x) * cos(3*x)',
++  'studio.useEquationBar': 'Volver a la barra de ecuaciones',
+   'studio.use': 'Usar',
+   'studio.clear': 'Limpiar',
+ 
+diff --git a/SoundCurve/certain-cycle/src/i18n/translations/fr.ts b/SoundCurve/certain-cycle/src/i18n/translations/fr.ts
+index 1e08b84..d31dcb1 100644
+--- a/SoundCurve/certain-cycle/src/i18n/translations/fr.ts
++++ b/SoundCurve/certain-cycle/src/i18n/translations/fr.ts
+@@ -43,7 +43,7 @@ const fr = {
+   'studio.spaceHint': 'lire ou arrêter',
+   'studio.howMathTitle': 'Comment les maths créent le son :',
+   'studio.howMathDesc': "tandis que le curseur parcourt x, l'élévation verticale y(x) contrôle la fréquence de l'oscillateur tandis que la pente dy/dx module la luminosité et le timbre du filtre.",
+-  'studio.useEquationBar': 'Saisissez une équation — ex. sin(x) * cos(3*x)',
++  'studio.useEquationBar': "Retour à la barre d'équation",
+   'audio.play': 'Lire audio',
+   'audio.stop': 'Arrêter',
+   'audio.exportWav': 'Exporter WAV',
+diff --git a/SoundCurve/certain-cycle/src/layouts/BaseLayout.astro b/SoundCurve/certain-cycle/src/layouts/BaseLayout.astro
+index 79cdc7e..d041e8f 100644
+--- a/SoundCurve/certain-cycle/src/layouts/BaseLayout.astro
++++ b/SoundCurve/certain-cycle/src/layouts/BaseLayout.astro
+@@ -45,7 +45,7 @@ const {
+     <link rel="preconnect" href="https://fonts.googleapis.com" />
+     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+     <link
+-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
++      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&family=Playfair+Display:ital,wght@0,700;1,700&family=Instrument+Serif:ital,wght@0,400;1,400&display=swap"
+       rel="stylesheet"
+     />
+ 
+diff --git a/SoundCurve/certain-cycle/src/utils/pasteDomainFit.test.ts b/SoundCurve/certain-cycle/src/utils/pasteDomainFit.test.ts
+new file mode 100644
+index 0000000..6726360
+--- /dev/null
++++ b/SoundCurve/certain-cycle/src/utils/pasteDomainFit.test.ts
+@@ -0,0 +1,41 @@
++/**
++ * pasteDomainFit.test.ts — the paste card picks a domain that actually draws.
++ */
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { fitDomainForExpression } from './pasteDomainFit';
++
++const CURRENT: [number, number] = [-6.28, 6.28];
++
++test('a well-behaved equation keeps the current domain', () => {
++  const fit = fitDomainForExpression('sin(x)', [], CURRENT);
++  assert.deepEqual(fit.domain, CURRENT);
++  assert.equal(fit.nonFiniteRatio, 0);
++});
++
++test('tan(x) moves to a domain without an asymptote in view', () => {
++  // tan has an asymptote at pi/2 ≈ 1.57, inside the current domain — but only
++  // a few samples are non-finite, so the current domain still wins (ratio
++  // <= 0.4). The fit must at least return a usable domain, not fail.
++  const fit = fitDomainForExpression('tan(x)', [], CURRENT);
++  assert.ok(fit.nonFiniteRatio <= 0.4, `ratio ${fit.nonFiniteRatio}`);
++});
++
++test('log(x) avoids the negative side', () => {
++  // log is undefined for x <= 0: the current domain is half non-finite.
++  const fit = fitDomainForExpression('log(x)', [], CURRENT);
++  assert.ok(fit.domain[0] >= 0, `domain ${fit.domain} still covers negatives`);
++  assert.ok(fit.nonFiniteRatio <= 0.4);
++});
++
++test('free parameters default to 1 while fitting', () => {
++  const fit = fitDomainForExpression('a * sin(x)', ['a'], CURRENT);
++  assert.deepEqual(fit.domain, CURRENT);
++  assert.equal(fit.nonFiniteRatio, 0);
++});
++
++test('an unparseable expression reports ratio 1 and keeps the domain', () => {
++  const fit = fitDomainForExpression('sin(', [], CURRENT);
++  assert.deepEqual(fit.domain, CURRENT);
++  assert.equal(fit.nonFiniteRatio, 1);
++});
+diff --git a/SoundCurve/certain-cycle/src/utils/pasteDomainFit.ts b/SoundCurve/certain-cycle/src/utils/pasteDomainFit.ts
+new file mode 100644
+index 0000000..085010c
+--- /dev/null
++++ b/SoundCurve/certain-cycle/src/utils/pasteDomainFit.ts
+@@ -0,0 +1,66 @@
++/**
++ * pasteDomainFit.ts — pick a domain where a pasted equation actually draws.
++ *
++ * Pasted equations arrive with no domain at all (a textbook writes `y = tan(x)`
++ * and never says over which x). The Studio's current domain may show nothing
++ * but asymptotes for it, so on "Use" we sample the normalised expression and
++ * pick the first candidate domain where at least 60% of samples are finite.
++ * Free parameters (k, a, b…) default to 1 while fitting; the Studio's own
++ * parameter sliders take over once the equation is applied.
++ *
++ * Pure function of (expr, current domain): unit-testable, and deliberately
++ * run ONCE on "Use" — the old card ran this on every keystroke.
++ *
++ * © 2026 MathSonify
++ */
++import { compile } from './miniEval';
++
++export interface DomainFit {
++  domain: [number, number];
++  /** Fraction of samples that were non-finite in the chosen domain (0 = clean). */
++  nonFiniteRatio: number;
++}
++
++const SAMPLES = 160;
++const MAX_NON_FINITE = 0.4;
++
++function nonFiniteRatio(expr: string, params: string[], min: number, max: number): number {
++  const scope: Record<string, number> = {};
++  for (const name of params) scope[name] = 1;
++  let finite = 0;
++  let total = 0;
++  try {
++    const f = compile(expr, scope);
++    for (let i = 0; i <= SAMPLES; i++) {
++      const x = min + ((max - min) * i) / SAMPLES;
++      total++;
++      if (Number.isFinite(f(x))) finite++;
++    }
++  } catch {
++    return 1;
++  }
++  return total > 0 ? 1 - finite / total : 1;
++}
++
++export function fitDomainForExpression(
++  expr: string,
++  params: string[],
++  current: [number, number],
++): DomainFit {
++  const candidates: [number, number][] = [
++    current,
++    [-10, 10],
++    [-6.28, 6.28],
++    [0, 10],
++    [-20, 20],
++    [-20, 60],
++  ];
++  for (const [min, max] of candidates) {
++    const ratio = nonFiniteRatio(expr, params, min, max);
++    if (ratio <= MAX_NON_FINITE) return { domain: [min, max], nonFiniteRatio: ratio };
++  }
++  // Nothing fits well (a function that is mostly undefined, e.g. log(x) on a
++  // negative domain): keep the current domain rather than jumping somewhere
++  // arbitrary, and let the caller report the ratio.
++  return { domain: current, nonFiniteRatio: nonFiniteRatio(expr, params, current[0], current[1]) };
++}
+diff --git a/SoundCurve/certain-cycle/src/utils/theme.test.ts b/SoundCurve/certain-cycle/src/utils/theme.test.ts
+new file mode 100644
+index 0000000..9af45b0
+--- /dev/null
++++ b/SoundCurve/certain-cycle/src/utils/theme.test.ts
+@@ -0,0 +1,39 @@
++/**
++ * theme.test.ts — the canvas palettes stay legible in both modes.
++ *
++ * Regression test for the light-mode Studio: the curve's "core" hairline and
++ * the playhead's centre dot were WHITE on a WHITE canvas, so the curve read
++ * as two ~1px grey edges and the playhead dot vanished. Light mode now inks
++ * a solid black curve; dark mode keeps its outlined white-on-black stroke.
++ */
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { getCanvasPalette } from './theme';
++
++test('light palette: curve and playhead are solid black on white', () => {
++  const p = getCanvasPalette('light');
++  assert.equal(p.canvas, '#ffffff');
++  // Solid ink: the core is the curve colour, not the canvas colour.
++  assert.equal(p.curveCore, p.curve);
++  assert.equal(p.liveCore, p.live);
++  assert.equal(p.curve, '#000000');
++  assert.equal(p.live, '#000000');
++});
++
++test('light palette: labels and axes have real contrast', () => {
++  const p = getCanvasPalette('light');
++  const alphaOf = (c: string) => Number(/([\d.]+)\)$/.exec(c)?.[1] ?? 0);
++  assert.ok(alphaOf(p.label) >= 0.7, `label alpha ${p.label} is too faint`);
++  assert.ok(alphaOf(p.axis) >= 0.3, `axis alpha ${p.axis} is too faint`);
++});
++
++test('dark palette: outlined white curve on black is unchanged', () => {
++  const p = getCanvasPalette('dark');
++  assert.equal(p.canvas, '#080A0C');
++  assert.equal(p.curve, '#FFFFFF');
++  // The dark core is the canvas colour — the outlined stroke that reads
++  // well on black. This test locks it so the light-mode fix never "fixes"
++  // dark mode by accident.
++  assert.equal(p.curveCore, p.canvas);
++  assert.equal(p.liveCore, p.canvas);
++});
+diff --git a/SoundCurve/certain-cycle/src/utils/theme.ts b/SoundCurve/certain-cycle/src/utils/theme.ts
+index 58d4c4f..321a416 100644
+--- a/SoundCurve/certain-cycle/src/utils/theme.ts
++++ b/SoundCurve/certain-cycle/src/utils/theme.ts
+@@ -41,17 +41,26 @@ export function getCanvasPalette(theme: ThemeMode = getThemeMode()): CanvasPalet
+   if (cachedPalette && cachedTheme === theme) return cachedPalette;
+ 
+   if (theme === 'light') {
++    // Light — pure white / pure black / one black accent.
++    //
++    // The "core" hairline is deliberately the CURVE colour here, not the
++    // canvas colour. Dark mode inks a dark hairline down the middle of a
++    // white curve (an outlined stroke that reads well on black), but the
++    // mirror image — a white hairline down a black curve on a WHITE canvas —
++    // is invisible, leaving only two ~1px black edges: the curve looked thin
++    // and washed out, and the playhead's white centre dot vanished entirely.
++    // A solid black curve with a soft grey halo is the legible equivalent.
+     cachedPalette = {
+       canvas: '#ffffff',
+       grid: 'rgba(0, 0, 0, 0.06)',
+-      axis: 'rgba(0, 0, 0, 0.20)',
+-      label: 'rgba(0, 0, 0, 0.60)',
++      axis: 'rgba(0, 0, 0, 0.32)',
++      label: 'rgba(0, 0, 0, 0.78)',
+       curve: '#000000',
+-      curveGlow: 'rgba(0, 0, 0, 0.20)',
+-      curveCore: '#ffffff',
++      curveGlow: 'rgba(0, 0, 0, 0.30)',
++      curveCore: '#000000',
+       live: '#000000',
+-      liveGlow: 'rgba(0, 0, 0, 0.35)',
+-      liveCore: '#ffffff',
++      liveGlow: 'rgba(0, 0, 0, 0.50)',
++      liveCore: '#000000',
+     };
+   } else {
+     // Dark — spec palette:
+diff --git a/SoundCurve/certain-cycle/src/utils/tickLabels.test.ts b/SoundCurve/certain-cycle/src/utils/tickLabels.test.ts
+new file mode 100644
+index 0000000..23bef69
+--- /dev/null
++++ b/SoundCurve/certain-cycle/src/utils/tickLabels.test.ts
+@@ -0,0 +1,28 @@
++/**
++ * tickLabels.test.ts — the edge labels stay fully on-canvas.
++ *
++ * Regression test for the light-mode Studio screenshot where the top y-label
++ * ("1.2") and the bottom y-labels ("-18.6", "-25.4") were drawn half outside
++ * the graph frame and clipped by the panel.
++ */
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import { clampTickLabelX, clampTickLabelY } from './tickLabels';
++
++test('top y-label baseline is pushed down onto the canvas', () => {
++  // The top tick sits at y = 0; its label is drawn at baseline 3.
++  assert.equal(clampTickLabelY(3, 400), 9);
++  // A label already on-canvas is untouched.
++  assert.equal(clampTickLabelY(200, 400), 200);
++});
++
++test('bottom y-label baseline is pulled up onto the canvas', () => {
++  // The bottom tick sits at y = height; its label is drawn at baseline height + 3.
++  assert.equal(clampTickLabelY(403, 400), 398);
++});
++
++test('x-labels near the left/right edges are pulled inside', () => {
++  assert.equal(clampTickLabelX(0, 12, 600), 14);
++  assert.equal(clampTickLabelX(600, 12, 600), 586);
++  assert.equal(clampTickLabelX(300, 12, 600), 300);
++});
+diff --git a/SoundCurve/certain-cycle/src/utils/tickLabels.ts b/SoundCurve/certain-cycle/src/utils/tickLabels.ts
+new file mode 100644
+index 0000000..dabd713
+--- /dev/null
++++ b/SoundCurve/certain-cycle/src/utils/tickLabels.ts
+@@ -0,0 +1,27 @@
++/**
++ * tickLabels.ts — keep canvas tick labels inside the graph frame.
++ *
++ * The ruler draws its outermost labels exactly on the canvas edge (top tick
++ * at y = 0, bottom tick at y = height, first/last x tick at x = 0 / width).
++ * Canvas text is drawn from a baseline with the glyphs extending above it,
++ * so those edge labels were half-clipped by the panel — the top "1.2" and the
++ * bottom "-18.6" / "-25.4" in the light-mode Studio screenshot were cut in
++ * half. These two pure helpers clamp a label's anchor point so the whole
++ * glyph box stays on-canvas. No DOM, no canvas: unit-testable in isolation.
++ *
++ * © 2026 MathSonify
++ */
++
++/** Clamp a y-axis label's baseline so the ~9px glyph box stays on-canvas. */
++export function clampTickLabelY(baselineY: number, height: number): number {
++  // Glyphs extend ~7px above the baseline and ~2px below it.
++  return Math.max(9, Math.min(height - 2, baselineY));
++}
++
++/**
++ * Clamp a centre-aligned x-axis label's x so the text (halfWidth either side
++ * of the anchor) stays on-canvas.
++ */
++export function clampTickLabelX(x: number, halfTextWidth: number, width: number): number {
++  return Math.max(halfTextWidth + 2, Math.min(width - halfTextWidth - 2, x));
++}
+diff --git a/SoundCurve/certain-cycle/tailwind.config.mjs b/SoundCurve/certain-cycle/tailwind.config.mjs
+index e8a64b1..666a4e0 100644
+--- a/SoundCurve/certain-cycle/tailwind.config.mjs
++++ b/SoundCurve/certain-cycle/tailwind.config.mjs
+@@ -24,6 +24,10 @@ export default {
+         sans: ['Inter', 'system-ui', 'sans-serif'],
+         serif: ['Fraunces', 'Georgia', 'serif'],
+         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
++        // Space Grotesk — the wordmark voice (nav logo, loading screen).
++        // Used for UI headings so the Studio reads as one family with the
++        // logo; the editorial serif (Fraunces) stays on the big titles.
++        display: ['Space Grotesk', 'Inter', 'sans-serif'],
+       },
+       fontSize: {
+         'display-xl': ['48px', { lineHeight: '48px', letterSpacing: '-1px', fontWeight: '600' }],
