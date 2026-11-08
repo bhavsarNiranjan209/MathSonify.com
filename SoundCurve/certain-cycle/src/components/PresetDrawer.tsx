@@ -96,7 +96,10 @@ export default function PresetDrawer() {
                   </span>
                 </div>
 
-                <div className="code-mat text-xs px-2.5 py-1.5 mb-2">
+                <div
+                  className="code-mat text-xs px-2.5 py-1.5 mb-2 select-none [-webkit-touch-callout:none]"
+                  onCopy={(e) => e.preventDefault()}
+                >
                   {preset.equation}
                 </div>
 

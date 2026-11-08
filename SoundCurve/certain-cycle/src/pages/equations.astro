@@ -130,7 +130,7 @@ import { PRESET_CATEGORIES, sortPresets } from '../data/presets';
               </span>
             </div>
             <h3 class="text-base font-semibold text-sc-text mb-2">{preset.name}</h3>
-            <div class="code-mat text-xs px-3 py-2 mb-3 overflow-x-auto">
+            <div class="code-mat text-xs px-3 py-2 mb-3 overflow-x-auto select-none [-webkit-touch-callout:none]">
               {preset.equation}
             </div>
             <p class="text-xs text-sc-text-soft leading-relaxed mb-3">
@@ -162,6 +162,16 @@ import { PRESET_CATEGORIES, sortPresets } from '../data/presets';
         var noResults = document.getElementById('no-results-eq');
         var cards = document.querySelectorAll('.equation-card');
         var filterBtns = document.querySelectorAll('.category-filter-btn');
+
+        // Equations are for clicking, not copying: block copy on the
+        // formula text so visitors open the equation in the Studio and
+        // listen instead of taking the text away.
+        cards.forEach(function (card) {
+          card.querySelectorAll('.code-mat').forEach(function (el) {
+            el.addEventListener('copy', function (e) { e.preventDefault(); });
+          });
+        });
+
         if (!searchInput || cards.length === 0) return;
 
         var ACTIVE = ['bg-sc-accent', 'text-sc-on-accent', 'border-sc-accent'];
