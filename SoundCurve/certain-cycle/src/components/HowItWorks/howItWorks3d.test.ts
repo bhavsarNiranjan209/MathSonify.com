@@ -97,3 +97,29 @@ test('the toggle is a panel-local mode, never navigation', () => {
   // navigates nowhere.
   assert.doesNotMatch(code(CARD), /<a\s+href|navigate\(/);
 });
+
+/* ── the live demo is the bare 3D graph: no card, no 2D ─────────── */
+
+const DEMO = './HowItWorksDemo.tsx';
+
+test('the demo renders only the 3D graph, with no card chrome', () => {
+  const source = code(DEMO);
+  assert.match(
+    source,
+    /lazy\(\(\) => import\('\.\.\/Studio\/Curve3DViewer'\)\)/,
+    'the demo lazily loads the shared 3D viewer',
+  );
+  assert.match(source, /<Curve3DViewer/, 'the demo renders the viewer');
+  assert.doesNotMatch(source, /HowItWorksLeftCard|HowItWorksRightCard/, 'no card components remain');
+  assert.doesNotMatch(source, /panel/, 'no card panel class');
+  assert.doesNotMatch(source, /2D Graph|2d/, 'no 2D view anywhere');
+  assert.doesNotMatch(source, /onViewChange|setView/, 'no view toggle');
+  assert.doesNotMatch(source, /Play|Reset/, 'no play/reset controls — the graph alone');
+});
+
+test('the bare demo has no audio wiring or preset chips', () => {
+  const source = code(DEMO);
+  assert.doesNotMatch(source, /audioEngine/, 'no audio engine in the bare demo');
+  assert.doesNotMatch(source, /HOW_IT_WORKS_PRESETS/, 'no preset chips');
+  assert.doesNotMatch(source, /useState/, 'no demo state — the curve is fixed');
+});
