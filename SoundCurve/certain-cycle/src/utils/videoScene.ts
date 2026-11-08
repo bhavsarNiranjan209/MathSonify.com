@@ -16,11 +16,12 @@
  *     anywhere in the frame loop — that is what made the old clips stutter
  *     (labelled 60fps, really ~28–52fps).
  *   - The static layer (background, grid, axes, numbers, faint curve, top
- *     labels, ticker band) is drawn ONCE into an offscreen canvas and reused;
- *     each frame only paints the traced curve, the playhead, the scrolling
- *     ticker text and the watermark.
- *   - The watermark is exactly "mathsonify.com" and drifts horizontally along
- *     a strip BELOW the graph. It never crosses the curve.
+ *     labels, ticker band, watermark) is drawn ONCE into an offscreen canvas
+ *     and reused; each frame only paints the traced curve, the playhead and
+ *     the scrolling ticker text.
+ *   - The watermark is exactly "mathsonify.com", fixed at the right end of
+ *     a strip BELOW the graph. One place, never moving — it never crosses
+ *     the curve.
  *   - Landscape 16:9 (default) and portrait 9:16, each at 720p or 1080p.
  *     Portrait keeps the graph out of the top 12% and bottom 20% (and the
  *     right 14% mid-height) that Reels / Shorts / TikTok cover with buttons.
@@ -85,7 +86,6 @@ const COLORS = {
   tick: 'rgba(255,255,255,0.45)',
   tickerBg: 'rgba(127,178,229,0.07)',
   tickerBorder: 'rgba(127,178,229,0.2)',
-  watermarkBg: 'rgba(255,255,255,0.07)',
   watermarkAlpha: 0.55,
 };
 
@@ -130,10 +130,10 @@ export interface VideoScene {
   panel: Rect;
   /** Vertical centre of the top label pill ("Equation: …" / scientist name). */
   labelY: number;
-  /** The horizontal strip the watermark drifts along, below the graph. */
+  /** The horizontal strip below the graph the watermark sits in, fixed at its right end. */
   watermarkStrip: Rect;
-  /** Measured pixel width of the watermark pill (for the drift bounds). */
-  watermarkPillW: number;
+  /** Measured pixel width of the watermark text (for the right-end anchor). */
+  watermarkW: number;
   /** Scientist ticker band, or null in user mode. */
   ticker: { top: number; centerY: number; height: number } | null;
   /** Pixel width of one ticker repetition; 0 when there is no ticker. */
@@ -245,11 +245,11 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
 
   const layout = layoutFor(width, height, orientation, mode, pillH);
 
-  // The watermark pill width is measured once here so the drift is a pure
-  // function of time afterwards — no measureText inside the frame loop.
+  // The watermark text width is measured once here — the watermark is fixed,
+  // so its position is a pure function of the scene afterwards.
   const wmFontPx = Math.round(15 * uiScale);
   ctx.font = `500 ${wmFontPx}px "JetBrains Mono", ui-monospace, monospace`;
-  const watermarkPillW = ctx.measureText(WATERMARK_TEXT).width + Math.round(40 * uiScale);
+  const watermarkW = ctx.measureText(WATERMARK_TEXT).width;
 
   let tickerText: string | null = null;
   let tickerPeriod = 0;
@@ -295,7 +295,7 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
     panel: layout.panel,
     labelY: layout.labelY,
     watermarkStrip: layout.watermarkStrip,
-    watermarkPillW,
+    watermarkW,
     ticker: layout.ticker,
     tickerPeriod,
     staticLayer: null,
@@ -354,8 +354,9 @@ function pill(
 
 /**
  * Everything that never moves: pure black background, faint grid, axes and
- * tick numbers, the faint full curve, the top label pill and (in scientist
- * mode) the ticker band. Drawn once per scene into the static layer.
+ * tick numbers, the faint full curve, the top label pill, the watermark and
+ * (in scientist mode) the ticker band. Drawn once per scene into the static
+ * layer.
  */
 export function drawStaticLayer(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
   const W = scene.width;
@@ -387,6 +388,7 @@ export function drawStaticLayer(ctx: CanvasRenderingContext2D, scene: VideoScene
   drawAxes(ctx, scene);
   drawFaintCurve(ctx, scene);
   drawTopLabels(ctx, scene);
+  drawWatermark(ctx, scene);
   if (scene.mode === 'scientist' && scene.ticker) drawTickerBackground(ctx, scene);
 }
 
@@ -631,27 +633,25 @@ function drawTickerText(ctx: CanvasRenderingContext2D, scene: VideoScene, tMs: n
 }
 
 /**
- * The watermark: exactly "mathsonify.com", drifting horizontally along the
- * strip below the graph. Its y never changes, so it can never cross the
- * curve — and it stays clear of the ticker band by construction of the strip.
+ * The watermark: exactly "mathsonify.com", fixed at the right end of the
+ * strip below the graph. One place, never moving — its y never changes, so
+ * it can never cross the curve, and it stays clear of the ticker band by
+ * construction of the strip.
  */
-export function watermarkPosition(tMs: number, scene: VideoScene): { x: number; y: number } {
+export function watermarkPosition(scene: VideoScene): { x: number; y: number } {
   const strip = scene.watermarkStrip;
-  const span = Math.max(0, strip.w - scene.watermarkPillW);
-  const x = strip.x + scene.watermarkPillW / 2 + span * (0.5 + 0.5 * Math.sin(tMs / 2600));
-  return { x, y: strip.y + strip.h / 2 };
+  return { x: strip.x + strip.w - scene.watermarkW / 2, y: strip.y + strip.h / 2 };
 }
 
-function drawWatermark(ctx: CanvasRenderingContext2D, scene: VideoScene, tMs: number): void {
-  const { x, y } = watermarkPosition(tMs, scene);
+function drawWatermark(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
+  const { x, y } = watermarkPosition(scene);
   ctx.save();
   ctx.globalAlpha = COLORS.watermarkAlpha;
-  pill(ctx, WATERMARK_TEXT, x, y, {
-    font: `500 ${Math.round(15 * scene.uiScale)}px "JetBrains Mono", ui-monospace, monospace`,
-    bg: COLORS.watermarkBg,
-    h: Math.round(44 * scene.uiScale),
-    padX: Math.round(20 * scene.uiScale),
-  });
+  ctx.font = `500 ${Math.round(15 * scene.uiScale)}px "JetBrains Mono", ui-monospace, monospace`;
+  ctx.fillStyle = COLORS.text;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(WATERMARK_TEXT, x, y);
   ctx.restore();
 }
 
@@ -768,7 +768,6 @@ export function drawExportFrame(
   drawTracedCurve(ctx, scene, progress);
   drawPlayhead(ctx, scene, progress, tMs);
   if (scene.mode === 'scientist') drawTickerText(ctx, scene, tMs);
-  drawWatermark(ctx, scene, tMs);
 }
 
 /** Fraction of the panel height the padded data range occupies. */

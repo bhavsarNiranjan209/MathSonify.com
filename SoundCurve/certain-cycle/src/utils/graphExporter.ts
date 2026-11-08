@@ -6,10 +6,10 @@
  *   2. Source canvas (the graph itself)
  *   3. Blank accent line (thin horizontal rule in accent colour)
  *   4. Info bar — equation name + equation + scientist on a solid band
- *   5. Centered "MathSonify.com" watermark pill
+ *   5. Ghosted "MathSonify.com" text, bottom-right
  *
  * The graph interior is never obstructed: no pill or text sits on it.
- * The watermark pill sits in the bottom-right corner of the graph area,
+ * The watermark text sits in the bottom-right corner of the graph area,
  * small and quiet, so the curve stays the subject.
  */
 
@@ -30,9 +30,9 @@ export interface GraphExportOptions {
 }
 
 /**
- * Geometry of the image-export watermark pill.
+ * Geometry of the image-export watermark text.
  *
- * The pill sits in the BOTTOM-RIGHT corner of the graph area — never in the
+ * The text sits in the BOTTOM-RIGHT corner of the graph area — never in the
  * middle of the curve, never over the axes. It is deliberately small
  * (~11px font at 1x) and quiet (opacity 0.5) so the graph stays the subject
  * and the watermark stays the signature.
@@ -41,16 +41,14 @@ export function imageWatermarkRect(
   exportWidth: number,
   graphH: number,
   scaleFactor: number,
-): { x: number; y: number; w: number; h: number; fontSize: number; padH: number; padV: number } {
+): { x: number; y: number; w: number; h: number; fontSize: number } {
   const fontSize = Math.round(11 * scaleFactor);
   // Width is measured against the real font at draw time; this estimate only
   // positions the rect for tests and for the pre-measure layout. The draw
   // code re-measures and re-anchors to the same corner.
   const estTextW = 'MathSonify.com'.length * fontSize * 0.58;
-  const padH = Math.round(fontSize * 0.7);
-  const padV = Math.round(fontSize * 0.38);
-  const w = Math.round(estTextW + padH * 2);
-  const h = fontSize + padV * 2 + 2;
+  const w = Math.round(estTextW);
+  const h = fontSize;
   const margin = Math.round(16 * scaleFactor);
   return {
     x: exportWidth - margin - w,
@@ -58,8 +56,6 @@ export function imageWatermarkRect(
     w,
     h,
     fontSize,
-    padH,
-    padV,
   };
 }
 
@@ -226,61 +222,17 @@ export async function captureCanvasAsBlob(
     }
   }
 
-  // ── 6. Watermark — bottom-right corner of the graph area ──────────
+  // ── 6. Watermark — ghosted text, bottom-right corner of the graph area ──
   //    Never in the middle of the curve, never over the axes: the graph
-  //    stays the subject and the watermark stays the signature.
+  //    stays the subject and the watermark stays the signature. Faint text
+  //    only — no pill, no badge — and it never moves.
   if (showWatermark) {
-    const wmText = 'MathSonify.com';
-    const wmFontSize = Math.round(11 * scaleFactor);
-    ctx.font = `600 ${wmFontSize}px "Inter", system-ui, sans-serif`;
-    const tw = ctx.measureText(wmText).width;
-    const padH = Math.round(wmFontSize * 0.7);
-    const padV = Math.round(wmFontSize * 0.38);
-    const pillW = tw + padH * 2;
-    const pillH = wmFontSize + padV * 2 + 2;
-    const margin = Math.round(16 * scaleFactor);
-    const pillX = exportWidth - margin - pillW;
-    const pillY = graphH - margin - pillH;
-    const pillR = pillH / 2;
-
-    const wmBg = isLight ? 'rgba(255,255,255,0.88)' : isDark ? 'rgba(255,255,255,0.10)' : 'rgba(27,36,48,0.62)';
-    const wmBorder = isLight ? 'rgba(0,0,0,0.08)' : isDark ? 'rgba(255,255,255,0.14)' : 'rgba(237,231,217,0.14)';
-    const wmTextColor = isLight ? 'rgba(0,0,0,0.58)' : isDark ? 'rgba(255,255,255,0.74)' : '#C9A24B';
-
-    const opacity = 0.5;
-    ctx.globalAlpha = opacity;
-
-    // Shadow
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.22)';
-    ctx.shadowBlur = 14;
-    ctx.shadowOffsetY = 4;
-    ctx.fillStyle = wmBg;
-    roundRect(ctx, pillX, pillY, pillW, pillH, pillR);
-    ctx.fill();
-    ctx.restore();
-
-    // Pill
-    ctx.fillStyle = wmBg;
-    ctx.strokeStyle = wmBorder;
-    ctx.lineWidth = 1;
-    roundRect(ctx, pillX, pillY, pillW, pillH, pillR);
-    ctx.fill();
-    ctx.globalAlpha = opacity * 0.9;
-    ctx.stroke();
-
-    // Text
-    ctx.globalAlpha = opacity;
-    ctx.shadowColor = isLight ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.35)';
-    ctx.shadowBlur = 3;
-    ctx.font = `600 ${wmFontSize}px "Inter", system-ui, sans-serif`;
-    ctx.fillStyle = wmTextColor;
-    ctx.textBaseline = 'top';
-    ctx.textAlign = 'left';
-    ctx.fillText(wmText, pillX + padH, pillY + padV);
-    ctx.shadowBlur = 0;
-
-    ctx.restore();
+    drawWatermark(ctx, exportWidth, graphH, {
+      position: 'bottom-right',
+      fontSize: Math.round(11 * scaleFactor),
+      opacity: 0.5,
+      padding: Math.round(16 * scaleFactor),
+    });
   }
 
   const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
@@ -312,19 +264,4 @@ export async function exportGraphAsImage(
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 10000);
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  const rad = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + rad, y);
-  ctx.lineTo(x + w - rad, y);
-  ctx.arcTo(x + w, y, x + w, y + rad, rad);
-  ctx.lineTo(x + w, y + h - rad);
-  ctx.arcTo(x + w, y + h, x + w - rad, y + h, rad);
-  ctx.lineTo(x + rad, y + h);
-  ctx.arcTo(x, y + h, x, y + h - rad, rad);
-  ctx.lineTo(x, y + rad);
-  ctx.arcTo(x, y, x + rad, y, rad);
-  ctx.closePath();
 }

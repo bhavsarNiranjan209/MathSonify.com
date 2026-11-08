@@ -3,9 +3,9 @@
  *
  * These cover the claims that are easy to get wrong and hard to eyeball in a
  * 1280x720 clip: that the ticker never jumps at its loop point, that the
- * watermark actually reaches every bound instead of settling, that the
- * watermark stays clear of the ticker, and that the two export modes are
- * selected from metadata rather than from the equation text.
+ * watermark stays fixed in one place, that the watermark stays clear of the
+ * ticker, and that the two export modes are selected from metadata rather
+ * than from the equation text.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -151,37 +151,36 @@ test('the watermark strip sits below the graph and never overlaps it', () => {
     for (const mode of modes) {
       const scene = sceneFor('sin(x)', mode === 'scientist' ? SCIENTIST : null, orientation);
       const strip = scene.watermarkStrip;
-      const pillH = 44 * scene.uiScale;
       assert.ok(strip.y >= scene.panel.y + scene.panel.h, `${orientation}/${mode}: strip starts inside the panel`);
       const floor = scene.ticker ? scene.ticker.top : scene.height;
-      assert.ok(strip.y + strip.h / 2 + pillH / 2 <= floor, `${orientation}/${mode}: watermark pill reaches the ticker/bottom edge`);
-      // Over a 6s clip the pill never leaves the strip or touches the graph.
-      const total = totalDurationMs(6000);
-      for (let t = 0; t <= total; t += 16) {
-        const { x, y } = watermarkPosition(t, scene);
-        assert.ok(
-          x - scene.watermarkPillW / 2 >= strip.x - 1 && x + scene.watermarkPillW / 2 <= strip.x + strip.w + 1,
-          `${orientation}/${mode}: watermark x escaped the strip at t=${t}`,
-        );
-        assert.ok(Math.abs(y - (strip.y + strip.h / 2)) < 1, `${orientation}/${mode}: watermark y drifted off the strip`);
-        assert.ok(y - pillH / 2 >= scene.panel.y + scene.panel.h, `${orientation}/${mode}: watermark pill overlaps the graph at t=${t}`);
-      }
+      assert.ok(strip.y + strip.h <= floor, `${orientation}/${mode}: watermark strip reaches the ticker/bottom edge`);
+      // Fixed at the right end of the strip: the text's right edge hugs the
+      // strip's right edge, its centre sits on the strip's midline.
+      const { x, y } = watermarkPosition(scene);
+      assert.ok(
+        Math.abs(x + scene.watermarkW / 2 - (strip.x + strip.w)) < 1,
+        `${orientation}/${mode}: watermark is not right-anchored in its strip`,
+      );
+      assert.ok(Math.abs(y - (strip.y + strip.h / 2)) < 1, `${orientation}/${mode}: watermark is not centred on its strip`);
+      assert.ok(y - 8 * scene.uiScale >= scene.panel.y + scene.panel.h, `${orientation}/${mode}: watermark overlaps the graph`);
     }
   }
 });
 
-test('the watermark travels across its strip during a typical 6s clip', () => {
-  // Guards the regression where a per-frame velocity was misread as
-  // px/second: the marker crawled a few px and never moved across the frame.
+test('the watermark never moves during a clip', () => {
+  // The owner wants it in one place: fixed at the right end of its strip.
+  // The position is a pure function of the scene — time does not enter it,
+  // so the same position comes back at every timestamp of a 6s clip.
   const orientations: VideoOrientation[] = ['landscape', 'portrait'];
   for (const orientation of orientations) {
     const scene = sceneFor('sin(x)', null, orientation);
+    const first = watermarkPosition(scene);
     const total = totalDurationMs(6000);
-    const xs = [];
-    for (let t = 0; t <= total; t += 16) xs.push(watermarkPosition(t, scene).x);
-    const travelled = Math.max(...xs) - Math.min(...xs);
-    const span = scene.watermarkStrip.w - scene.watermarkPillW;
-    assert.ok(travelled > span * 0.4, `${orientation}: watermark only travelled ${travelled.toFixed(1)}px of a ${span.toFixed(1)}px strip in 6s`);
+    for (let t = 0; t <= total; t += 16) {
+      const p = watermarkPosition(scene);
+      assert.equal(p.x, first.x, `${orientation}: watermark x moved at t=${t}`);
+      assert.equal(p.y, first.y, `${orientation}: watermark y moved at t=${t}`);
+    }
   }
 });
 
@@ -223,13 +222,23 @@ test('videoSize covers the four export sizes', () => {
   assert.deepEqual(videoSize('portrait', '1080p'), { width: 1080, height: 1920 });
 });
 
-test('the static layer holds the equation label and tick numbers, never the watermark', () => {
+test('the static layer holds the equation label, tick numbers — and the fixed watermark', () => {
   const scene = sceneFor('sin(x)', null);
   const { ctx, texts } = recordingCtx();
   drawStaticLayer(ctx, scene);
   assert.ok(texts.includes('Equation: sin(x)'), `static layer missing the equation label (got ${JSON.stringify(texts)})`);
   assert.ok(texts.some((t) => /^-?\d/.test(t)), `static layer missing tick numbers (got ${JSON.stringify(texts)})`);
-  assert.ok(!texts.some((t) => t.includes('mathsonify.com')), 'the watermark must be dynamic, not baked into the static layer');
+  // The watermark is fixed in one place now, so it belongs in the static
+  // layer — drawn once, not repainted every frame.
+  assert.ok(texts.includes(WATERMARK_TEXT), `static layer missing the watermark (got ${JSON.stringify(texts)})`);
+});
+
+test('the watermark is drawn once per frame, from the static layer', () => {
+  const scene = sceneFor('sin(x)', null);
+  const { ctx, texts } = recordingCtx();
+  drawExportFrame(ctx, scene, INTRO_MS + 500);
+  const count = texts.filter((t) => t === WATERMARK_TEXT).length;
+  assert.equal(count, 1, `watermark drawn ${count} times in one frame (got ${JSON.stringify(texts)})`);
 });
 
 test('intro and outro cards are unchanged', () => {
