@@ -3,6 +3,7 @@
 // Usage (React):         const { t } = useTranslation()
 
 import en from './translations/en';
+import enGB from './translations/en-GB';
 import es from './translations/es';
 import pt from './translations/pt';
 import fr from './translations/fr';
@@ -20,20 +21,27 @@ import fi from './translations/fi';
 import ga from './translations/ga';
 import mi from './translations/mi';
 import ms from './translations/ms';
-import ta from './translations/ta';
 import lb from './translations/lb';
 
 export type Lang =
-  | 'en' | 'es' | 'pt' | 'fr' | 'de' | 'ja' | 'zh' | 'ko' | 'ar'
-  | 'it' | 'no' | 'da' | 'nl' | 'sv' | 'fi' | 'ga' | 'mi' | 'ms' | 'ta' | 'lb';
+  | 'en-US' | 'en-GB' | 'es' | 'pt' | 'fr' | 'de' | 'ja' | 'zh' | 'ko' | 'ar'
+  | 'it' | 'no' | 'da' | 'nl' | 'sv' | 'fi' | 'ga' | 'mi' | 'ms' | 'lb';
 export type TranslationKey = keyof typeof en;
 
-const FALLBACK_LANG: Lang = 'en';
+const FALLBACK_LANG: Lang = 'en-US';
 export const LANG_KEY = 'mathsonify-lang';
 export const LANG_CHANGE_EVENT = 'mathsonify:langchange';
 
+/**
+ * Supported languages in the switcher order.
+ *
+ * English is offered as two variants — English (US) and English (UK) — for
+ * an international audience; plain 'en' stays out of the picker, but a
+ * stored 'en' still migrates to 'en-US' in `getLang()`.
+ */
 export const LANGUAGES: { code: Lang; native: string }[] = [
-  { code: 'en', native: 'English' },
+  { code: 'en-US', native: 'English (US)' },
+  { code: 'en-GB', native: 'English (UK)' },
   { code: 'es', native: 'Español' },
   { code: 'pt', native: 'Português' },
   { code: 'fr', native: 'Français' },
@@ -47,7 +55,6 @@ export const LANGUAGES: { code: Lang; native: string }[] = [
   { code: 'ga', native: 'Gaeilge' },
   { code: 'mi', native: 'Māori' },
   { code: 'ms', native: 'Bahasa Melayu' },
-  { code: 'ta', native: 'தமிழ்' },
   { code: 'lb', native: 'Lëtzebuergesch' },
   { code: 'ja', native: '日本語' },
   { code: 'zh', native: '中文' },
@@ -55,7 +62,7 @@ export const LANGUAGES: { code: Lang; native: string }[] = [
   { code: 'ar', native: 'العربية' },
 ];
 
-const DICTS: Record<Lang, Record<string, string>> = { en, es, pt, fr, de, ja, zh, ko, ar, it, no, da, nl, sv, fi, ga, mi, ms, ta, lb } as Record<Lang, Record<string, string>>;
+const DICTS: Record<Lang, Record<string, string>> = { 'en-US': en, 'en-GB': enGB, es, pt, fr, de, ja, zh, ko, ar, it, no, da, nl, sv, fi, ga, mi, ms, lb } as Record<Lang, Record<string, string>>;
 
 export function isValidLang(v: string): v is Lang {
   return v in DICTS;
@@ -64,8 +71,15 @@ export function isValidLang(v: string): v is Lang {
 export function getLang(): Lang {
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') return FALLBACK_LANG;
   try {
-    const v = localStorage.getItem(LANG_KEY);
-    if (v && isValidLang(v)) return v;
+    const raw = localStorage.getItem(LANG_KEY);
+    // Legacy stored values: plain 'en' is now English (US), and the stored
+    // value is healed so the next read is already canonical. Anything else
+    // unknown (e.g. removed 'ta') falls through to the fallback.
+    if (raw === 'en') {
+      try { localStorage.setItem(LANG_KEY, 'en-US'); } catch { /* ignore */ }
+      return 'en-US';
+    }
+    if (raw && isValidLang(raw)) return raw;
   } catch { /* ignore */ }
   return FALLBACK_LANG;
 }

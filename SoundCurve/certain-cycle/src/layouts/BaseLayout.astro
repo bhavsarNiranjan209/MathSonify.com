@@ -68,6 +68,9 @@ const {
       (function () {
         try {
           var lang = localStorage.getItem('mathsonify-lang');
+          // Legacy stored values: plain 'en' is now English (US), and
+          // removed 'ta' falls back to English (US).
+          if (lang === 'en' || lang === 'ta') lang = 'en-US';
           if (lang) {
             document.documentElement.lang = lang;
             document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
