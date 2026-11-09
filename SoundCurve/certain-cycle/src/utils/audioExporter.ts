@@ -128,9 +128,14 @@ export interface ExportAudioOptions {
 }
 
 /**
- * Renders the math-to-sound synthesis into an offline buffer and returns a downloadable WAV Blob.
+ * Renders the math-to-sound synthesis into an offline buffer and returns it.
+ * The WAV export and the offline video render both build on this: the WAV
+ * path encodes the buffer, the video path feeds it straight to the AAC
+ * encoder, so the audio in both files comes from one identical render.
  */
-export async function renderEquationToWavBlob(options: ExportAudioOptions): Promise<Blob> {
+export async function renderEquationToAudioBuffer(
+  options: ExportAudioOptions,
+): Promise<AudioBuffer> {
   const {
     equation,
     minX,
@@ -204,7 +209,14 @@ export async function renderEquationToWavBlob(options: ExportAudioOptions): Prom
     renderChordMode(offlineCtx, masterGain, validPoints, minY, maxY, duration, instrument, scale, off);
   }
 
-  const renderedBuffer = await offlineCtx.startRendering();
+  return offlineCtx.startRendering();
+}
+
+/**
+ * Renders the math-to-sound synthesis into an offline buffer and returns a downloadable WAV Blob.
+ */
+export async function renderEquationToWavBlob(options: ExportAudioOptions): Promise<Blob> {
+  const renderedBuffer = await renderEquationToAudioBuffer(options);
   const wavArrayBuffer = audioBufferToWav(renderedBuffer);
   return new Blob([wavArrayBuffer], { type: 'audio/wav' });
 }

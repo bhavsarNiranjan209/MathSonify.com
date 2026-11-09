@@ -10,6 +10,11 @@ import {
   UNSUPPORTED_RECORDING_MESSAGE,
   type VideoExportResult,
 } from '../utils/videoExporter';
+import {
+  exportVideoOffline,
+  isOfflineVideoSupported,
+  chooseVideoExportMode,
+} from '../utils/offlineVideoExporter';
 import { videoSize, type VideoOrientation, type VideoQuality } from '../utils/videoScene';
 import { performSave, type SaveOutcome } from '../utils/fileSave';
 
@@ -68,7 +73,16 @@ export default function ExportModal() {
   const [videoMime] = useState<string | null>(() =>
     typeof window === 'undefined' ? null : detectVideoMimeType(),
   );
-  const videoBlocked = videoMime === null;
+  // Whether the frame-exact offline render is available here (WebCodecs).
+  // It is the preferred path: unlike the live recorder it cannot drop frames,
+  // so the file's frame rate is the real one.
+  const [offlineSupported] = useState<boolean>(() =>
+    typeof window === 'undefined' ? false : isOfflineVideoSupported(),
+  );
+  // Progress of the offline render, shown while it runs.
+  const [videoProgress, setVideoProgress] = useState<{ done: number; total: number } | null>(null);
+  // Video export is blocked only when neither path is available.
+  const videoBlocked = chooseVideoExportMode({ offline: offlineSupported, realtime: videoMime !== null }) === 'none';
 
   // Video orientation + quality, remembered from the last export.
   const [videoPrefs, setVideoPrefs] = useState(loadVideoPrefs);
@@ -148,12 +162,13 @@ export default function ExportModal() {
       setIsExporting(true);
       setExportError('');
       setSaveOutcome(null);
+      setVideoProgress(null);
       // Read the live session at the moment Export is pressed. Zustand's
       // getState() avoids a stale render closure, so changing equation or
       // instrument and exporting immediately captures the new values.
       const s = useStudioStore.getState();
 
-      const result = await exportEquationVideo({
+      const base = {
         equation: s.equation,
         equationName: s.activeEquationName,
         scientist: s.activeScientist,
@@ -171,14 +186,34 @@ export default function ExportModal() {
         speed: s.speed,
         orientation: videoOrientation,
         quality: videoQuality,
-      });
+      };
+
+      let result: VideoExportResult;
+      if (offlineSupported) {
+        // Frame-exact offline render first. If it fails (e.g. this browser
+        // has WebCodecs but no H.264 encoder), fall back to the live recorder
+        // instead of failing outright — unless there is no recorder either.
+        try {
+          result = await exportVideoOffline(base, (done, total) =>
+            setVideoProgress({ done, total }),
+          );
+        } catch (offlineErr) {
+          setVideoProgress(null);
+          if (!videoMime) throw offlineErr;
+          result = await exportEquationVideo(base);
+        }
+      } else {
+        result = await exportEquationVideo(base);
+      }
       // Show the clip; saving is a separate, explicit action.
       setVideo(result);
       setDownloadReady(true);
       setIsExporting(false);
+      setVideoProgress(null);
     } catch (err) {
       setExportError(err instanceof Error ? err.message : 'Video export failed');
       setIsExporting(false);
+      setVideoProgress(null);
     }
   };
 
@@ -206,10 +241,13 @@ export default function ExportModal() {
   const videoDims = videoSize(videoOrientation, videoQuality);
   const videoPixelScale = (videoDims.width * videoDims.height) / (1280 * 720);
   const videoSizeLabel = `~${(duration * 0.31 * videoPixelScale).toFixed(1)} MB`;
-  /** Human label for the container this browser will really record. */
-  const videoFormatLabel = videoMime
-    ? `${videoExtensionForMimeType(videoMime).toUpperCase()} · ${videoMime.includes('mp4') ? 'H.264' : 'VP9'} · ${videoQuality}60`
-    : 'unavailable';
+  /** Human label for the container this browser will really record. The
+   * offline render always produces MP4/H.264, so it gets its own label. */
+  const videoFormatLabel = offlineSupported
+    ? `MP4 · H.264 · ${videoQuality}60`
+    : videoMime
+      ? `${videoExtensionForMimeType(videoMime).toUpperCase()} · ${videoMime.includes('mp4') ? 'H.264' : 'VP9'} · ${videoQuality}60`
+      : 'unavailable';
   const videoResolutionLabel = `${videoDims.width} × ${videoDims.height} @ 60fps`;
 
   return (
@@ -336,6 +374,11 @@ export default function ExportModal() {
               <span className="text-xs font-medium tracking-wide" style={{ color: 'var(--sc-accent)' }}>
                 {exportType === 'image' ? t('export.imageRendering') : exportType === 'video' ? t('export.videoRendering') : t('export.rendering')}
               </span>
+              {exportType === 'video' && videoProgress && (
+                <span className="text-[11px] font-mono" style={{ color: 'var(--sc-text-faint)' }}>
+                  Frame {videoProgress.done} / {videoProgress.total}
+                </span>
+              )}
             </div>
           ) : downloadReady ? (
             <div className="relative flex flex-col items-center gap-2 py-1">

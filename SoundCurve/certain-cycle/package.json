@@ -18,6 +18,7 @@
     "astro": "^7.3.2",
     "framer-motion": "^13.2.0",
     "mathjs": "^15.2.0",
+    "mp4-muxer": "^5.2.2",
     "qrcode-generator": "^2.0.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
