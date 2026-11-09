@@ -207,6 +207,33 @@ export async function probeVideoCodec(
 }
 
 /**
+ * Whether this browser's audio encoder accepts AAC-LC for the clip, or
+ * `false` when it has no audio encoder at all or rejects the config.
+ *
+ * This is the upfront check the offline path was missing: a browser can have
+ * WebCodecs yet still be unable to render offline — Firefox has the encoders
+ * but cannot encode AAC (desktop Linux neither) — and without this probe the
+ * export only discovers that mid-render and silently falls back to the live
+ * recorder, so the clip comes out stuttery with no explanation. Callers probe
+ * once and advertise the honest path instead.
+ */
+export async function probeAudioCodec(
+  sampleRate: number,
+  numberOfChannels: number,
+): Promise<boolean> {
+  if (typeof AudioEncoder === 'undefined') return false;
+  if (typeof AudioEncoder.isConfigSupported !== 'function') return false;
+  try {
+    const { supported } = await AudioEncoder.isConfigSupported(
+      audioEncoderConfig(sampleRate, numberOfChannels),
+    );
+    return supported === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Renders the current Create-tab session into an MP4, frame by frame, with
  * no dependence on the wall clock.
  *

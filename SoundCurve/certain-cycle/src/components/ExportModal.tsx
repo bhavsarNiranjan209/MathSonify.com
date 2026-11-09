@@ -14,6 +14,7 @@ import {
   exportVideoOffline,
   isOfflineVideoSupported,
   chooseVideoExportMode,
+  probeAudioCodec,
 } from '../utils/offlineVideoExporter';
 import { videoSize, type VideoOrientation, type VideoQuality } from '../utils/videoScene';
 import { performSave, type SaveOutcome } from '../utils/fileSave';
@@ -79,10 +80,32 @@ export default function ExportModal() {
   const [offlineSupported] = useState<boolean>(() =>
     typeof window === 'undefined' ? false : isOfflineVideoSupported(),
   );
+  // Result of the AAC probe: null while it is still running, false when this
+  // browser cannot encode AAC (Firefox, desktop Linux). WebCodecs alone does
+  // not mean the offline render will work — without this check the export
+  // only discovers the failure mid-render and silently falls back to the
+  // stuttery live recorder, so the clip comes out irregular with no
+  // explanation. The offline path is only advertised once the probe passes
+  // (or while it is still pending); a failed probe means the live recorder.
+  const [audioOk, setAudioOk] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!offlineSupported) return;
+    let cancelled = false;
+    probeAudioCodec(44100, 2).then((ok) => {
+      if (!cancelled) setAudioOk(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [offlineSupported]);
+  const offlineReady = offlineSupported && audioOk !== false;
+  // Note shown when a clip was recorded live because the frame-exact render
+  // was not available, so the user knows why the motion may stutter.
+  const [videoNote, setVideoNote] = useState('');
   // Progress of the offline render, shown while it runs.
   const [videoProgress, setVideoProgress] = useState<{ done: number; total: number } | null>(null);
   // Video export is blocked only when neither path is available.
-  const videoBlocked = chooseVideoExportMode({ offline: offlineSupported, realtime: videoMime !== null }) === 'none';
+  const videoBlocked = chooseVideoExportMode({ offline: offlineReady, realtime: videoMime !== null }) === 'none';
 
   // Video orientation + quality, remembered from the last export.
   const [videoPrefs, setVideoPrefs] = useState(loadVideoPrefs);
@@ -163,6 +186,7 @@ export default function ExportModal() {
       setExportError('');
       setSaveOutcome(null);
       setVideoProgress(null);
+      setVideoNote('');
       // Read the live session at the moment Export is pressed. Zustand's
       // getState() avoids a stale render closure, so changing equation or
       // instrument and exporting immediately captures the new values.
@@ -189,10 +213,12 @@ export default function ExportModal() {
       };
 
       let result: VideoExportResult;
-      if (offlineSupported) {
+      if (offlineReady) {
         // Frame-exact offline render first. If it fails (e.g. this browser
         // has WebCodecs but no H.264 encoder), fall back to the live recorder
         // instead of failing outright — unless there is no recorder either.
+        // The fallback is surfaced, not silent: a live recording can stutter,
+        // so the user is told this clip is one.
         try {
           result = await exportVideoOffline(base, (done, total) =>
             setVideoProgress({ done, total }),
@@ -200,9 +226,17 @@ export default function ExportModal() {
         } catch (offlineErr) {
           setVideoProgress(null);
           if (!videoMime) throw offlineErr;
+          setVideoNote(
+            'Frame-exact render failed in this browser, so this clip was recorded live — motion may stutter. Chrome or Edge gives a frame-exact export.',
+          );
           result = await exportEquationVideo(base);
         }
       } else {
+        if (offlineSupported) {
+          setVideoNote(
+            'This browser cannot encode AAC, so video exports use the live recorder and motion may stutter. For a frame-exact clip, use Chrome or Edge.',
+          );
+        }
         result = await exportEquationVideo(base);
       }
       // Show the clip; saving is a separate, explicit action.
@@ -242,8 +276,11 @@ export default function ExportModal() {
   const videoPixelScale = (videoDims.width * videoDims.height) / (1280 * 720);
   const videoSizeLabel = `~${(duration * 0.31 * videoPixelScale).toFixed(1)} MB`;
   /** Human label for the container this browser will really record. The
-   * offline render always produces MP4/H.264, so it gets its own label. */
-  const videoFormatLabel = offlineSupported
+   * offline render always produces MP4/H.264, so it gets its own label —
+   * but only when the offline path is actually ready (the AAC probe passed):
+   * advertising MP4/H.264 on a browser that will fall back to the live
+   * recorder is what made exports look irregular with no explanation. */
+  const videoFormatLabel = offlineReady
     ? `MP4 · H.264 · ${videoQuality}60`
     : videoMime
       ? `${videoExtensionForMimeType(videoMime).toUpperCase()} · ${videoMime.includes('mp4') ? 'H.264' : 'VP9'} · ${videoQuality}60`
@@ -528,6 +565,11 @@ export default function ExportModal() {
                 {UNSUPPORTED_RECORDING_MESSAGE}
               </p>
             )}
+            {offlineSupported && audioOk === false && (
+              <p className="p-3 rounded-xl text-xs" style={{ background: 'rgba(234,179,8,0.10)', border: '1px solid rgba(234,179,8,0.32)', color: 'var(--sc-text-soft)' }}>
+                This browser cannot encode AAC, so video exports use the live recorder and motion may stutter. For a frame-exact clip, use Chrome or Edge.
+              </p>
+            )}
             {/* Inline review of the recorded clip, plus the one Save action. */}
             {video && (
               <div className="space-y-2">
@@ -561,6 +603,11 @@ export default function ExportModal() {
                   {saveOutcome === 'cancelled' && ' · share sheet dismissed — tap Save to try again'}
                 </p>
               </div>
+            )}
+            {videoNote && (
+              <p className="p-3 rounded-xl text-xs" style={{ background: 'rgba(234,179,8,0.10)', border: '1px solid rgba(234,179,8,0.32)', color: 'var(--sc-text-soft)' }}>
+                {videoNote}
+              </p>
             )}
           </div>
         )}

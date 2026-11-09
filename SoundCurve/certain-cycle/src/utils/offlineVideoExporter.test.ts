@@ -24,6 +24,7 @@ import {
   isOfflineVideoSupported,
   chooseVideoExportMode,
   probeVideoCodec,
+  probeAudioCodec,
   exportVideoOffline,
   OFFLINE_UNSUPPORTED_MESSAGE,
   VIDEO_CODEC_PREFERENCE,
@@ -130,6 +131,28 @@ test('the export mode prefers offline, then the live recorder, then none', () =>
 
 test('the codec probe returns null where there is no encoder to probe', async () => {
   assert.equal(await probeVideoCodec(1280, 720, 8_000_000), null);
+});
+
+test('the audio probe is false where there is no audio encoder', async () => {
+  assert.equal(await probeAudioCodec(44100, 2), false);
+});
+
+test('the audio probe follows what the encoder reports', async () => {
+  const g = globalThis as unknown as Record<string, unknown>;
+  const prev = g.AudioEncoder;
+  try {
+    g.AudioEncoder = { isConfigSupported: async () => ({ supported: true }) };
+    assert.equal(await probeAudioCodec(44100, 2), true);
+    g.AudioEncoder = { isConfigSupported: async () => ({ supported: false }) };
+    assert.equal(await probeAudioCodec(44100, 2), false);
+    g.AudioEncoder = { isConfigSupported: async () => { throw new Error('nope'); } };
+    assert.equal(await probeAudioCodec(44100, 2), false);
+    g.AudioEncoder = {};
+    assert.equal(await probeAudioCodec(44100, 2), false);
+  } finally {
+    if (prev === undefined) delete g.AudioEncoder;
+    else g.AudioEncoder = prev;
+  }
 });
 
 test('the offline render refuses outright without WebCodecs', async () => {
