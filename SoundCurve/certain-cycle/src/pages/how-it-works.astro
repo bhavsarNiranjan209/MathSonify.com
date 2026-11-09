@@ -272,13 +272,24 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
     </section>
 
     <script>
-      // Explore-card art (redesign mockup): one static line drawing per card —
+      // Explore-card art (redesign mockup): one line drawing per card —
       // waves for Guess, a ribbon for Equations, a torus for Scientists.
+      // Static at rest; on hover the art comes alive and follows the cursor:
+      // the waves ripple and sway, the ribbon flows, the torus rotates a bit.
       // Redrawn on resize and on theme change; colours from --sc-text.
+      // Respects prefers-reduced-motion (no animation, static art only).
       (() => {
-        const ids = [['hwi-a1', 'waves'], ['hwi-a2', 'ribbon'], ['hwi-a3', 'torus']];
-        const canvases = ids.map(([id, kind]) => [document.getElementById(id), kind]).filter(([c]) => c);
-        if (!canvases.length) return;
+        const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const cards = [
+          { id: 'hwi-a1', kind: 'waves' },
+          { id: 'hwi-a2', kind: 'ribbon' },
+          { id: 'hwi-a3', kind: 'torus' },
+        ].map(({ id, kind }) => {
+          const canvas = document.getElementById(id);
+          if (!canvas) return null;
+          return { canvas, kind, el: canvas.closest('.hwi-go'), hover: false, mx: 0, my: 0, sx: 0, sy: 0, phase: 0, active: false };
+        }).filter(Boolean);
+        if (!cards.length) return;
         const TAU = Math.PI * 2;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const inkTriplet = () => {
@@ -290,34 +301,39 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
         const fit = (c) => {
           const w = c.clientWidth, h = c.clientHeight;
           if (!w || !h) return null;
-          c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
-          const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+          const pw = Math.round(w * dpr), ph = Math.round(h * dpr);
+          const x = c.getContext('2d');
+          if (c.width !== pw || c.height !== ph) { c.width = pw; c.height = ph; }
+          x.setTransform(dpr, 0, 0, dpr, 0, 0);
           return { x, w, h };
         };
-        const artWaves = (c, W, H) => {
+        // phase = flowing time (advances while hovered); sx/sy = smoothed
+        // cursor, -0.5..0.5 from the card centre, eased back to 0 at rest.
+        const artWaves = (c, W, H, s) => {
           for (let k = 0; k < 30; k++) {
             c.strokeStyle = ink(0.05 + 0.2 * (1 - Math.abs(k - 15) / 15)); c.lineWidth = 1; c.beginPath();
             for (let i = 0; i <= 100; i++) {
-              const u = i / 100, x = W * (0.1 + 0.9 * u), env = Math.sin(u * Math.PI);
-              const y = H * 0.55 + Math.sin(u * 7 + k * 0.2) * H * 0.2 * env * (1 - u * 0.2) + (k - 15) * 3.2 * env;
+              const u = i / 100, x = W * (0.1 + 0.9 * u) + s.sx * 14 * Math.sin(u * Math.PI), env = Math.sin(u * Math.PI);
+              const y = H * 0.55 + Math.sin(u * 7 + k * 0.2 + s.phase) * H * 0.2 * env * (1 - u * 0.2) + (k - 15) * 3.2 * env + s.sy * 10 * env;
               i ? c.lineTo(x, y) : c.moveTo(x, y);
             }
             c.stroke();
           }
         };
-        const artRibbon = (c, W, H) => {
+        const artRibbon = (c, W, H, s) => {
           for (let k = 0; k < 26; k++) {
             c.strokeStyle = ink(0.06 + 0.16 * (1 - k / 26)); c.lineWidth = 1; c.beginPath();
             for (let i = 0; i <= 100; i++) {
-              const u = i / 100, x = W * u;
-              const y = H * 0.62 - Math.sin(u * TAU * 0.8 + 0.4) * H * 0.22 * (0.4 + u * 0.8) + k * 3 - (1 - u) * k * 2;
+              const u = i / 100, x = W * u + s.sx * 10 * Math.sin(u * Math.PI);
+              const y = H * 0.62 - Math.sin(u * TAU * 0.8 + 0.4 + s.phase) * H * 0.22 * (0.4 + u * 0.8) + k * 3 - (1 - u) * k * 2 + s.sy * 8 * Math.sin(u * Math.PI);
               i ? c.lineTo(x, y) : c.moveTo(x, y);
             }
             c.stroke();
           }
         };
-        const artTorus = (c, W, H) => {
-          const cx = W * 0.6, cy = H * 0.45, R = Math.min(W, H) * 0.3, r = R * 0.46, tx = 1.0, tz = 0.35;
+        const artTorus = (c, W, H, s) => {
+          const cx = W * 0.6, cy = H * 0.45, R = Math.min(W, H) * 0.3, r = R * 0.46;
+          const tx = 1.0 + s.sy * 0.7, tz = 0.35 + s.sx * 0.9;
           const rot = (p) => {
             const [x, y, z] = p;
             const y1 = y * Math.cos(tx) - z * Math.sin(tx), z1 = y * Math.sin(tx) + z * Math.cos(tx);
@@ -337,17 +353,44 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
             c.stroke();
           }
         };
-        const draw = () => {
-          for (const [c, kind] of canvases) {
-            const f = fit(c);
-            if (!f) continue;
-            f.x.clearRect(0, 0, f.w, f.h);
-            (kind === 'waves' ? artWaves : kind === 'ribbon' ? artRibbon : artTorus)(f.x, f.w, f.h);
-          }
+        const drawOne = (card) => {
+          const f = fit(card.canvas);
+          if (!f) return;
+          f.x.clearRect(0, 0, f.w, f.h);
+          (card.kind === 'waves' ? artWaves : card.kind === 'ribbon' ? artRibbon : artTorus)(f.x, f.w, f.h, card);
         };
-        draw();
-        addEventListener('resize', draw);
-        new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        const drawAll = () => { for (const card of cards) drawOne(card); };
+        // Animation loop: runs only while a card is hovered or settling back.
+        let raf = 0;
+        const tick = () => {
+          raf = 0;
+          let busy = false;
+          for (const card of cards) {
+            card.sx += ((card.hover ? card.mx : 0) - card.sx) * 0.12;
+            card.sy += ((card.hover ? card.my : 0) - card.sy) * 0.12;
+            if (card.hover) card.phase += 0.05;
+            const moving = Math.abs(card.sx) > 0.002 || Math.abs(card.sy) > 0.002 || card.hover;
+            if (moving) { card.active = true; busy = true; drawOne(card); }
+            else if (card.active) { card.active = false; card.sx = 0; card.sy = 0; drawOne(card); }
+          }
+          if (busy) raf = requestAnimationFrame(tick);
+        };
+        const kick = () => { if (!raf) raf = requestAnimationFrame(tick); };
+        if (!reduceMotion) {
+          for (const card of cards) {
+            if (!card.el) continue;
+            card.el.addEventListener('pointerenter', () => { card.hover = true; kick(); });
+            card.el.addEventListener('pointermove', (e) => {
+              const r = card.el.getBoundingClientRect();
+              card.mx = (e.clientX - r.left) / r.width - 0.5;
+              card.my = (e.clientY - r.top) / r.height - 0.5;
+            });
+            card.el.addEventListener('pointerleave', () => { card.hover = false; kick(); });
+          }
+        }
+        drawAll();
+        addEventListener('resize', drawAll);
+        new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme'] });
       })();
     </script>
 
