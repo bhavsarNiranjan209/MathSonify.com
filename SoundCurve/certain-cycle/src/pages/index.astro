@@ -14,19 +14,21 @@ import Footer from '../components/Footer.astro';
   <main>
     <Hero />
 
-    <!-- Callout -->
-    <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-center">
-      <div class="panel p-8 sm:p-12 border-t-2 border-sc-accent/50">
-        <blockquote class="font-serif text-xl sm:text-2xl md:text-3xl font-medium text-sc-text mb-6 leading-snug" data-i18n="home.calloutQuote">
-          "Wait... you can actually hear the geometry of mathematics?"
-        </blockquote>
-        <p class="text-sm text-sc-text-soft max-w-xl mx-auto mb-8" data-i18n="home.calloutDesc">
-          MathSonify turns abstract equations into an intuitive sensory experience for students, musicians, educators, and creative coders.
-        </p>
-        <a href="/studio" class="btn-primary inline-flex items-center px-8 py-3.5 text-base" data-i18n="home.calloutCta">
-          Start creating in the Studio
-        </a>
-      </div>
+    <!-- Banner — AI-generated science + art, links to the Studio -->
+    <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+      <a
+        href="/studio"
+        class="block overflow-hidden rounded-lg border border-sc-line/15 transition hover:border-sc-accent/50 hover:opacity-95 focus-visible:ring-2 focus-visible:ring-sc-accent/60"
+      >
+        <img
+          src="/images/home-banner-science-art.png"
+          alt="Where logic creates music — a glowing wireframe sphere showing x squared plus y squared equals r squared, over gold wave curves. Enter the Studio."
+          width="1403"
+          height="293"
+          loading="lazy"
+          class="block h-auto w-full"
+        />
+      </a>
     </section>
   </main>
 
