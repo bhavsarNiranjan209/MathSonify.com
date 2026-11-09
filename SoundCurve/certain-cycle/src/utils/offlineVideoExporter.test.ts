@@ -24,11 +24,12 @@ import {
   isOfflineVideoSupported,
   chooseVideoExportMode,
   probeVideoCodec,
-  probeAudioCodec,
+  pickAudioCodec,
   exportVideoOffline,
   OFFLINE_UNSUPPORTED_MESSAGE,
   VIDEO_CODEC_PREFERENCE,
   AUDIO_CODEC,
+  AUDIO_CODEC_PREFERENCE,
   AAC_FRAME_SAMPLES,
 } from './offlineVideoExporter';
 import type { VideoExportOptions } from './videoExporter';
@@ -86,6 +87,16 @@ test('the audio encoder config asks for AAC-LC at 128 kbps', () => {
   assert.equal(config.bitrate, 128_000);
 });
 
+test('the audio encoder config takes an explicit codec for the Opus fallback', () => {
+  assert.equal(audioEncoderConfig(44100, 2, 'opus').codec, 'opus');
+  assert.equal(audioEncoderConfig(44100, 2, 'mp4a.40.2').codec, 'mp4a.40.2');
+});
+
+test('the audio codec preference leads with AAC and falls back to Opus', () => {
+  assert.equal(AUDIO_CODEC_PREFERENCE[0], 'mp4a.40.2');
+  assert.ok(AUDIO_CODEC_PREFERENCE.includes('opus'));
+});
+
 test('the audio plan chunks the buffer into 1024-sample AAC frames', () => {
   assert.equal(AAC_FRAME_SAMPLES, 1024);
   const plan = audioFramePlan(44100 * 8, 44100);
@@ -133,22 +144,49 @@ test('the codec probe returns null where there is no encoder to probe', async ()
   assert.equal(await probeVideoCodec(1280, 720, 8_000_000), null);
 });
 
-test('the audio probe is false where there is no audio encoder', async () => {
-  assert.equal(await probeAudioCodec(44100, 2), false);
+test('the audio codec pick is null where there is no audio encoder', async () => {
+  assert.equal(await pickAudioCodec(44100, 2), null);
 });
 
-test('the audio probe follows what the encoder reports', async () => {
+test('the audio codec pick prefers AAC when the encoder accepts it', async () => {
   const g = globalThis as unknown as Record<string, unknown>;
   const prev = g.AudioEncoder;
   try {
     g.AudioEncoder = { isConfigSupported: async () => ({ supported: true }) };
-    assert.equal(await probeAudioCodec(44100, 2), true);
+    assert.equal(await pickAudioCodec(44100, 2), 'mp4a.40.2');
+  } finally {
+    if (prev === undefined) delete g.AudioEncoder;
+    else g.AudioEncoder = prev;
+  }
+});
+
+test('the audio codec pick falls back to Opus when AAC is rejected', async () => {
+  const g = globalThis as unknown as Record<string, unknown>;
+  const prev = g.AudioEncoder;
+  try {
+    // Firefox / desktop Linux / some Brave builds: AAC rejected, Opus fine.
+    g.AudioEncoder = {
+      isConfigSupported: async (cfg: { codec: string }) => ({
+        supported: cfg.codec === 'opus',
+      }),
+    };
+    assert.equal(await pickAudioCodec(44100, 2), 'opus');
+  } finally {
+    if (prev === undefined) delete g.AudioEncoder;
+    else g.AudioEncoder = prev;
+  }
+});
+
+test('the audio codec pick is null when neither codec is supported', async () => {
+  const g = globalThis as unknown as Record<string, unknown>;
+  const prev = g.AudioEncoder;
+  try {
     g.AudioEncoder = { isConfigSupported: async () => ({ supported: false }) };
-    assert.equal(await probeAudioCodec(44100, 2), false);
+    assert.equal(await pickAudioCodec(44100, 2), null);
     g.AudioEncoder = { isConfigSupported: async () => { throw new Error('nope'); } };
-    assert.equal(await probeAudioCodec(44100, 2), false);
+    assert.equal(await pickAudioCodec(44100, 2), null);
     g.AudioEncoder = {};
-    assert.equal(await probeAudioCodec(44100, 2), false);
+    assert.equal(await pickAudioCodec(44100, 2), null);
   } finally {
     if (prev === undefined) delete g.AudioEncoder;
     else g.AudioEncoder = prev;
@@ -179,4 +217,18 @@ test('the offline module never touches the live recorder', () => {
   assert.doesNotMatch(source, /MediaRecorder/, 'no live recorder in the offline path');
   assert.doesNotMatch(source, /captureStream/, 'no live canvas capture in the offline path');
   assert.match(source, /import\('mp4-muxer'\)/, 'the muxer must be lazily imported');
+});
+
+test('every encoded frame carries its duration, or the muxer rejects it', () => {
+  // Without a duration the encoder reports null on every chunk and
+  // mp4-muxer's addVideoChunk throws ("duration must be a non-negative real
+  // number"), so the whole offline render fails and falls back to the live
+  // recorder. The render is frame-exact by construction, so each frame lasts
+  // exactly one frame.
+  const source = read('./offlineVideoExporter.ts');
+  assert.match(
+    source,
+    /new VideoFrame\(canvas, \{[^}]*duration: frameUs[^}]*\}\)/,
+    'the VideoFrame must carry its duration',
+  );
 });

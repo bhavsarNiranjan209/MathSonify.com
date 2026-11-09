@@ -12,7 +12,10 @@
  * The video scene is a pure function of time (`drawExportFrame` in
  * videoScene), and the audio is already rendered fully offline
  * (`renderEquationToAudioBuffer` in audioExporter), so both tracks are exact
- * by construction. The only browser requirement is WebCodecs
+ * by construction. The audio codec is picked at runtime — AAC where the
+ * browser encodes it, Opus where it does not — so a browser without an AAC
+ * encoder still gets the frame-exact render instead of silently falling back
+ * to the live recorder. The only browser requirement is WebCodecs
  * (`VideoEncoder`, `AudioEncoder`, `VideoFrame`), which is why this module
  * exposes `isOfflineVideoSupported` and `chooseVideoExportMode`: callers use
  * this path when it is available and fall back to the live recorder when it
@@ -49,6 +52,14 @@ export const VIDEO_CODEC_PREFERENCE: readonly string[] = [
   'avc1.4d0028', // H.264 Main, level 4.0
   'avc1.42001E', // H.264 Baseline, level 3.0
 ];
+
+/** Audio codecs the offline path can mux into MP4, best first. AAC-LC first
+ * (every MP4 player understands it); Opus second — valid in MP4, plays in
+ * Chromium, Firefox and Safari 17.4+, and encodable where AAC is not
+ * (Firefox, desktop Linux, some Brave builds). A browser that cannot encode
+ * AAC must not lose the frame-exact render entirely, so the offline path
+ * falls back to Opus instead of failing. */
+export const AUDIO_CODEC_PREFERENCE: readonly string[] = ['mp4a.40.2', 'opus'];
 
 /** AAC-LC, the codec every MP4 player understands. */
 export const AUDIO_CODEC = 'mp4a.40.2';
@@ -95,10 +106,16 @@ export function videoEncoderConfig(
   };
 }
 
-/** The encoder configuration for the audio track. Pure, so it is testable. */
-export function audioEncoderConfig(sampleRate: number, numberOfChannels: number): AudioEncoderConfig {
+/** The encoder configuration for the audio track. Pure, so it is testable.
+ * AAC by default; pass the codec `pickAudioCodec` returned when Opus is
+ * what this browser can encode. */
+export function audioEncoderConfig(
+  sampleRate: number,
+  numberOfChannels: number,
+  codec: string = AUDIO_CODEC,
+): AudioEncoderConfig {
   return {
-    codec: AUDIO_CODEC,
+    codec,
     sampleRate,
     numberOfChannels,
     bitrate: AUDIO_BITRATE,
@@ -207,30 +224,38 @@ export async function probeVideoCodec(
 }
 
 /**
- * Whether this browser's audio encoder accepts AAC-LC for the clip, or
- * `false` when it has no audio encoder at all or rejects the config.
+ * First audio codec this browser's encoder accepts for the clip, or `null`
+ * when none of the candidates is supported. AAC first (universal in MP4),
+ * Opus second (encodable where AAC is not). A probe that throws is treated
+ * as unsupported rather than letting it reach the encoder.
  *
  * This is the upfront check the offline path was missing: a browser can have
  * WebCodecs yet still be unable to render offline — Firefox has the encoders
- * but cannot encode AAC (desktop Linux neither) — and without this probe the
- * export only discovers that mid-render and silently falls back to the live
- * recorder, so the clip comes out stuttery with no explanation. Callers probe
- * once and advertise the honest path instead.
+ * but cannot encode AAC (desktop Linux neither, and some Brave builds) — and
+ * without this pick the export hardcoded AAC, discovered the failure
+ * mid-render and silently fell back to the live recorder, so the clip came
+ * out stuttery with no explanation. Callers pick once and advertise the
+ * honest path instead; the render itself uses the picked codec, so the
+ * frame-exact path survives a missing AAC encoder.
  */
-export async function probeAudioCodec(
+export async function pickAudioCodec(
   sampleRate: number,
   numberOfChannels: number,
-): Promise<boolean> {
-  if (typeof AudioEncoder === 'undefined') return false;
-  if (typeof AudioEncoder.isConfigSupported !== 'function') return false;
-  try {
-    const { supported } = await AudioEncoder.isConfigSupported(
-      audioEncoderConfig(sampleRate, numberOfChannels),
-    );
-    return supported === true;
-  } catch {
-    return false;
+  candidates: readonly string[] = AUDIO_CODEC_PREFERENCE,
+): Promise<string | null> {
+  if (typeof AudioEncoder === 'undefined') return null;
+  if (typeof AudioEncoder.isConfigSupported !== 'function') return null;
+  for (const codec of candidates) {
+    try {
+      const { supported } = await AudioEncoder.isConfigSupported(
+        audioEncoderConfig(sampleRate, numberOfChannels, codec),
+      );
+      if (supported) return codec;
+    } catch {
+      // A codec the probe rejects outright is simply not an option here.
+    }
   }
+  return null;
 }
 
 /**
@@ -239,14 +264,16 @@ export async function probeAudioCodec(
  *
  * Video: the scene is drawn once per frame at its exact timestamp, snapshotted
  * into a frame and encoded. Audio: the sonification is rendered offline and
- * encoded as AAC. Both tracks are packed with mp4-muxer, which is imported
- * lazily so the export code never loads until it is needed.
+ * encoded with the codec `pickAudioCodec` returned — AAC where the browser
+ * encodes it, Opus where it does not. Both tracks are packed with mp4-muxer,
+ * which is imported lazily so the export code never loads until it is needed.
  *
  * @param onProgress called as frames are encoded, so the UI can show real
  *   progress instead of a spinner. Throttled to every 30 frames plus the end.
  * @throws when WebCodecs is unavailable, when no H.264 codec is supported,
- *   or when encoding fails. Callers fall back to the live recorder on the
- *   codec failure.
+ *   when no supported audio encoder (AAC or Opus) is available, or when
+ *   encoding fails. Callers fall back to the live recorder on the codec
+ *   failure.
  */
 export async function exportVideoOffline(
   opts: VideoExportOptions,
@@ -334,11 +361,21 @@ export async function exportVideoOffline(
     );
   }
 
+  // Audio codec, picked before anything is encoded: AAC where the browser
+  // encodes it, Opus where it does not. Hardcoding AAC is what used to kill
+  // the whole offline render on browsers without an AAC encoder.
+  const audioCodec = await pickAudioCodec(audioBuffer.sampleRate, audioBuffer.numberOfChannels);
+  if (!audioCodec) {
+    throw new Error(
+      'This browser has WebCodecs but no supported audio encoder (AAC or Opus) — the offline render cannot run here.',
+    );
+  }
+
   const muxer = new Muxer({
     target: new ArrayBufferTarget(),
     video: { codec: 'avc', width: VIDEO_W, height: VIDEO_H, frameRate: FPS },
     audio: {
-      codec: 'aac',
+      codec: audioCodec === 'opus' ? 'opus' : 'aac',
       numberOfChannels: audioBuffer.numberOfChannels,
       sampleRate: audioBuffer.sampleRate,
     },
@@ -367,7 +404,9 @@ export async function exportVideoOffline(
         encoderError = e;
       },
     });
-    audioEncoder.configure(audioEncoderConfig(audioBuffer.sampleRate, audioBuffer.numberOfChannels));
+    audioEncoder.configure(
+      audioEncoderConfig(audioBuffer.sampleRate, audioBuffer.numberOfChannels, audioCodec),
+    );
 
     // ── Audio first: the whole track is already rendered, so it encodes
     // quickly and its chunks are waiting when the muxer finalizes.
@@ -399,7 +438,12 @@ export async function exportVideoOffline(
     const frameUs = frameDurationUs(FPS);
     for (let i = 0; i < frameCount; i++) {
       drawExportFrame(ctx, scene, i * (1000 / FPS));
-      const frame = new VideoFrame(canvas, { timestamp: i * frameUs });
+      // The frame's duration is part of the contract: without it the encoder
+      // reports a null duration on every chunk, and the muxer rejects the
+      // chunk (it needs a real duration per sample) — so the whole offline
+      // render would fail and fall back to the live recorder. The render is
+      // frame-exact by construction, so every frame lasts exactly one frame.
+      const frame = new VideoFrame(canvas, { timestamp: i * frameUs, duration: frameUs });
       videoEncoder.encode(frame, { keyFrame: i % FPS === 0 });
       frame.close();
 

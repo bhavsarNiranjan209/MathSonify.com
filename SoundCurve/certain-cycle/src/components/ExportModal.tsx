@@ -14,7 +14,7 @@ import {
   exportVideoOffline,
   isOfflineVideoSupported,
   chooseVideoExportMode,
-  probeAudioCodec,
+  pickAudioCodec,
 } from '../utils/offlineVideoExporter';
 import { videoSize, type VideoOrientation, type VideoQuality } from '../utils/videoScene';
 import { performSave, type SaveOutcome } from '../utils/fileSave';
@@ -80,25 +80,28 @@ export default function ExportModal() {
   const [offlineSupported] = useState<boolean>(() =>
     typeof window === 'undefined' ? false : isOfflineVideoSupported(),
   );
-  // Result of the AAC probe: null while it is still running, false when this
-  // browser cannot encode AAC (Firefox, desktop Linux). WebCodecs alone does
-  // not mean the offline render will work — without this check the export
-  // only discovers the failure mid-render and silently falls back to the
-  // stuttery live recorder, so the clip comes out irregular with no
-  // explanation. The offline path is only advertised once the probe passes
-  // (or while it is still pending); a failed probe means the live recorder.
-  const [audioOk, setAudioOk] = useState<boolean | null>(null);
+  // Which audio codec the offline render will use, once probed: a codec
+  // string when one is available, `null` when this browser encodes neither
+  // AAC nor Opus, and `undefined` while the probe is still running.
+  // WebCodecs alone does not mean the offline render will work — a browser
+  // can have the encoders yet be unable to encode AAC (Firefox, desktop
+  // Linux, some Brave builds) — and without this check the export only
+  // discovers the failure mid-render and silently falls back to the live
+  // recorder, so the clip comes out irregular with no explanation. The
+  // offline path is only advertised once a codec is known (or while the
+  // probe is pending); no codec at all means the live recorder.
+  const [audioCodec, setAudioCodec] = useState<string | null | undefined>(undefined);
   useEffect(() => {
     if (!offlineSupported) return;
     let cancelled = false;
-    probeAudioCodec(44100, 2).then((ok) => {
-      if (!cancelled) setAudioOk(ok);
+    pickAudioCodec(44100, 2).then((codec) => {
+      if (!cancelled) setAudioCodec(codec);
     });
     return () => {
       cancelled = true;
     };
   }, [offlineSupported]);
-  const offlineReady = offlineSupported && audioOk !== false;
+  const offlineReady = offlineSupported && audioCodec !== null;
   // Note shown when a clip was recorded live because the frame-exact render
   // was not available, so the user knows why the motion may stutter.
   const [videoNote, setVideoNote] = useState('');
@@ -234,7 +237,7 @@ export default function ExportModal() {
       } else {
         if (offlineSupported) {
           setVideoNote(
-            'This browser cannot encode AAC, so video exports use the live recorder and motion may stutter. For a frame-exact clip, use Chrome or Edge.',
+            'This browser cannot encode audio for the offline render (no AAC or Opus), so video exports use the live recorder and motion may stutter. For a frame-exact clip, use Chrome or Edge.',
           );
         }
         result = await exportEquationVideo(base);
@@ -277,9 +280,9 @@ export default function ExportModal() {
   const videoSizeLabel = `~${(duration * 0.31 * videoPixelScale).toFixed(1)} MB`;
   /** Human label for the container this browser will really record. The
    * offline render always produces MP4/H.264, so it gets its own label —
-   * but only when the offline path is actually ready (the AAC probe passed):
-   * advertising MP4/H.264 on a browser that will fall back to the live
-   * recorder is what made exports look irregular with no explanation. */
+   * but only when the offline path is actually ready (an audio codec was
+   * picked): advertising MP4/H.264 on a browser that will fall back to the
+   * live recorder is what made exports look irregular with no explanation. */
   const videoFormatLabel = offlineReady
     ? `MP4 · H.264 · ${videoQuality}60`
     : videoMime
@@ -565,9 +568,9 @@ export default function ExportModal() {
                 {UNSUPPORTED_RECORDING_MESSAGE}
               </p>
             )}
-            {offlineSupported && audioOk === false && (
+            {offlineSupported && audioCodec === null && (
               <p className="p-3 rounded-xl text-xs" style={{ background: 'rgba(234,179,8,0.10)', border: '1px solid rgba(234,179,8,0.32)', color: 'var(--sc-text-soft)' }}>
-                This browser cannot encode AAC, so video exports use the live recorder and motion may stutter. For a frame-exact clip, use Chrome or Edge.
+                This browser cannot encode audio for the offline render (no AAC or Opus), so video exports use the live recorder and motion may stutter. For a frame-exact clip, use Chrome or Edge.
               </p>
             )}
             {/* Inline review of the recorded clip, plus the one Save action. */}
