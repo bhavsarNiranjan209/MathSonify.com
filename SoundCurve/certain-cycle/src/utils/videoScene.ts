@@ -7,21 +7,31 @@
  * timestamps. That is what makes "does the ticker loop seamlessly" and "does
  * the watermark stay below the graph" checkable rather than a vibe.
  *
- * THE LOOK (matches design-previews/video-export-preview.html):
- *   - Pure black #000 background. No grey panel, no glow wash, no vignette.
- *   - Axes and grid very faint; tick numbers ~2.7% of the short side
- *     (about 3x the old 11px at 720p).
- *   - The curve is soft glow + bright core + a brighter trail near the head,
- *     drawn as stacked strokes. There is NO per-frame shadowBlur or gradient
- *     anywhere in the frame loop — that is what made the old clips stutter
- *     (labelled 60fps, really ~28–52fps).
- *   - The static layer (background, grid, axes, numbers, faint curve, top
- *     labels, ticker band, watermark) is drawn ONCE into an offscreen canvas
- *     and reused; each frame only paints the traced curve, the playhead and
- *     the scrolling ticker text.
+ * THE LOOK (v21b — the @lingualin reference, corrected per the owner):
+ *   - Pure black #000 background. NO grid — the owner wants the background
+ *     clean, like the reference.
+ *   - Axes are solid white, thicker than before, with arrowheads at their
+ *     ends. Tick numbers stay exactly as they were: small grey JetBrains
+ *     Mono text (~2.7% of the short side), plain — never in pills, never
+ *     recoloured. The owner was explicit: only the background, the axis and
+ *     the curve colour change.
+ *   - The curve is the chosen theme colour (White / Blue / Green / Purple),
+ *     thick and glowing, drawn as stacked strokes. There is NO per-frame
+ *     shadowBlur or gradient anywhere in the frame loop — that is what made
+ *     the old clips stutter (labelled 60fps, really ~28–52fps).
+ *   - No faint full curve: the trace reveals the curve, like the reference.
+ *   - The static layer (background, axes, numbers, top labels, watermark,
+ *     ticker band) is drawn ONCE into an offscreen canvas and reused; each
+ *     frame only paints the traced curve, the playhead and the scrolling
+ *     ticker text.
  *   - The watermark is exactly "mathsonify.com", fixed at the right end of
  *     a strip BELOW the graph. One place, never moving — it never crosses
- *     the curve.
+ *     the curve. It is NOT a pill and it does NOT say "MathSonify.com".
+ *   - The top label pill ("Equation: …" / scientist name) is unchanged.
+ *   - The same scene renders the image export (drawExportGraph): background
+ *     + axes + numbers + the full curve, with no top pill, no ticker and no
+ *     watermark — the image's info bar and watermark are added by
+ *     graphExporter, so this must not draw them.
  *   - Landscape 16:9 (default) and portrait 9:16, each at 720p or 1080p.
  *     Portrait keeps the graph out of the top 12% and bottom 20% (and the
  *     right 14% mid-height) that Reels / Shorts / TikTok cover with buttons.
@@ -69,9 +79,6 @@ export const SAFE_RIGHT = 0.14;
 
 const COLORS = {
   bg: '#000000',
-  grid: '#FFFFFF',
-  gridAlpha: 0.03,
-  gridSpacing: 56,
   text: '#F5F5F2',
   muted: '#9A9AA2',
   dim: '#7A7A82',
@@ -79,15 +86,40 @@ const COLORS = {
   scientistText: '#DCEBFB',
   scientistPillBg: 'rgba(127,178,229,0.14)',
   scientistPillBorder: 'rgba(127,178,229,0.35)',
-  scientistCurve: '#BFDBFA',
-  userCurve: '#FFFFFF',
-  faintCurve: 'rgba(255,255,255,0.14)',
-  axis: 'rgba(255,255,255,0.25)',
+  /** Axes are solid white (v21b) — the reference look. Was a faint 0.25 alpha. */
+  axis: '#FFFFFF',
+  /** Tick numbers stay plain grey text, exactly as before (v21b). */
   tick: 'rgba(255,255,255,0.45)',
   tickerBg: 'rgba(127,178,229,0.07)',
   tickerBorder: 'rgba(127,178,229,0.2)',
   watermarkAlpha: 0.55,
 };
+
+/**
+ * The four export curve colours (v21b). White is the black-and-white look;
+ * the other three are the glowing colours from the reference. The picker in
+ * the Export modal offers all four, for image and video together.
+ */
+export type VideoColorTheme = 'white' | 'blue' | 'green' | 'purple';
+
+export const VIDEO_COLOR_THEMES: Record<VideoColorTheme, { label: string; hex: string }> = {
+  white: { label: 'White', hex: '#FFFFFF' },
+  blue: { label: 'Blue', hex: '#7C6CFF' },
+  green: { label: 'Green', hex: '#22FF88' },
+  purple: { label: 'Purple', hex: '#E879F9' },
+};
+
+export const DEFAULT_VIDEO_COLOR_THEME: VideoColorTheme = 'white';
+
+/** True only for one of the four theme ids — anything else falls back to white. */
+export function isVideoColorTheme(v: unknown): v is VideoColorTheme {
+  return typeof v === 'string' && v in VIDEO_COLOR_THEMES;
+}
+
+/** The curve colour for a theme. The background stays black in every theme. */
+export function videoColorThemeHex(theme: VideoColorTheme): string {
+  return VIDEO_COLOR_THEMES[theme].hex;
+}
 
 export type ExportMode = 'user' | 'scientist';
 
@@ -102,6 +134,8 @@ export interface VideoScene {
   mode: ExportMode;
   orientation: VideoOrientation;
   quality: VideoQuality;
+  /** The chosen curve colour (v21b). The background is black in every theme. */
+  colorTheme: VideoColorTheme;
   width: number;
   height: number;
   /** min(width, height) — every size in the scene derives from this. */
@@ -155,6 +189,22 @@ export interface PrepareSceneInput {
   scientistName?: string | null;
   orientation?: VideoOrientation;
   quality?: VideoQuality;
+  /** Curve colour (v21b). Unknown values fall back to white. */
+  colorTheme?: VideoColorTheme;
+  /**
+   * Exact frame size, for callers that render at a size videoSize() does not
+   * cover (the image export renders at the live canvas size). When omitted
+   * the size comes from orientation + quality, as before.
+   */
+  width?: number;
+  height?: number;
+  /**
+   * Exact graph panel, for callers that want the graph to fill more of the
+   * frame than the video layout does (the image export has no top pill or
+   * watermark strip inside the graph area). When omitted the panel comes
+   * from layoutFor(), as before.
+   */
+  panel?: Rect;
 }
 
 /** Human-readable field/context for the scientist ticker. */
@@ -229,6 +279,10 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
     scientistName,
     orientation = 'landscape',
     quality = '720p',
+    colorTheme: colorThemeInput,
+    width: widthInput,
+    height: heightInput,
+    panel: panelInput,
   } = input;
 
   const valid = curve.points.filter((p) => p.isValid);
@@ -236,14 +290,21 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
 
   const name = scientist?.name ?? scientistName ?? null;
   const mode: ExportMode = scientist || scientistName ? 'scientist' : 'user';
+  const colorTheme = isVideoColorTheme(colorThemeInput) ? colorThemeInput : DEFAULT_VIDEO_COLOR_THEME;
 
-  const { width, height } = videoSize(orientation, quality);
+  const { width, height } =
+    widthInput !== undefined && heightInput !== undefined
+      ? { width: widthInput, height: heightInput }
+      : videoSize(orientation, quality);
   const shortSide = Math.min(width, height);
   const uiScale = shortSide / 720;
   const tickFontPx = Math.round(TICK_FRACTION_OF_SHORT_SIDE * shortSide);
   const pillH = Math.round(44 * uiScale);
 
   const layout = layoutFor(width, height, orientation, mode, pillH);
+  // The image export passes its own panel (no top pill / watermark strip
+  // inside the graph area); the video uses the layout panel, as before.
+  const panel = panelInput ?? layout.panel;
 
   // The watermark text width is measured once here — the watermark is fixed,
   // so its position is a pure function of the scene afterwards.
@@ -269,14 +330,15 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
   // Pre-map every point to screen pixels once. The frame loop then only
   // walks this array — no projection math, no allocation per frame.
   const screenPoints = valid.map((p) => ({
-    x: mapXInto(layout.panel, minX, maxX, p.x),
-    y: mapYInto(layout.panel, paddedMinY, paddedMaxY, p.y),
+    x: mapXInto(panel, minX, maxX, p.x),
+    y: mapYInto(panel, paddedMinY, paddedMaxY, p.y),
   }));
 
   return {
     mode,
     orientation,
     quality,
+    colorTheme,
     width,
     height,
     shortSide,
@@ -292,7 +354,7 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
     paddedMinY,
     paddedMaxY,
     mainMs,
-    panel: layout.panel,
+    panel,
     labelY: layout.labelY,
     watermarkStrip: layout.watermarkStrip,
     watermarkW,
@@ -353,43 +415,38 @@ function pill(
 }
 
 /**
- * Everything that never moves: pure black background, faint grid, axes and
- * tick numbers, the faint full curve, the top label pill, the watermark and
- * (in scientist mode) the ticker band. Drawn once per scene into the static
- * layer.
+ * The graph itself, shared by the video's static layer and the image export:
+ * pure black background, white axes with arrowheads, and plain grey tick
+ * numbers. No grid, no top pill, no watermark — those belong to the caller.
+ */
+function drawGraphBase(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
+  // Pure black. No grid, no glow wash, no vignette, no panel.
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, scene.width, scene.height);
+  drawAxes(ctx, scene);
+}
+
+/**
+ * Everything that never moves in the video: the graph, the top label pill,
+ * the watermark and (in scientist mode) the ticker band. Drawn once per
+ * scene into the static layer.
  */
 export function drawStaticLayer(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
-  const W = scene.width;
-  const H = scene.height;
-  const s = scene.uiScale;
-
-  // Pure black. No glow wash, no vignette, no panel.
-  ctx.fillStyle = COLORS.bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // Fine static grid — very faint, and it does not drift.
-  const spacing = COLORS.gridSpacing * s;
-  ctx.save();
-  ctx.globalAlpha = COLORS.gridAlpha;
-  ctx.strokeStyle = COLORS.grid;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let x = 0; x < W; x += spacing) {
-    ctx.moveTo(x + 0.5, 0);
-    ctx.lineTo(x + 0.5, H);
-  }
-  for (let y = 0; y < H; y += spacing) {
-    ctx.moveTo(0, y + 0.5);
-    ctx.lineTo(W, y + 0.5);
-  }
-  ctx.stroke();
-  ctx.restore();
-
-  drawAxes(ctx, scene);
-  drawFaintCurve(ctx, scene);
+  drawGraphBase(ctx, scene);
   drawTopLabels(ctx, scene);
   drawWatermark(ctx, scene);
   if (scene.mode === 'scientist' && scene.ticker) drawTickerBackground(ctx, scene);
+}
+
+/**
+ * The image export's graph (v21b): background + axes + numbers + the FULL
+ * curve, with no top pill, no ticker and no watermark — the image's info bar
+ * and watermark are added by graphExporter, so this must not draw them.
+ * The curve is the theme colour, drawn whole (progress 1), with no playhead.
+ */
+export function drawExportGraph(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
+  drawGraphBase(ctx, scene);
+  drawTracedCurve(ctx, scene, 1);
 }
 
 /**
@@ -410,34 +467,93 @@ export function ensureStaticLayer(scene: VideoScene): HTMLCanvasElement | null {
   return canvas;
 }
 
+/**
+ * The three corners of an arrowhead triangle: the tip, then the two base
+ * corners. `dir` is the unit vector the arrow points along (e.g. (1, 0) for
+ * right, (0, -1) for up); `len` is tip-to-base and `halfW` is half the base
+ * width. Pure geometry, so the video tests can pin it without a canvas.
+ */
+export function arrowheadPoints(
+  tip: { x: number; y: number },
+  dir: { x: number; y: number },
+  len: number,
+  halfW: number,
+): [{ x: number; y: number }, { x: number; y: number }, { x: number; y: number }] {
+  const bx = tip.x - dir.x * len;
+  const by = tip.y - dir.y * len;
+  // Perpendicular to the direction: (-dir.y, dir.x).
+  const px = -dir.y;
+  const py = dir.x;
+  return [
+    { x: tip.x, y: tip.y },
+    { x: bx + px * halfW, y: by + py * halfW },
+    { x: bx - px * halfW, y: by - py * halfW },
+  ];
+}
+
+function drawArrowhead(
+  ctx: CanvasRenderingContext2D,
+  tip: { x: number; y: number },
+  dir: { x: number; y: number },
+  len: number,
+  halfW: number,
+): void {
+  const [t, a, b] = arrowheadPoints(tip, dir, len, halfW);
+  ctx.beginPath();
+  ctx.moveTo(t.x, t.y);
+  ctx.lineTo(a.x, a.y);
+  ctx.lineTo(b.x, b.y);
+  ctx.closePath();
+  ctx.fillStyle = COLORS.axis;
+  ctx.fill();
+}
+
 function drawAxes(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
   const p = scene.panel;
+  const s = scene.uiScale;
   const zeroY = mapY(scene, 0);
   const zeroX = mapX(scene, 0);
 
-  ctx.lineWidth = 1;
+  // Solid white axes (v21b), thicker than the old faint 1px lines. The
+  // bounds are inclusive: an axis that sits exactly on the panel edge (e.g.
+  // a domain starting at 0) is drawn, not dropped.
+  const xAxisVisible = zeroY >= p.y && zeroY <= p.y + p.h;
+  const yAxisVisible = zeroX >= p.x && zeroX <= p.x + p.w;
+  ctx.lineWidth = 2.5 * s;
   ctx.strokeStyle = COLORS.axis;
-  if (zeroY > p.y && zeroY < p.y + p.h) {
+  if (xAxisVisible) {
     ctx.beginPath();
     ctx.moveTo(p.x, zeroY);
     ctx.lineTo(p.x + p.w, zeroY);
     ctx.stroke();
   }
-  if (zeroX > p.x && zeroX < p.x + p.w) {
+  if (yAxisVisible) {
     ctx.beginPath();
     ctx.moveTo(zeroX, p.y);
     ctx.lineTo(zeroX, p.y + p.h);
     ctx.stroke();
   }
 
+  // Arrowheads at the ends, reaching into the margins past the panel edge
+  // so the end tick numbers never cover them.
+  const arrowLen = 14 * s;
+  const arrowHalf = 5 * s;
+  if (xAxisVisible) {
+    drawArrowhead(ctx, { x: p.x + p.w + arrowLen, y: zeroY }, { x: 1, y: 0 }, arrowLen, arrowHalf);
+  }
+  if (yAxisVisible) {
+    drawArrowhead(ctx, { x: zeroX, y: p.y - arrowLen }, { x: 0, y: -1 }, arrowLen, arrowHalf);
+  }
+
   // Ruler ticks, kept faint so the curve stays the brightest element.
   // Numbers are ~2.7% of the short side — about 3x the old 11px at 720p.
+  // UNCHANGED in v21b: plain grey text, no pills, same positions as before.
   const fmt = (v: number) => String(Math.round(v * 10) / 10);
   ctx.fillStyle = COLORS.tick;
   ctx.font = `500 ${scene.tickFontPx}px "JetBrains Mono", ui-monospace, monospace`;
   ctx.strokeStyle = COLORS.tick;
 
-  const xTickBase = zeroY > p.y && zeroY < p.y + p.h ? zeroY : p.y + p.h;
+  const xTickBase = xAxisVisible ? zeroY : p.y + p.h;
   for (let i = 0; i <= 6; i++) {
     const xVal = scene.minX + (i / 6) * (scene.maxX - scene.minX);
     const sx = mapX(scene, xVal);
@@ -449,7 +565,6 @@ function drawAxes(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
     ctx.fillText(fmt(xVal), sx, xTickBase + scene.tickFontPx + 4);
   }
 
-  const yAxisVisible = zeroX > p.x && zeroX < p.x + p.w;
   const yTickBase = yAxisVisible ? zeroX : p.x;
   ctx.textAlign = yAxisVisible ? 'right' : 'left';
   for (let i = 0; i <= 6; i++) {
@@ -463,28 +578,12 @@ function drawAxes(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
   }
 }
 
-function drawFaintCurve(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
-  const p = scene.panel;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(p.x, p.y, p.w, p.h);
-  ctx.clip();
-  ctx.beginPath();
-  for (let i = 0; i < scene.screenPoints.length; i++) {
-    const pt = scene.screenPoints[i];
-    if (i === 0) ctx.moveTo(pt.x, pt.y);
-    else ctx.lineTo(pt.x, pt.y);
-  }
-  ctx.strokeStyle = COLORS.faintCurve;
-  ctx.lineWidth = 1.4;
-  ctx.stroke();
-  ctx.restore();
-}
-
 /**
  * The traced curve: soft glow + bright core + a brighter trail near the head.
  * Stacked strokes only — no shadowBlur, no gradients, so the frame loop stays
- * cheap enough for a real 60fps capture.
+ * cheap enough for a real 60fps capture. The colour is the chosen theme
+ * (v21b), in both modes; the widths scale with the frame so 1080p keeps the
+ * same proportions as 720p.
  */
 function drawTracedCurve(
   ctx: CanvasRenderingContext2D,
@@ -494,8 +593,8 @@ function drawTracedCurve(
   const p = scene.panel;
   const pts = scene.screenPoints;
   if (pts.length === 0) return;
-  const isSci = scene.mode === 'scientist';
-  const color = isSci ? COLORS.scientistCurve : COLORS.userCurve;
+  const color = videoColorThemeHex(scene.colorTheme);
+  const s = scene.uiScale;
   const headX = p.x + p.w * progress;
 
   // Last point index on or before the playhead.
@@ -522,9 +621,9 @@ function drawTracedCurve(
     ctx.stroke();
   };
 
-  trace(7, 0.16, headIdx); // soft glow
-  trace(4, 0.45, headIdx); // mid body
-  trace(2.5, 1, headIdx); // bright core
+  trace(12 * s, 0.18, headIdx); // soft glow
+  trace(7 * s, 0.4, headIdx); // mid body
+  trace(4 * s, 1, headIdx); // bright core
   // Brighter trail: the last 8% of the traced length, drawn once more on top.
   const trailStart = Math.max(0, headIdx - Math.floor(pts.length * 0.08));
   ctx.beginPath();
@@ -535,7 +634,7 @@ function drawTracedCurve(
   }
   ctx.strokeStyle = color;
   ctx.globalAlpha = 1;
-  ctx.lineWidth = 3.5;
+  ctx.lineWidth = 5 * s;
   ctx.stroke();
 
   ctx.restore();
@@ -553,7 +652,7 @@ function drawPlayhead(
   const headIdx = Math.max(0, Math.min(pts.length - 1, Math.floor(progress * (pts.length - 1))));
   const hx = pts[headIdx].x;
   const hy = pts[headIdx].y;
-  const color = scene.mode === 'scientist' ? COLORS.scientistCurve : COLORS.userCurve;
+  const color = videoColorThemeHex(scene.colorTheme);
 
   ctx.save();
   // Halo.

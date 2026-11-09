@@ -299,6 +299,7 @@ export async function exportVideoOffline(
     speed = 1,
     orientation = 'landscape',
     quality = '720p',
+    colorTheme = 'white',
   } = opts;
 
   // ── Resolve live state ONCE, exactly like the live path: the same points
@@ -330,6 +331,7 @@ export async function exportVideoOffline(
     scientistName: scientist?.name ?? null,
     orientation,
     quality,
+    colorTheme,
   });
 
   // ── Audio: the equation's own sonification, rendered fully offline with

@@ -16,22 +16,23 @@ import {
   chooseVideoExportMode,
   pickAudioCodec,
 } from '../utils/offlineVideoExporter';
-import { videoSize, type VideoOrientation, type VideoQuality } from '../utils/videoScene';
+import { videoSize, VIDEO_COLOR_THEMES, isVideoColorTheme, type VideoColorTheme, type VideoOrientation, type VideoQuality } from '../utils/videoScene';
 import { performSave, type SaveOutcome } from '../utils/fileSave';
 
-/** localStorage key for the last video export orientation + quality. */
+/** localStorage key for the last export choices (video orientation + quality, curve colour). */
 export const VIDEO_EXPORT_PREFS_KEY = 'mathsonify-video-export';
 
-function loadVideoPrefs(): { orientation: VideoOrientation; quality: VideoQuality } {
-  const fallback = { orientation: 'landscape' as VideoOrientation, quality: '720p' as VideoQuality };
+function loadVideoPrefs(): { orientation: VideoOrientation; quality: VideoQuality; colorTheme: VideoColorTheme } {
+  const fallback = { orientation: 'landscape' as VideoOrientation, quality: '720p' as VideoQuality, colorTheme: 'white' as VideoColorTheme };
   if (typeof window === 'undefined') return fallback;
   try {
     const raw = window.localStorage.getItem(VIDEO_EXPORT_PREFS_KEY);
     if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as { orientation?: unknown; quality?: unknown };
+    const parsed = JSON.parse(raw) as { orientation?: unknown; quality?: unknown; colorTheme?: unknown };
     return {
       orientation: parsed.orientation === 'portrait' ? 'portrait' : 'landscape',
       quality: parsed.quality === '1080p' ? '1080p' : '720p',
+      colorTheme: isVideoColorTheme(parsed.colorTheme) ? parsed.colorTheme : 'white',
     };
   } catch {
     return fallback;
@@ -145,11 +146,21 @@ export default function ExportModal() {
     try {
       setIsExporting(true);
       setExportError('');
-      await exportGraphAsImage(equation, {
+      // Read the live session (same as the video path) so the image renders
+      // the curve that is on screen right now, in the chosen colour.
+      const s = useStudioStore.getState();
+      await exportGraphAsImage(s.equation, {
         format: imageFormat,
         watermark: true,
-        equationName: activeEquationName ?? undefined,
-        scientistName: activeScientist?.name ?? undefined,
+        equationName: s.activeEquationName ?? undefined,
+        scientistName: s.activeScientist?.name ?? undefined,
+        scientist: s.activeScientist,
+        colorTheme: videoPrefs.colorTheme,
+        minX: s.minX,
+        maxX: s.maxX,
+        isCustomCurve: s.isCustomCurve,
+        splineControlPoints: s.splineControlPoints,
+        duration: s.duration,
       });
       setDownloadReady(true);
       setIsExporting(false);
@@ -213,6 +224,7 @@ export default function ExportModal() {
         speed: s.speed,
         orientation: videoOrientation,
         quality: videoQuality,
+        colorTheme: videoPrefs.colorTheme,
       };
 
       let result: VideoExportResult;
@@ -289,6 +301,32 @@ export default function ExportModal() {
       ? `${videoExtensionForMimeType(videoMime).toUpperCase()} · ${videoMime.includes('mp4') ? 'H.264' : 'VP9'} · ${videoQuality}60`
       : 'unavailable';
   const videoResolutionLabel = `${videoDims.width} × ${videoDims.height} @ 60fps`;
+
+  // Curve colour picker (v21b), shared by the image and video tabs: one
+  // choice, one stored preference, both exports in the same colour.
+  const colourPicker = (
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-sc-text-soft">Colour</span>
+      <div className="flex rounded-full p-0.5 gap-0.5" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)' }}>
+        {(Object.keys(VIDEO_COLOR_THEMES) as VideoColorTheme[]).map((themeId) => (
+          <button
+            key={themeId}
+            type="button"
+            onClick={() => setVideoPrefs((p) => ({ ...p, colorTheme: themeId }))}
+            className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px] flex items-center gap-1.5"
+            style={{
+              background: videoPrefs.colorTheme === themeId ? 'var(--sc-accent)' : 'transparent',
+              color: videoPrefs.colorTheme === themeId ? 'var(--sc-on-accent)' : 'var(--sc-text-faint)',
+              boxShadow: videoPrefs.colorTheme === themeId ? '0 0 10px -2px rgba(var(--sc-accent)/0.35)' : 'none',
+            }}
+          >
+            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: VIDEO_COLOR_THEMES[themeId].hex, border: '1px solid rgba(255,255,255,0.35)' }} />
+            {VIDEO_COLOR_THEMES[themeId].label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -512,6 +550,7 @@ export default function ExportModal() {
               </div>
             </div>
             <p className="text-[11px] text-sc-text-faint">Est. file size: <span className="font-mono text-sc-text-soft">{imageSizeLabel}</span> · 2× retina · includes MathSonify.com watermark</p>
+            {colourPicker}
           </div>
         )}
 
@@ -563,6 +602,7 @@ export default function ExportModal() {
             <p className="text-[11px] text-sc-text-faint">
               Est. file size: <span className="font-mono text-sc-text-soft">{videoSizeLabel}</span> · {videoFormatLabel}
             </p>
+            {colourPicker}
             {videoBlocked && (
               <p className="p-3 rounded-xl text-xs status-error" style={{ background: 'rgba(239,68,68,0.10)', border: '1px solid rgba(239,68,68,0.32)' }}>
                 {UNSUPPORTED_RECORDING_MESSAGE}

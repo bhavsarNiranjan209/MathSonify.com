@@ -22,6 +22,7 @@ import {
   OUTRO_MS,
   FPS,
   type VideoScene,
+  type VideoColorTheme,
   type VideoOrientation,
   type VideoQuality,
 } from './videoScene';
@@ -54,6 +55,8 @@ export interface VideoExportOptions {
   orientation?: VideoOrientation;
   /** 720p (default) or 1080p. */
   quality?: VideoQuality;
+  /** Curve colour (v21b). White is the black-and-white look; unknown falls back to white. */
+  colorTheme?: VideoColorTheme;
 }
 
 /**
@@ -206,6 +209,7 @@ export async function exportEquationVideo(
     speed = 1,
     orientation = 'landscape',
     quality = '720p',
+    colorTheme = 'white',
   } = opts;
 
   // ── Resolve live state ONCE. This is the single source of truth for the
@@ -236,6 +240,7 @@ export async function exportEquationVideo(
     scientistName: scientist?.name ?? null,
     orientation,
     quality,
+    colorTheme,
   });
 
   // Paint frame 0 before recording so the first captured frame is the intro

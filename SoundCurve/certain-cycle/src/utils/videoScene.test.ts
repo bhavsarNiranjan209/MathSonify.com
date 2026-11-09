@@ -18,9 +18,15 @@ import {
   phaseAt,
   drawExportFrame,
   drawStaticLayer,
+  drawExportGraph,
+  arrowheadPoints,
   totalDurationMs,
   videoSize,
   WATERMARK_TEXT,
+  VIDEO_COLOR_THEMES,
+  DEFAULT_VIDEO_COLOR_THEME,
+  isVideoColorTheme,
+  videoColorThemeHex,
   SAFE_TOP,
   SAFE_BOTTOM,
   SAFE_RIGHT,
@@ -29,6 +35,7 @@ import {
   VIDEO_W,
   VIDEO_H,
   type ExportMode,
+  type VideoColorTheme,
   type VideoOrientation,
   type VideoQuality,
 } from './videoScene';
@@ -481,8 +488,10 @@ test('capture is 60fps at 1280x720', () => {
  * than on an intermediate value. The old `stubCtx` only needed measureText;
  * drawing the real frame needs the whole surface.
  */
-function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[] } {
+function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; globalAlphas: number[]; strokeStyles: string[] } {
   const texts: string[] = [];
+  const globalAlphas: number[] = [];
+  const strokeStyles: string[] = [];
   const ctx = {
     font: '',
     fillStyle: '',
@@ -506,7 +515,22 @@ function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[] } {
     createPattern: () => null,
     getImageData: () => ({ data: new Uint8ClampedArray(4) }),
   } as unknown as CanvasRenderingContext2D;
-  return { ctx, texts };
+  // Track globalAlpha + strokeStyle assignments so tests can assert on the
+  // look (no grid, white axes) without a real canvas. The drawing code only
+  // ever sets these, never reads them back, so an accessor is safe.
+  let _ga = 1;
+  Object.defineProperty(ctx, 'globalAlpha', {
+    configurable: true,
+    get: () => _ga,
+    set: (v: number) => { _ga = v; globalAlphas.push(v); },
+  });
+  let _ss = '';
+  Object.defineProperty(ctx, 'strokeStyle', {
+    configurable: true,
+    get: () => _ss,
+    set: (v: string) => { _ss = v; strokeStyles.push(v); },
+  });
+  return { ctx, texts, globalAlphas, strokeStyles };
 }
 
 /** Structural stand-in for the Scientist record the scene builder needs. */
@@ -517,13 +541,14 @@ function sceneFor(
   scientist: ScientistStub,
   orientation: VideoOrientation = 'landscape',
   quality: VideoQuality = '720p',
+  colorTheme?: VideoColorTheme,
 ) {
   const curve = resolveActiveCurve({
     equation: 'sin(x)', minX: -Math.PI, maxX: Math.PI, isCustomCurve: false, splineControlPoints: [],
   });
   return prepareVideoScene({
     ctx: stubCtx(), equation, curve, minX: -Math.PI, maxX: Math.PI,
-    mainMs: 4000, scientist, orientation, quality,
+    mainMs: 4000, scientist, orientation, quality, colorTheme,
   });
 }
 
@@ -607,4 +632,120 @@ test('the extension always matches the container it came from', () => {
   assert.equal(videoExtensionForMimeType('video/mp4'), 'mp4');
   assert.equal(videoExtensionForMimeType('video/webm;codecs=vp9,opus'), 'webm');
   assert.equal(videoExtensionForMimeType(null), 'webm', 'unknown falls back to webm');
+});
+
+/* ── v21b: the corrected export look ─────────────────────────────────
+ *
+ * The owner rejected the first v21 (white pill tick numbers, a white pill
+ * watermark, the equation moved to the bottom in big coloured serif) and
+ * sent a screenshot of the current image export as the reference for what
+ * to KEEP: numbers small and grey, watermark small bottom-right. Only the
+ * background, the axis and the curve colour change. These tests pin exactly
+ * that boundary, for video and (via drawExportGraph) for the image.
+ */
+
+test('the four colour themes exist, are distinct, and white is the default', () => {
+  const ids = Object.keys(VIDEO_COLOR_THEMES) as VideoColorTheme[];
+  assert.deepEqual([...ids].sort(), ['blue', 'green', 'purple', 'white']);
+  const hexes = ids.map((id) => videoColorThemeHex(id));
+  assert.equal(new Set(hexes).size, 4, 'two themes share a colour');
+  assert.equal(DEFAULT_VIDEO_COLOR_THEME, 'white');
+  assert.equal(videoColorThemeHex('white'), '#FFFFFF');
+  // Every theme has a human label for the picker.
+  for (const id of ids) assert.ok(VIDEO_COLOR_THEMES[id].label.length > 0, `${id} has no label`);
+});
+
+test('isVideoColorTheme accepts only the four theme ids', () => {
+  assert.ok(isVideoColorTheme('blue'));
+  assert.ok(isVideoColorTheme('green'));
+  assert.ok(isVideoColorTheme('purple'));
+  assert.ok(isVideoColorTheme('white'));
+  assert.ok(!isVideoColorTheme('red'));
+  assert.ok(!isVideoColorTheme(''));
+  assert.ok(!isVideoColorTheme(undefined));
+  assert.ok(!isVideoColorTheme(null));
+  assert.ok(!isVideoColorTheme(42));
+});
+
+test('the scene stores the chosen theme and falls back to white', () => {
+  const purple = sceneFor('sin(x)', null, 'landscape', '720p', 'purple');
+  assert.equal(purple.colorTheme, 'purple');
+  assert.equal(videoColorThemeHex(purple.colorTheme), '#E879F9');
+  const def = sceneFor('sin(x)', null);
+  assert.equal(def.colorTheme, 'white');
+  // An unknown stored value must not break the export — it falls back.
+  const unknown = sceneFor('sin(x)', null, 'landscape', '720p', 'red' as VideoColorTheme);
+  assert.equal(unknown.colorTheme, 'white');
+});
+
+test('arrowheadPoints puts the tip beyond the panel and the base on its edge', () => {
+  // Right-pointing: tip at (100, 50), base on x=86.
+  const [tip, a, b] = arrowheadPoints({ x: 100, y: 50 }, { x: 1, y: 0 }, 14, 5);
+  assert.deepEqual(tip, { x: 100, y: 50 });
+  assert.deepEqual(a, { x: 86, y: 55 });
+  assert.deepEqual(b, { x: 86, y: 45 });
+  // Up-pointing: tip at (30, 20), base on y=34.
+  const [tip2, a2, b2] = arrowheadPoints({ x: 30, y: 20 }, { x: 0, y: -1 }, 14, 5);
+  assert.deepEqual(tip2, { x: 30, y: 20 });
+  assert.deepEqual(a2, { x: 35, y: 34 });
+  assert.deepEqual(b2, { x: 25, y: 34 });
+});
+
+test('the static layer has no grid (the background is pure black)', () => {
+  // The old grid was drawn with globalAlpha 0.03. The watermark is the only
+  // other static-layer element that touches globalAlpha (0.55), so if 0.03
+  // never appears, the grid is gone.
+  const scene = sceneFor('sin(x)', null);
+  const { ctx, globalAlphas } = recordingCtx();
+  drawStaticLayer(ctx, scene);
+  assert.ok(!globalAlphas.includes(0.03), `the grid is back (globalAlpha values: ${globalAlphas})`);
+  assert.ok(globalAlphas.includes(0.55), 'the watermark lost its 0.55 alpha');
+});
+
+test('the axes are solid white (not the old faint 0.25 alpha)', () => {
+  const scene = sceneFor('sin(x)', null);
+  const { ctx, strokeStyles } = recordingCtx();
+  drawStaticLayer(ctx, scene);
+  assert.ok(strokeStyles.includes('#FFFFFF'), `no solid-white axis stroke (got ${JSON.stringify(strokeStyles)})`);
+  assert.ok(!strokeStyles.includes('rgba(255,255,255,0.25)'), 'the old faint axis colour is back');
+});
+
+test('the y-axis is drawn when the domain starts at 0 (it sits on the panel edge)', () => {
+  // The Equation of the Day has domain 0..8, so its y-axis sits exactly on
+  // the panel's left edge. The old strict inequality dropped it entirely.
+  const curve = resolveActiveCurve({
+    equation: 'exp(-0.5*x)', minX: 0, maxX: 8, isCustomCurve: false, splineControlPoints: [],
+  });
+  const scene = prepareVideoScene({
+    ctx: stubCtx(), equation: 'exp(-0.5*x)', curve, minX: 0, maxX: 8,
+    mainMs: 4000, scientist: null,
+  });
+  // x=0 maps exactly onto the panel's left edge — the axis sits on the edge,
+  // so only the inclusive bound (>=) keeps it visible.
+  assert.equal(scene.screenPoints[0].x, scene.panel.x);
+  const { ctx, strokeStyles } = recordingCtx();
+  drawStaticLayer(ctx, scene);
+  assert.ok(strokeStyles.includes('#FFFFFF'), 'no white axis stroke for a domain starting at 0');
+});
+
+test('drawExportGraph has the numbers but no equation pill and no watermark', () => {
+  // The image export's graph: background + axes + numbers + the full curve.
+  // The top pill ("Equation: …") and the watermark belong to the video's
+  // static layer and to graphExporter's info bar / watermark — this must
+  // not draw them, or the image would show them twice.
+  const scene = sceneFor('sin(x)', null);
+  const { ctx, texts } = recordingCtx();
+  drawExportGraph(ctx, scene);
+  assert.ok(texts.some((t) => /^-?\d/.test(t)), `image graph missing tick numbers (got ${JSON.stringify(texts)})`);
+  assert.ok(!texts.includes('Equation: sin(x)'), `image graph drew the top pill (got ${JSON.stringify(texts)})`);
+  assert.ok(!texts.includes(WATERMARK_TEXT), `image graph drew the watermark (got ${JSON.stringify(texts)})`);
+});
+
+test('the image graph draws the full curve in the theme colour', () => {
+  // The curve is strokes, not text, so assert on the stroke colour: the
+  // theme colour must appear as a strokeStyle when the graph is drawn.
+  const scene = sceneFor('sin(x)', null, 'landscape', '720p', 'purple');
+  const { ctx, strokeStyles } = recordingCtx();
+  drawExportGraph(ctx, scene);
+  assert.ok(strokeStyles.includes('#E879F9'), `purple curve never stroked (got ${JSON.stringify(strokeStyles)})`);
 });

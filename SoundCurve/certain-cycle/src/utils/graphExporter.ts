@@ -2,11 +2,16 @@
  * Graph image export for MathSonify.
  *
  * Layout — top to bottom, strictly in order:
- *   1. Gradient background + subtle grid
- *   2. Source canvas (the graph itself)
- *   3. Blank accent line (thin horizontal rule in accent colour)
- *   4. Info bar — equation name + equation + scientist on a solid band
- *   5. Ghosted "MathSonify.com" text, bottom-right
+ *   1. Graph — rendered through the shared video scene (v21b): pure black
+ *      background with no grid, solid white axes with arrowheads, small grey
+ *      tick numbers, and the full curve in the chosen theme colour. This is
+ *      the same look as the video export, so image and video match. If the
+ *      scene cannot be built (missing curve inputs, or an equation that
+ *      produces no valid values) it falls back to the live-canvas capture:
+ *      gradient background + subtle grid + the Studio canvas as-is.
+ *   2. Blank accent line (thin horizontal rule in accent colour)
+ *   3. Info bar — equation name + equation + scientist on a solid band
+ *   4. Ghosted "MathSonify.com" text, bottom-right
  *
  * The graph interior is never obstructed: no pill or text sits on it.
  * The watermark text sits in the bottom-right corner of the graph area,
@@ -15,6 +20,16 @@
 
 import { drawWatermark } from './watermark';
 import { getThemeMode, getCanvasPalette } from './theme';
+import { resolveActiveCurve } from './activeCurve';
+import {
+  prepareVideoScene,
+  drawExportGraph,
+  isVideoColorTheme,
+  DEFAULT_VIDEO_COLOR_THEME,
+  type VideoColorTheme,
+} from './videoScene';
+import type { SplineControlPoint } from './curveSpline';
+import type { Scientist } from '../data/scientists';
 
 export interface GraphExportOptions {
   format?: 'png' | 'jpeg';
@@ -27,6 +42,18 @@ export interface GraphExportOptions {
   equationText?: string;
   equationName?: string;
   scientistName?: string;
+  /** Curve colour (v21b). White is the black-and-white look. */
+  colorTheme?: VideoColorTheme;
+  /** Full scientist record when the equation came from the library. */
+  scientist?: Scientist | null;
+  /** Live domain, so the scene renders the same curve as the Studio. */
+  minX?: number;
+  maxX?: number;
+  /** Sculpted/freehand curve state — decides equation vs. spline. */
+  isCustomCurve?: boolean;
+  splineControlPoints?: SplineControlPoint[];
+  /** Clip length in seconds (only used to build the scene). */
+  duration?: number;
 }
 
 /**
@@ -57,6 +84,69 @@ export function imageWatermarkRect(
     h,
     fontSize,
   };
+}
+
+/**
+ * Renders the graph through the shared video scene (v21b) — the same look as
+ * the video export: pure black, no grid, white axes with arrowheads, small
+ * grey tick numbers, and the full curve in the chosen theme colour.
+ *
+ * Returns false when the scene cannot be built (the caller did not pass the
+ * curve inputs, or the equation produces no valid values) so the caller falls
+ * back to the live-canvas capture instead of failing the export.
+ */
+function renderGraphViaScene(
+  ctx: CanvasRenderingContext2D,
+  opts: GraphExportOptions,
+  exportWidth: number,
+  graphH: number,
+): boolean {
+  const {
+    colorTheme,
+    minX,
+    maxX,
+    isCustomCurve,
+    splineControlPoints,
+    scientist,
+    scientistName,
+    equationText,
+    duration,
+  } = opts;
+  if (minX === undefined || maxX === undefined || !equationText) return false;
+  try {
+    const curve = resolveActiveCurve({
+      equation: equationText,
+      minX,
+      maxX,
+      isCustomCurve: isCustomCurve ?? false,
+      splineControlPoints: splineControlPoints ?? [],
+    });
+    const scene = prepareVideoScene({
+      ctx,
+      equation: equationText,
+      curve,
+      minX,
+      maxX,
+      mainMs: (duration ?? 5) * 1000,
+      scientist: scientist ?? null,
+      scientistName: scientistName ?? null,
+      colorTheme: isVideoColorTheme(colorTheme) ? colorTheme : DEFAULT_VIDEO_COLOR_THEME,
+      width: exportWidth,
+      height: graphH,
+      // Fuller-bleed than the video layout: the image has no top pill or
+      // watermark strip inside the graph area, so the graph fills it.
+      panel: {
+        x: 0.04 * exportWidth,
+        y: 0.05 * graphH,
+        w: 0.92 * exportWidth,
+        h: 0.84 * graphH,
+      },
+    });
+    drawExportGraph(ctx, scene);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function captureCanvasAsBlob(
@@ -104,47 +194,54 @@ export async function captureCanvasAsBlob(
 
   const graphH = Math.round(displayHeight * scaleFactor);
 
-  // ── 1. Gradient background ────────────────────────────────────────
-  const gradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
-  if (isDark) {
-    gradient.addColorStop(0, '#0E1216');
-    gradient.addColorStop(1, palette.canvas);
-  } else if (isLight) {
-    gradient.addColorStop(0, '#FFFFFF');
-    gradient.addColorStop(1, '#F2F2F2');
-  } else {
-    gradient.addColorStop(0, '#2D3A4E');
-    gradient.addColorStop(1, '#1B2430');
-  }
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, exportWidth, exportHeight);
+  // ── 1. Graph ───────────────────────────────────────────────────────
+  // v21b: render through the shared video scene (pure black, no grid, white
+  // axes + arrowheads, theme curve) — the same look as the video export.
+  // Falls back to the live-canvas capture when the scene cannot be built.
+  const graphRendered = renderGraphViaScene(ctx, opts ?? {}, exportWidth, graphH);
+  if (!graphRendered) {
+    // Legacy path: gradient background + subtle grid + the live canvas.
+    const gradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
+    if (isDark) {
+      gradient.addColorStop(0, '#0E1216');
+      gradient.addColorStop(1, palette.canvas);
+    } else if (isLight) {
+      gradient.addColorStop(0, '#FFFFFF');
+      gradient.addColorStop(1, '#F2F2F2');
+    } else {
+      gradient.addColorStop(0, '#2D3A4E');
+      gradient.addColorStop(1, '#1B2430');
+    }
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, exportWidth, exportHeight);
 
-  // ── 2. Subtle grid only over the graph area ───────────────────────
-  ctx.save();
-  ctx.strokeStyle = palette.grid;
-  ctx.lineWidth = Math.max(1, scaleFactor * 0.6);
-  const gridStep = Math.round(28 * scaleFactor);
-  for (let x = gridStep; x < exportWidth; x += gridStep) {
-    ctx.beginPath();
-    ctx.moveTo(x + 0.5, 0);
-    ctx.lineTo(x + 0.5, graphH);
-    ctx.stroke();
-  }
-  for (let y = gridStep; y < graphH; y += gridStep) {
-    ctx.beginPath();
-    ctx.moveTo(0, y + 0.5);
-    ctx.lineTo(exportWidth, y + 0.5);
-    ctx.stroke();
-  }
-  ctx.restore();
+    // Subtle grid only over the graph area.
+    ctx.save();
+    ctx.strokeStyle = palette.grid;
+    ctx.lineWidth = Math.max(1, scaleFactor * 0.6);
+    const gridStep = Math.round(28 * scaleFactor);
+    for (let x = gridStep; x < exportWidth; x += gridStep) {
+      ctx.beginPath();
+      ctx.moveTo(x + 0.5, 0);
+      ctx.lineTo(x + 0.5, graphH);
+      ctx.stroke();
+    }
+    for (let y = gridStep; y < graphH; y += gridStep) {
+      ctx.beginPath();
+      ctx.moveTo(0, y + 0.5);
+      ctx.lineTo(exportWidth, y + 0.5);
+      ctx.stroke();
+    }
+    ctx.restore();
 
-  // ── 3. Source canvas (graph only, no overlay) ─────────────────────
-  ctx.save();
-  ctx.scale(scaleFactor, scaleFactor);
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(sourceCanvas, 0, 0, displayWidth, displayHeight);
-  ctx.restore();
+    // Source canvas (graph only, no overlay).
+    ctx.save();
+    ctx.scale(scaleFactor, scaleFactor);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(sourceCanvas, 0, 0, displayWidth, displayHeight);
+    ctx.restore();
+  }
 
   // ── 4. Accent line — thin rule separating graph from info bar ─────
   if (hasInfo) {
