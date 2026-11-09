@@ -1,0 +1,598 @@
+diff --git a/SoundCurve/certain-cycle/src/utils/graphExporter.ts b/SoundCurve/certain-cycle/src/utils/graphExporter.ts
+index 0953e40..12e912b 100644
+--- a/SoundCurve/certain-cycle/src/utils/graphExporter.ts
++++ b/SoundCurve/certain-cycle/src/utils/graphExporter.ts
+@@ -6,10 +6,10 @@
+  *   2. Source canvas (the graph itself)
+  *   3. Blank accent line (thin horizontal rule in accent colour)
+  *   4. Info bar — equation name + equation + scientist on a solid band
+- *   5. Centered "MathSonify.com" watermark pill
++ *   5. Ghosted "MathSonify.com" text, bottom-right
+  *
+  * The graph interior is never obstructed: no pill or text sits on it.
+- * The watermark pill sits in the bottom-right corner of the graph area,
++ * The watermark text sits in the bottom-right corner of the graph area,
+  * small and quiet, so the curve stays the subject.
+  */
+ 
+@@ -30,9 +30,9 @@ export interface GraphExportOptions {
+ }
+ 
+ /**
+- * Geometry of the image-export watermark pill.
++ * Geometry of the image-export watermark text.
+  *
+- * The pill sits in the BOTTOM-RIGHT corner of the graph area — never in the
++ * The text sits in the BOTTOM-RIGHT corner of the graph area — never in the
+  * middle of the curve, never over the axes. It is deliberately small
+  * (~11px font at 1x) and quiet (opacity 0.5) so the graph stays the subject
+  * and the watermark stays the signature.
+@@ -41,16 +41,14 @@ export function imageWatermarkRect(
+   exportWidth: number,
+   graphH: number,
+   scaleFactor: number,
+-): { x: number; y: number; w: number; h: number; fontSize: number; padH: number; padV: number } {
++): { x: number; y: number; w: number; h: number; fontSize: number } {
+   const fontSize = Math.round(11 * scaleFactor);
+   // Width is measured against the real font at draw time; this estimate only
+   // positions the rect for tests and for the pre-measure layout. The draw
+   // code re-measures and re-anchors to the same corner.
+   const estTextW = 'MathSonify.com'.length * fontSize * 0.58;
+-  const padH = Math.round(fontSize * 0.7);
+-  const padV = Math.round(fontSize * 0.38);
+-  const w = Math.round(estTextW + padH * 2);
+-  const h = fontSize + padV * 2 + 2;
++  const w = Math.round(estTextW);
++  const h = fontSize;
+   const margin = Math.round(16 * scaleFactor);
+   return {
+     x: exportWidth - margin - w,
+@@ -58,8 +56,6 @@ export function imageWatermarkRect(
+     w,
+     h,
+     fontSize,
+-    padH,
+-    padV,
+   };
+ }
+ 
+@@ -226,61 +222,17 @@ export async function captureCanvasAsBlob(
+     }
+   }
+ 
+-  // ── 6. Watermark — bottom-right corner of the graph area ──────────
++  // ── 6. Watermark — ghosted text, bottom-right corner of the graph area ──
+   //    Never in the middle of the curve, never over the axes: the graph
+-  //    stays the subject and the watermark stays the signature.
++  //    stays the subject and the watermark stays the signature. Faint text
++  //    only — no pill, no badge — and it never moves.
+   if (showWatermark) {
+-    const wmText = 'MathSonify.com';
+-    const wmFontSize = Math.round(11 * scaleFactor);
+-    ctx.font = `600 ${wmFontSize}px "Inter", system-ui, sans-serif`;
+-    const tw = ctx.measureText(wmText).width;
+-    const padH = Math.round(wmFontSize * 0.7);
+-    const padV = Math.round(wmFontSize * 0.38);
+-    const pillW = tw + padH * 2;
+-    const pillH = wmFontSize + padV * 2 + 2;
+-    const margin = Math.round(16 * scaleFactor);
+-    const pillX = exportWidth - margin - pillW;
+-    const pillY = graphH - margin - pillH;
+-    const pillR = pillH / 2;
+-
+-    const wmBg = isLight ? 'rgba(255,255,255,0.88)' : isDark ? 'rgba(255,255,255,0.10)' : 'rgba(27,36,48,0.62)';
+-    const wmBorder = isLight ? 'rgba(0,0,0,0.08)' : isDark ? 'rgba(255,255,255,0.14)' : 'rgba(237,231,217,0.14)';
+-    const wmTextColor = isLight ? 'rgba(0,0,0,0.58)' : isDark ? 'rgba(255,255,255,0.74)' : '#C9A24B';
+-
+-    const opacity = 0.5;
+-    ctx.globalAlpha = opacity;
+-
+-    // Shadow
+-    ctx.save();
+-    ctx.shadowColor = 'rgba(0,0,0,0.22)';
+-    ctx.shadowBlur = 14;
+-    ctx.shadowOffsetY = 4;
+-    ctx.fillStyle = wmBg;
+-    roundRect(ctx, pillX, pillY, pillW, pillH, pillR);
+-    ctx.fill();
+-    ctx.restore();
+-
+-    // Pill
+-    ctx.fillStyle = wmBg;
+-    ctx.strokeStyle = wmBorder;
+-    ctx.lineWidth = 1;
+-    roundRect(ctx, pillX, pillY, pillW, pillH, pillR);
+-    ctx.fill();
+-    ctx.globalAlpha = opacity * 0.9;
+-    ctx.stroke();
+-
+-    // Text
+-    ctx.globalAlpha = opacity;
+-    ctx.shadowColor = isLight ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.35)';
+-    ctx.shadowBlur = 3;
+-    ctx.font = `600 ${wmFontSize}px "Inter", system-ui, sans-serif`;
+-    ctx.fillStyle = wmTextColor;
+-    ctx.textBaseline = 'top';
+-    ctx.textAlign = 'left';
+-    ctx.fillText(wmText, pillX + padH, pillY + padV);
+-    ctx.shadowBlur = 0;
+-
+-    ctx.restore();
++    drawWatermark(ctx, exportWidth, graphH, {
++      position: 'bottom-right',
++      fontSize: Math.round(11 * scaleFactor),
++      opacity: 0.5,
++      padding: Math.round(16 * scaleFactor),
++    });
+   }
+ 
+   const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+@@ -313,18 +265,3 @@ export async function exportGraphAsImage(
+   document.body.removeChild(a);
+   setTimeout(() => URL.revokeObjectURL(url), 10000);
+ }
+-
+-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+-  const rad = Math.min(r, w / 2, h / 2);
+-  ctx.beginPath();
+-  ctx.moveTo(x + rad, y);
+-  ctx.lineTo(x + w - rad, y);
+-  ctx.arcTo(x + w, y, x + w, y + rad, rad);
+-  ctx.lineTo(x + w, y + h - rad);
+-  ctx.arcTo(x + w, y + h, x + w - rad, y + h, rad);
+-  ctx.lineTo(x + rad, y + h);
+-  ctx.arcTo(x, y + h, x, y + h - rad, rad);
+-  ctx.lineTo(x, y + rad);
+-  ctx.arcTo(x, y, x + rad, y, rad);
+-  ctx.closePath();
+-}
+diff --git a/SoundCurve/certain-cycle/src/utils/videoScene.test.ts b/SoundCurve/certain-cycle/src/utils/videoScene.test.ts
+index 5b6e296..a34b468 100644
+--- a/SoundCurve/certain-cycle/src/utils/videoScene.test.ts
++++ b/SoundCurve/certain-cycle/src/utils/videoScene.test.ts
+@@ -3,9 +3,9 @@
+  *
+  * These cover the claims that are easy to get wrong and hard to eyeball in a
+  * 1280x720 clip: that the ticker never jumps at its loop point, that the
+- * watermark actually reaches every bound instead of settling, that the
+- * watermark stays clear of the ticker, and that the two export modes are
+- * selected from metadata rather than from the equation text.
++ * watermark stays fixed in one place, that the watermark stays clear of the
++ * ticker, and that the two export modes are selected from metadata rather
++ * than from the equation text.
+  */
+ import test from 'node:test';
+ import assert from 'node:assert/strict';
+@@ -151,37 +151,36 @@ test('the watermark strip sits below the graph and never overlaps it', () => {
+     for (const mode of modes) {
+       const scene = sceneFor('sin(x)', mode === 'scientist' ? SCIENTIST : null, orientation);
+       const strip = scene.watermarkStrip;
+-      const pillH = 44 * scene.uiScale;
+       assert.ok(strip.y >= scene.panel.y + scene.panel.h, `${orientation}/${mode}: strip starts inside the panel`);
+       const floor = scene.ticker ? scene.ticker.top : scene.height;
+-      assert.ok(strip.y + strip.h / 2 + pillH / 2 <= floor, `${orientation}/${mode}: watermark pill reaches the ticker/bottom edge`);
+-      // Over a 6s clip the pill never leaves the strip or touches the graph.
+-      const total = totalDurationMs(6000);
+-      for (let t = 0; t <= total; t += 16) {
+-        const { x, y } = watermarkPosition(t, scene);
+-        assert.ok(
+-          x - scene.watermarkPillW / 2 >= strip.x - 1 && x + scene.watermarkPillW / 2 <= strip.x + strip.w + 1,
+-          `${orientation}/${mode}: watermark x escaped the strip at t=${t}`,
+-        );
+-        assert.ok(Math.abs(y - (strip.y + strip.h / 2)) < 1, `${orientation}/${mode}: watermark y drifted off the strip`);
+-        assert.ok(y - pillH / 2 >= scene.panel.y + scene.panel.h, `${orientation}/${mode}: watermark pill overlaps the graph at t=${t}`);
+-      }
++      assert.ok(strip.y + strip.h <= floor, `${orientation}/${mode}: watermark strip reaches the ticker/bottom edge`);
++      // Fixed at the right end of the strip: the text's right edge hugs the
++      // strip's right edge, its centre sits on the strip's midline.
++      const { x, y } = watermarkPosition(scene);
++      assert.ok(
++        Math.abs(x + scene.watermarkW / 2 - (strip.x + strip.w)) < 1,
++        `${orientation}/${mode}: watermark is not right-anchored in its strip`,
++      );
++      assert.ok(Math.abs(y - (strip.y + strip.h / 2)) < 1, `${orientation}/${mode}: watermark is not centred on its strip`);
++      assert.ok(y - 8 * scene.uiScale >= scene.panel.y + scene.panel.h, `${orientation}/${mode}: watermark overlaps the graph`);
+     }
+   }
+ });
+ 
+-test('the watermark travels across its strip during a typical 6s clip', () => {
+-  // Guards the regression where a per-frame velocity was misread as
+-  // px/second: the marker crawled a few px and never moved across the frame.
++test('the watermark never moves during a clip', () => {
++  // The owner wants it in one place: fixed at the right end of its strip.
++  // The position is a pure function of the scene — time does not enter it,
++  // so the same position comes back at every timestamp of a 6s clip.
+   const orientations: VideoOrientation[] = ['landscape', 'portrait'];
+   for (const orientation of orientations) {
+     const scene = sceneFor('sin(x)', null, orientation);
++    const first = watermarkPosition(scene);
+     const total = totalDurationMs(6000);
+-    const xs = [];
+-    for (let t = 0; t <= total; t += 16) xs.push(watermarkPosition(t, scene).x);
+-    const travelled = Math.max(...xs) - Math.min(...xs);
+-    const span = scene.watermarkStrip.w - scene.watermarkPillW;
+-    assert.ok(travelled > span * 0.4, `${orientation}: watermark only travelled ${travelled.toFixed(1)}px of a ${span.toFixed(1)}px strip in 6s`);
++    for (let t = 0; t <= total; t += 16) {
++      const p = watermarkPosition(scene);
++      assert.equal(p.x, first.x, `${orientation}: watermark x moved at t=${t}`);
++      assert.equal(p.y, first.y, `${orientation}: watermark y moved at t=${t}`);
++    }
+   }
+ });
+ 
+@@ -223,13 +222,23 @@ test('videoSize covers the four export sizes', () => {
+   assert.deepEqual(videoSize('portrait', '1080p'), { width: 1080, height: 1920 });
+ });
+ 
+-test('the static layer holds the equation label and tick numbers, never the watermark', () => {
++test('the static layer holds the equation label, tick numbers — and the fixed watermark', () => {
+   const scene = sceneFor('sin(x)', null);
+   const { ctx, texts } = recordingCtx();
+   drawStaticLayer(ctx, scene);
+   assert.ok(texts.includes('Equation: sin(x)'), `static layer missing the equation label (got ${JSON.stringify(texts)})`);
+   assert.ok(texts.some((t) => /^-?\d/.test(t)), `static layer missing tick numbers (got ${JSON.stringify(texts)})`);
+-  assert.ok(!texts.some((t) => t.includes('mathsonify.com')), 'the watermark must be dynamic, not baked into the static layer');
++  // The watermark is fixed in one place now, so it belongs in the static
++  // layer — drawn once, not repainted every frame.
++  assert.ok(texts.includes(WATERMARK_TEXT), `static layer missing the watermark (got ${JSON.stringify(texts)})`);
++});
++
++test('the watermark is drawn once per frame, from the static layer', () => {
++  const scene = sceneFor('sin(x)', null);
++  const { ctx, texts } = recordingCtx();
++  drawExportFrame(ctx, scene, INTRO_MS + 500);
++  const count = texts.filter((t) => t === WATERMARK_TEXT).length;
++  assert.equal(count, 1, `watermark drawn ${count} times in one frame (got ${JSON.stringify(texts)})`);
+ });
+ 
+ test('intro and outro cards are unchanged', () => {
+diff --git a/SoundCurve/certain-cycle/src/utils/videoScene.ts b/SoundCurve/certain-cycle/src/utils/videoScene.ts
+index eddf6f6..cf147ba 100644
+--- a/SoundCurve/certain-cycle/src/utils/videoScene.ts
++++ b/SoundCurve/certain-cycle/src/utils/videoScene.ts
+@@ -16,11 +16,12 @@
+  *     anywhere in the frame loop — that is what made the old clips stutter
+  *     (labelled 60fps, really ~28–52fps).
+  *   - The static layer (background, grid, axes, numbers, faint curve, top
+- *     labels, ticker band) is drawn ONCE into an offscreen canvas and reused;
+- *     each frame only paints the traced curve, the playhead, the scrolling
+- *     ticker text and the watermark.
+- *   - The watermark is exactly "mathsonify.com" and drifts horizontally along
+- *     a strip BELOW the graph. It never crosses the curve.
++ *     labels, ticker band, watermark) is drawn ONCE into an offscreen canvas
++ *     and reused; each frame only paints the traced curve, the playhead and
++ *     the scrolling ticker text.
++ *   - The watermark is exactly "mathsonify.com", fixed at the right end of
++ *     a strip BELOW the graph. One place, never moving — it never crosses
++ *     the curve.
+  *   - Landscape 16:9 (default) and portrait 9:16, each at 720p or 1080p.
+  *     Portrait keeps the graph out of the top 12% and bottom 20% (and the
+  *     right 14% mid-height) that Reels / Shorts / TikTok cover with buttons.
+@@ -85,7 +86,6 @@ const COLORS = {
+   tick: 'rgba(255,255,255,0.45)',
+   tickerBg: 'rgba(127,178,229,0.07)',
+   tickerBorder: 'rgba(127,178,229,0.2)',
+-  watermarkBg: 'rgba(255,255,255,0.07)',
+   watermarkAlpha: 0.55,
+ };
+ 
+@@ -130,10 +130,10 @@ export interface VideoScene {
+   panel: Rect;
+   /** Vertical centre of the top label pill ("Equation: …" / scientist name). */
+   labelY: number;
+-  /** The horizontal strip the watermark drifts along, below the graph. */
++  /** The horizontal strip below the graph the watermark sits in, fixed at its right end. */
+   watermarkStrip: Rect;
+-  /** Measured pixel width of the watermark pill (for the drift bounds). */
+-  watermarkPillW: number;
++  /** Measured pixel width of the watermark text (for the right-end anchor). */
++  watermarkW: number;
+   /** Scientist ticker band, or null in user mode. */
+   ticker: { top: number; centerY: number; height: number } | null;
+   /** Pixel width of one ticker repetition; 0 when there is no ticker. */
+@@ -245,11 +245,11 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
+ 
+   const layout = layoutFor(width, height, orientation, mode, pillH);
+ 
+-  // The watermark pill width is measured once here so the drift is a pure
+-  // function of time afterwards — no measureText inside the frame loop.
++  // The watermark text width is measured once here — the watermark is fixed,
++  // so its position is a pure function of the scene afterwards.
+   const wmFontPx = Math.round(15 * uiScale);
+   ctx.font = `500 ${wmFontPx}px "JetBrains Mono", ui-monospace, monospace`;
+-  const watermarkPillW = ctx.measureText(WATERMARK_TEXT).width + Math.round(40 * uiScale);
++  const watermarkW = ctx.measureText(WATERMARK_TEXT).width;
+ 
+   let tickerText: string | null = null;
+   let tickerPeriod = 0;
+@@ -295,7 +295,7 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
+     panel: layout.panel,
+     labelY: layout.labelY,
+     watermarkStrip: layout.watermarkStrip,
+-    watermarkPillW,
++    watermarkW,
+     ticker: layout.ticker,
+     tickerPeriod,
+     staticLayer: null,
+@@ -354,8 +354,9 @@ function pill(
+ 
+ /**
+  * Everything that never moves: pure black background, faint grid, axes and
+- * tick numbers, the faint full curve, the top label pill and (in scientist
+- * mode) the ticker band. Drawn once per scene into the static layer.
++ * tick numbers, the faint full curve, the top label pill, the watermark and
++ * (in scientist mode) the ticker band. Drawn once per scene into the static
++ * layer.
+  */
+ export function drawStaticLayer(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
+   const W = scene.width;
+@@ -387,6 +388,7 @@ export function drawStaticLayer(ctx: CanvasRenderingContext2D, scene: VideoScene
+   drawAxes(ctx, scene);
+   drawFaintCurve(ctx, scene);
+   drawTopLabels(ctx, scene);
++  drawWatermark(ctx, scene);
+   if (scene.mode === 'scientist' && scene.ticker) drawTickerBackground(ctx, scene);
+ }
+ 
+@@ -631,27 +633,25 @@ function drawTickerText(ctx: CanvasRenderingContext2D, scene: VideoScene, tMs: n
+ }
+ 
+ /**
+- * The watermark: exactly "mathsonify.com", drifting horizontally along the
+- * strip below the graph. Its y never changes, so it can never cross the
+- * curve — and it stays clear of the ticker band by construction of the strip.
++ * The watermark: exactly "mathsonify.com", fixed at the right end of the
++ * strip below the graph. One place, never moving — its y never changes, so
++ * it can never cross the curve, and it stays clear of the ticker band by
++ * construction of the strip.
+  */
+-export function watermarkPosition(tMs: number, scene: VideoScene): { x: number; y: number } {
++export function watermarkPosition(scene: VideoScene): { x: number; y: number } {
+   const strip = scene.watermarkStrip;
+-  const span = Math.max(0, strip.w - scene.watermarkPillW);
+-  const x = strip.x + scene.watermarkPillW / 2 + span * (0.5 + 0.5 * Math.sin(tMs / 2600));
+-  return { x, y: strip.y + strip.h / 2 };
++  return { x: strip.x + strip.w - scene.watermarkW / 2, y: strip.y + strip.h / 2 };
+ }
+ 
+-function drawWatermark(ctx: CanvasRenderingContext2D, scene: VideoScene, tMs: number): void {
+-  const { x, y } = watermarkPosition(tMs, scene);
++function drawWatermark(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
++  const { x, y } = watermarkPosition(scene);
+   ctx.save();
+   ctx.globalAlpha = COLORS.watermarkAlpha;
+-  pill(ctx, WATERMARK_TEXT, x, y, {
+-    font: `500 ${Math.round(15 * scene.uiScale)}px "JetBrains Mono", ui-monospace, monospace`,
+-    bg: COLORS.watermarkBg,
+-    h: Math.round(44 * scene.uiScale),
+-    padX: Math.round(20 * scene.uiScale),
+-  });
++  ctx.font = `500 ${Math.round(15 * scene.uiScale)}px "JetBrains Mono", ui-monospace, monospace`;
++  ctx.fillStyle = COLORS.text;
++  ctx.textAlign = 'center';
++  ctx.textBaseline = 'middle';
++  ctx.fillText(WATERMARK_TEXT, x, y);
+   ctx.restore();
+ }
+ 
+@@ -768,7 +768,6 @@ export function drawExportFrame(
+   drawTracedCurve(ctx, scene, progress);
+   drawPlayhead(ctx, scene, progress, tMs);
+   if (scene.mode === 'scientist') drawTickerText(ctx, scene, tMs);
+-  drawWatermark(ctx, scene, tMs);
+ }
+ 
+ /** Fraction of the panel height the padded data range occupies. */
+diff --git a/SoundCurve/certain-cycle/src/utils/watermark.ts b/SoundCurve/certain-cycle/src/utils/watermark.ts
+index a84c0fe..0802f41 100644
+--- a/SoundCurve/certain-cycle/src/utils/watermark.ts
++++ b/SoundCurve/certain-cycle/src/utils/watermark.ts
+@@ -1,28 +1,28 @@
+ /**
+  * Watermark utility for MathSonify canvas exports.
+- * Draws a simple centered "MathSonify.com" pill onto any Canvas2D context.
++ * Draws ghosted "MathSonify.com" text onto any Canvas2D context — a real
++ * watermark: faint text, no pill, no badge, no shadow. It sits in one fixed
++ * place (bottom-right by default) and never moves.
+  */
+ 
+ import { getThemeMode } from './theme';
+ 
+ export interface WatermarkOptions {
+-  /** Position of the watermark pill. Default: 'center' */
+-  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center' | 'diagonal';
+-  /** Overall opacity 0–1. Default: 0.55 */
++  /** Position of the watermark text. Default: 'bottom-right' */
++  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center';
++  /** Overall opacity 0–1. Default: 0.5 */
+   opacity?: number;
+-  /** Scale multiplier relative to canvas size. Default: auto */
+-  scale?: number;
+-  /** Override text color. Default: theme accent */
++  /** Explicit font size in px. Default: auto from the canvas size */
++  fontSize?: number;
++  /** Override text color. Default: theme-aware */
+   color?: string;
+   /** Margin from the chosen corner in px. Default: 16 */
+   padding?: number;
+-  /** Time parameter 0–1 for diagonal flow animation. Default: 0 */
+-  time?: number;
+ }
+ 
+ /**
+  * Draw the MathSonify watermark onto a canvas context.
+- * Simple centered pill with "MathSonify.com" text only.
++ * Ghosted text only — "MathSonify.com", fixed in one place.
+  */
+ export function drawWatermark(
+   ctx: CanvasRenderingContext2D,
+@@ -31,146 +31,63 @@ export function drawWatermark(
+   opts?: WatermarkOptions,
+ ): void {
+   const {
+-    position = 'center',
+-    opacity,
+-    scale,
++    position = 'bottom-right',
++    opacity = 0.5,
++    fontSize: explicitFontSize,
++    color,
+     padding = 16,
+-    time = 0,
+   } = opts ?? {};
+ 
+-  const resolvedOpacity = opacity ?? (position === 'center' ? 0.55 : 0.48);
+-
+   const theme = getThemeMode();
+   const isLight = theme === 'light';
+   const isDark = theme === 'dark';
+ 
+-  const baseFontSize = scale
+-    ? Math.round(13 * scale)
+-    : Math.max(10, Math.min(16, Math.round(Math.min(canvasWidth, canvasHeight) * 0.022)));
++  const fontSize =
++    explicitFontSize ??
++    Math.max(10, Math.min(16, Math.round(Math.min(canvasWidth, canvasHeight) * 0.022)));
+ 
+   ctx.save();
+ 
+   // Measure text
+-  ctx.font = `600 ${baseFontSize}px "Inter", system-ui, sans-serif`;
++  ctx.font = `600 ${fontSize}px "Inter", system-ui, sans-serif`;
+   const wmText = 'MathSonify.com';
+   const textWidth = ctx.measureText(wmText).width;
+ 
+-  const pillPadH = Math.round(baseFontSize * 0.7);
+-  const pillPadV = Math.round(baseFontSize * 0.38);
+-  const pillWidth = textWidth + pillPadH * 2;
+-  const pillHeight = baseFontSize + pillPadV * 2 + 2;
+-
+   let x: number;
+   let y: number;
+   switch (position) {
+-    case 'center':
+-      x = (canvasWidth - pillWidth) / 2;
+-      y = (canvasHeight - pillHeight) / 2;
+-      break;
+     case 'bottom-right':
+-      x = canvasWidth - padding - pillWidth;
+-      y = canvasHeight - padding - pillHeight;
++      x = canvasWidth - padding - textWidth;
++      y = canvasHeight - padding - fontSize;
+       break;
+     case 'bottom-left':
+       x = padding;
+-      y = canvasHeight - padding - pillHeight;
++      y = canvasHeight - padding - fontSize;
+       break;
+     case 'top-right':
+-      x = canvasWidth - padding - pillWidth;
++      x = canvasWidth - padding - textWidth;
+       y = padding;
+       break;
+     case 'top-left':
+       x = padding;
+       y = padding;
+       break;
+-    case 'diagonal':
+-      x = canvasWidth - pillWidth - 16 - time * (canvasWidth - pillWidth - 32);
+-      y = time * (canvasHeight - pillHeight - 32);
+-      break;
++    case 'center':
+     default:
+-      x = (canvasWidth - pillWidth) / 2;
+-      y = (canvasHeight - pillHeight) / 2;
++      x = (canvasWidth - textWidth) / 2;
++      y = (canvasHeight - fontSize) / 2;
+   }
+ 
+-  x = Math.max(4, Math.min(canvasWidth - pillWidth - 4, x));
+-  y = Math.max(4, Math.min(canvasHeight - pillHeight - 4, y));
++  x = Math.max(4, Math.min(canvasWidth - textWidth - 4, x));
++  y = Math.max(4, Math.min(canvasHeight - fontSize - 4, y));
+ 
+-  const pillRadius = pillHeight / 2;
+-
+-  // Drop shadow
+-  ctx.save();
+-  ctx.shadowColor = 'rgba(0,0,0,0.22)';
+-  ctx.shadowBlur = 14;
+-  ctx.shadowOffsetY = 4;
+-  const shadowBg = isLight
+-    ? 'rgba(255,255,255,0.82)'
+-    : isDark
+-      ? 'rgba(255,255,255,0.10)'
+-      : 'rgba(27,36,48,0.58)';
+-  ctx.fillStyle = shadowBg;
+-  ctx.globalAlpha = resolvedOpacity;
+-  roundRect(ctx, x, y, pillWidth, pillHeight, pillRadius);
+-  ctx.fill();
+-  ctx.restore();
+-
+-  // Pill background
+-  ctx.globalAlpha = resolvedOpacity;
+-  const pillBg = isLight
+-    ? 'rgba(255,255,255,0.88)'
+-    : isDark
+-      ? 'rgba(255,255,255,0.10)'
+-      : 'rgba(27,36,48,0.62)';
+-  ctx.fillStyle = pillBg;
+-  ctx.strokeStyle = isLight
+-    ? 'rgba(0,0,0,0.08)'
+-    : isDark
+-      ? 'rgba(255,255,255,0.14)'
+-      : 'rgba(237,231,217,0.14)';
+-  ctx.lineWidth = 1;
+-  roundRect(ctx, x, y, pillWidth, pillHeight, pillRadius);
+-  ctx.fill();
+-  ctx.globalAlpha = resolvedOpacity * 0.9;
+-  ctx.stroke();
+-
+-  // "MathSonify.com" text only
+-  ctx.globalAlpha = resolvedOpacity;
+-  ctx.shadowColor = 'transparent';
+-  ctx.shadowBlur = 0;
+-  ctx.font = `600 ${baseFontSize}px "Inter", system-ui, sans-serif`;
+-  ctx.fillStyle = isLight
+-    ? 'rgba(0,0,0,0.58)'
+-    : isDark
+-      ? 'rgba(255,255,255,0.74)'
+-      : '#C9A24B';
++  // Ghosted text only — no pill, no border, no shadow.
++  ctx.globalAlpha = opacity;
++  ctx.fillStyle =
++    color ?? (isLight ? 'rgba(0,0,0,0.58)' : isDark ? 'rgba(255,255,255,0.74)' : '#C9A24B');
+   ctx.textBaseline = 'top';
+   ctx.textAlign = 'left';
+-  ctx.shadowColor = isLight ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.35)';
+-  ctx.shadowBlur = 3;
+-  ctx.fillText(wmText, x + pillPadH, y + pillPadV);
+-  ctx.shadowBlur = 0;
++  ctx.fillText(wmText, x, y);
+ 
+   ctx.restore();
+ }
+-
+-/** Draw a rounded rectangle path (no fill/stroke). */
+-function roundRect(
+-  ctx: CanvasRenderingContext2D,
+-  x: number,
+-  y: number,
+-  w: number,
+-  h: number,
+-  r: number,
+-): void {
+-  const radius = Math.min(r, w / 2, h / 2);
+-  ctx.beginPath();
+-  ctx.moveTo(x + radius, y);
+-  ctx.lineTo(x + w - radius, y);
+-  ctx.arcTo(x + w, y, x + w, y + radius, radius);
+-  ctx.lineTo(x + w, y + h - radius);
+-  ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
+-  ctx.lineTo(x + radius, y + h);
+-  ctx.arcTo(x, y + h, x, y + h - radius, radius);
+-  ctx.lineTo(x, y + radius);
+-  ctx.arcTo(x, y, x + radius, y, radius);
+-  ctx.closePath();
+-}
