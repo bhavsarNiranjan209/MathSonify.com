@@ -67,8 +67,8 @@ export const AUDIO_CODEC = 'mp4a.40.2';
 /** Samples per AAC frame — the chunk size the audio encoder is fed in. */
 export const AAC_FRAME_SAMPLES = 1024;
 
-/** Audio bitrate for the exported clip. */
-export const AUDIO_BITRATE = 128_000;
+/** Audio bitrate for the exported clip (v22: raised from 128k for clearer sound). */
+export const AUDIO_BITRATE = 192_000;
 
 /**
  * How many frames a clip of `totalMs` holds at `fps`. The last frame is
@@ -323,6 +323,7 @@ export async function exportVideoOffline(
   const scene: VideoScene = prepareVideoScene({
     ctx,
     equation,
+    equationName,
     curve,
     minX,
     maxX,

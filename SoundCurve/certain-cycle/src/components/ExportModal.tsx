@@ -31,7 +31,7 @@ function loadVideoPrefs(): { orientation: VideoOrientation; quality: VideoQualit
     const parsed = JSON.parse(raw) as { orientation?: unknown; quality?: unknown; colorTheme?: unknown };
     return {
       orientation: parsed.orientation === 'portrait' ? 'portrait' : 'landscape',
-      quality: parsed.quality === '1080p' ? '1080p' : '720p',
+      quality: parsed.quality === '1080p' ? '1080p' : parsed.quality === '480p' ? '480p' : '720p',
       colorTheme: isVideoColorTheme(parsed.colorTheme) ? parsed.colorTheme : 'white',
     };
   } catch {
@@ -156,6 +156,7 @@ export default function ExportModal() {
         scientistName: s.activeScientist?.name ?? undefined,
         scientist: s.activeScientist,
         colorTheme: videoPrefs.colorTheme,
+        orientation: videoOrientation,
         minX: s.minX,
         maxX: s.maxX,
         isCustomCurve: s.isCustomCurve,
@@ -301,6 +302,35 @@ export default function ExportModal() {
       ? `${videoExtensionForMimeType(videoMime).toUpperCase()} · ${videoMime.includes('mp4') ? 'H.264' : 'VP9'} · ${videoQuality}60`
       : 'unavailable';
   const videoResolutionLabel = `${videoDims.width} × ${videoDims.height} @ 60fps`;
+
+  // Orientation picker (v22), shared by the image and video tabs: one
+  // choice, one stored preference, both exports in the same shape — so a
+  // portrait pick really is a portrait file, in either format.
+  const orientationPicker = (
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-sc-text-soft">Orientation</span>
+      <div className="flex rounded-full p-0.5 gap-0.5" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)' }}>
+        {([
+          { id: 'landscape' as const, label: 'Landscape 16:9' },
+          { id: 'portrait' as const, label: 'Portrait 9:16' },
+        ]).map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => setVideoPrefs((p) => ({ ...p, orientation: opt.id }))}
+            className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px]"
+            style={{
+              background: videoOrientation === opt.id ? 'var(--sc-accent)' : 'transparent',
+              color: videoOrientation === opt.id ? 'var(--sc-on-accent)' : 'var(--sc-text-faint)',
+              boxShadow: videoOrientation === opt.id ? '0 0 10px -2px rgba(var(--sc-accent)/0.35)' : 'none',
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   // Curve colour picker (v21b), shared by the image and video tabs: one
   // choice, one stored preference, both exports in the same colour.
@@ -550,39 +580,18 @@ export default function ExportModal() {
               </div>
             </div>
             <p className="text-[11px] text-sc-text-faint">Est. file size: <span className="font-mono text-sc-text-soft">{imageSizeLabel}</span> · 2× retina · includes MathSonify.com watermark</p>
+            {orientationPicker}
             {colourPicker}
           </div>
         )}
 
         {exportType === 'video' && (
           <div className="relative space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-sc-text-soft">Orientation</span>
-              <div className="flex rounded-full p-0.5 gap-0.5" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)' }}>
-                {([
-                  { id: 'landscape' as const, label: 'Landscape 16:9' },
-                  { id: 'portrait' as const, label: 'Portrait 9:16' },
-                ]).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setVideoPrefs((p) => ({ ...p, orientation: opt.id }))}
-                    className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px]"
-                    style={{
-                      background: videoOrientation === opt.id ? 'var(--sc-accent)' : 'transparent',
-                      color: videoOrientation === opt.id ? 'var(--sc-on-accent)' : 'var(--sc-text-faint)',
-                      boxShadow: videoOrientation === opt.id ? '0 0 10px -2px rgba(var(--sc-accent)/0.35)' : 'none',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {orientationPicker}
             <div className="flex items-center justify-between">
               <span className="text-xs text-sc-text-soft">Quality</span>
               <div className="flex rounded-full p-0.5 gap-0.5" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)' }}>
-                {(['720p', '1080p'] as const).map((q) => (
+                {(['480p', '720p', '1080p'] as const).map((q) => (
                   <button
                     key={q}
                     type="button"

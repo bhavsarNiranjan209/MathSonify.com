@@ -18,6 +18,7 @@ import StudioErrorBoundary from './Studio/StudioErrorBoundary';
 import { getEquationOfTheDay } from '../lib/equationOfTheDay';
 import { sortPresets, type EquationPreset } from '../data/presets';
 import { parseEquation } from '../utils/equationParser';
+import { parseBoundParam } from '../utils/studioUrlParams';
 
 // The 3D viewer is no longer dev-only: it is a mode of the shared GraphPanel and
 // ships to real users. The old `Curve3DDevPanel` harness has been retired — the
@@ -114,8 +115,10 @@ function StudioInner() {
     if (instParam) setInstrument(instParam as InstrumentType);
     if (modeParam) setSonificationMode(modeParam as SonificationMode);
     if (durParam) setDuration(parseInt(durParam) || 4);
-    if (minXParam) setMinX(parseFloat(minXParam) || -6.28);
-    if (maxXParam) setMaxX(parseFloat(maxXParam) || 6.28);
+    const parsedMinX = parseBoundParam(minXParam, -6.28);
+    if (parsedMinX !== null) setMinX(parsedMinX);
+    const parsedMaxX = parseBoundParam(maxXParam, 6.28);
+    if (parsedMaxX !== null) setMaxX(parsedMaxX);
 
     // Restore active scientist context from URL (survives reload / link)
     const sciParam = urlParams.get('sci');

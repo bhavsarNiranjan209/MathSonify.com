@@ -1,32 +1,36 @@
 /**
  * Graph image export for MathSonify.
  *
- * Layout — top to bottom, strictly in order:
- *   1. Graph — rendered through the shared video scene (v21b): pure black
+ * Layout (v22) — top to bottom, strictly in order, the same as the video:
+ *   1. Scientist name (scientist equations only)
+ *   2. Equation name (or the formula itself when the equation has no name)
+ *   3. Graph — rendered through the shared video scene: pure black
  *      background with no grid, solid white axes with arrowheads, small grey
- *      tick numbers, and the full curve in the chosen theme colour. This is
- *      the same look as the video export, so image and video match. If the
- *      scene cannot be built (missing curve inputs, or an equation that
- *      produces no valid values) it falls back to the live-canvas capture:
- *      gradient background + subtle grid + the Studio canvas as-is.
- *   2. Blank accent line (thin horizontal rule in accent colour)
- *   3. Info bar — equation name + equation + scientist on a solid band
- *   4. Ghosted "MathSonify.com" text, bottom-right
+ *      tick numbers, and the full curve in the chosen theme colour. The
+ *      graph sits in the middle of the frame, smaller than before, with
+ *      blank black space around it — it no longer covers the whole image.
+ *   4. Equation — "f(x) = …" at the bottom middle, in the theme colour,
+ *      in a free italic serif
+ *   5. Ghosted "MathSonify.com" text, centred just below the equation
  *
  * The graph interior is never obstructed: no pill or text sits on it.
- * The watermark text sits in the bottom-right corner of the graph area,
- * small and quiet, so the curve stays the subject.
+ * If the scene cannot be built (missing curve inputs, or an equation that
+ * produces no valid values) it falls back to the live-canvas capture:
+ * gradient background + subtle grid + the Studio canvas as-is, with the
+ * name / equation / watermark drawn in the same positions.
  */
 
-import { drawWatermark } from './watermark';
 import { getThemeMode, getCanvasPalette } from './theme';
 import { resolveActiveCurve } from './activeCurve';
 import {
   prepareVideoScene,
   drawExportGraph,
+  layoutFor,
   isVideoColorTheme,
   DEFAULT_VIDEO_COLOR_THEME,
+  videoColorThemeHex,
   type VideoColorTheme,
+  type VideoOrientation,
 } from './videoScene';
 import type { SplineControlPoint } from './curveSpline';
 import type { Scientist } from '../data/scientists';
@@ -46,6 +50,8 @@ export interface GraphExportOptions {
   colorTheme?: VideoColorTheme;
   /** Full scientist record when the equation came from the library. */
   scientist?: Scientist | null;
+  /** Landscape (default) or portrait — the file really is that shape. */
+  orientation?: VideoOrientation;
   /** Live domain, so the scene renders the same curve as the Studio. */
   minX?: number;
   maxX?: number;
@@ -57,39 +63,27 @@ export interface GraphExportOptions {
 }
 
 /**
- * Geometry of the image-export watermark text.
- *
- * The text sits in the BOTTOM-RIGHT corner of the graph area — never in the
- * middle of the curve, never over the axes. It is deliberately small
- * (~11px font at 1x) and quiet (opacity 0.5) so the graph stays the subject
- * and the watermark stays the signature.
+ * Output size of the image export, from the live canvas size and the
+ * chosen orientation. The long side of the display becomes the long side of
+ * the file, so a portrait pick really is a portrait file and a landscape
+ * pick really is landscape — whatever shape the Studio canvas happens to be.
  */
-export function imageWatermarkRect(
-  exportWidth: number,
-  graphH: number,
+export function imageExportSize(
+  displayWidth: number,
+  displayHeight: number,
   scaleFactor: number,
-): { x: number; y: number; w: number; h: number; fontSize: number } {
-  const fontSize = Math.round(11 * scaleFactor);
-  // Width is measured against the real font at draw time; this estimate only
-  // positions the rect for tests and for the pre-measure layout. The draw
-  // code re-measures and re-anchors to the same corner.
-  const estTextW = 'MathSonify.com'.length * fontSize * 0.58;
-  const w = Math.round(estTextW);
-  const h = fontSize;
-  const margin = Math.round(16 * scaleFactor);
-  return {
-    x: exportWidth - margin - w,
-    y: graphH - margin - h,
-    w,
-    h,
-    fontSize,
-  };
+  orientation: VideoOrientation,
+): { exportWidth: number; graphH: number } {
+  const longSide = Math.round(Math.max(displayWidth, displayHeight) * scaleFactor);
+  const shortSide = Math.round(Math.min(displayWidth, displayHeight) * scaleFactor);
+  if (orientation === 'portrait') return { exportWidth: shortSide, graphH: longSide };
+  return { exportWidth: longSide, graphH: shortSide };
 }
 
 /**
- * Renders the graph through the shared video scene (v21b) — the same look as
- * the video export: pure black, no grid, white axes with arrowheads, small
- * grey tick numbers, and the full curve in the chosen theme colour.
+ * Renders the graph through the shared video scene (v22) — the same look as
+ * the video export, including the top names, the bottom equation and the
+ * watermark, so image and video match exactly.
  *
  * Returns false when the scene cannot be built (the caller did not pass the
  * curve inputs, or the equation produces no valid values) so the caller falls
@@ -110,6 +104,8 @@ function renderGraphViaScene(
     scientist,
     scientistName,
     equationText,
+    equationName,
+    orientation,
     duration,
   } = opts;
   if (minX === undefined || maxX === undefined || !equationText) return false;
@@ -124,29 +120,68 @@ function renderGraphViaScene(
     const scene = prepareVideoScene({
       ctx,
       equation: equationText,
+      equationName: equationName ?? null,
       curve,
       minX,
       maxX,
       mainMs: (duration ?? 5) * 1000,
       scientist: scientist ?? null,
       scientistName: scientistName ?? null,
+      orientation: orientation ?? 'landscape',
       colorTheme: isVideoColorTheme(colorTheme) ? colorTheme : DEFAULT_VIDEO_COLOR_THEME,
       width: exportWidth,
       height: graphH,
-      // Fuller-bleed than the video layout: the image has no top pill or
-      // watermark strip inside the graph area, so the graph fills it.
-      panel: {
-        x: 0.04 * exportWidth,
-        y: 0.05 * graphH,
-        w: 0.92 * exportWidth,
-        h: 0.84 * graphH,
-      },
+      // No panel override: the image uses the video layout (centred graph
+      // with space around it), so image and video match.
     });
     drawExportGraph(ctx, scene);
     return true;
   } catch {
     return false;
   }
+}
+
+/**
+ * The name / equation / watermark for the fallback path (the scene could
+ * not be built, so the live canvas is drawn instead). Same positions as the
+ * video layout, so the fallback carries the same labels.
+ */
+function drawFallbackLabels(
+  ctx: CanvasRenderingContext2D,
+  opts: GraphExportOptions,
+  exportWidth: number,
+  graphH: number,
+): void {
+  const { equationText, equationName, scientistName, scientist, orientation, colorTheme } = opts;
+  const mode = scientist || scientistName ? 'scientist' : 'user';
+  const layout = layoutFor(exportWidth, graphH, orientation ?? 'landscape', mode);
+  const uiScale = Math.min(exportWidth, graphH) / 720;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (mode === 'scientist' && scientistName && layout.scientistNameY !== null) {
+    ctx.font = `italic 500 ${Math.round(22 * uiScale)}px "Instrument Serif", Georgia, serif`;
+    ctx.fillStyle = '#DCEBFB';
+    ctx.fillText(scientistName, exportWidth / 2, layout.scientistNameY);
+  }
+  const title = equationName ?? equationText ?? '';
+  if (title) {
+    ctx.font = `700 ${Math.round(28 * uiScale)}px "Fraunces", Georgia, serif`;
+    ctx.fillStyle = '#F5F5F2';
+    ctx.fillText(title, exportWidth / 2, layout.equationNameY);
+  }
+  if (equationText) {
+    ctx.font = `italic 400 ${Math.round(34 * uiScale)}px "Instrument Serif", Georgia, serif`;
+    ctx.fillStyle = videoColorThemeHex(
+      isVideoColorTheme(colorTheme) ? colorTheme : DEFAULT_VIDEO_COLOR_THEME,
+    );
+    ctx.fillText(`f(x) = ${equationText.trim()}`, exportWidth / 2, layout.equationY);
+  }
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.font = `500 ${Math.round(15 * uiScale)}px "JetBrains Mono", ui-monospace, monospace`;
+  ctx.fillStyle = '#F5F5F2';
+  ctx.fillText('mathsonify.com', exportWidth / 2, layout.watermarkY);
+  ctx.restore();
 }
 
 export async function captureCanvasAsBlob(
@@ -158,9 +193,7 @@ export async function captureCanvasAsBlob(
     watermark: showWatermark = true,
     scaleFactor = 2,
     canvasSelector = '[data-export-canvas]',
-    equationText,
-    equationName,
-    scientistName,
+    orientation = 'landscape',
   } = opts ?? {};
 
   const sourceCanvas = document.querySelector<HTMLCanvasElement>(canvasSelector);
@@ -169,13 +202,10 @@ export async function captureCanvasAsBlob(
   const displayWidth = sourceCanvas.getBoundingClientRect().width;
   const displayHeight = sourceCanvas.getBoundingClientRect().height;
 
-  // Extra height reserved below the graph for the info bar (when present).
-  const hasInfo = !!(equationName || equationText || scientistName);
-  const infoBarH_px = hasInfo ? Math.round(64 * scaleFactor) : 0;
-  const accentLineH_px = hasInfo ? Math.max(1, Math.round(3 * scaleFactor)) : 0;
-
-  const exportWidth = Math.round(displayWidth * scaleFactor);
-  const exportHeight = Math.round(displayHeight * scaleFactor) + infoBarH_px + accentLineH_px;
+  // v22: one graph area, no info bar. The size follows the chosen
+  // orientation, so a portrait pick really is a portrait file.
+  const { exportWidth, graphH } = imageExportSize(displayWidth, displayHeight, scaleFactor, orientation);
+  const exportHeight = graphH;
 
   const offscreen = document.createElement('canvas');
   offscreen.width = exportWidth;
@@ -192,15 +222,16 @@ export async function captureCanvasAsBlob(
   const isLight = theme === 'light';
   const isDark = theme === 'dark';
 
-  const graphH = Math.round(displayHeight * scaleFactor);
-
-  // ── 1. Graph ───────────────────────────────────────────────────────
-  // v21b: render through the shared video scene (pure black, no grid, white
-  // axes + arrowheads, theme curve) — the same look as the video export.
-  // Falls back to the live-canvas capture when the scene cannot be built.
+  // ── Graph ───────────────────────────────────────────────────────
+  // v22: render through the shared video scene (pure black, no grid, white
+  // axes + arrowheads, theme curve, centred graph, name at top, equation
+  // at the bottom middle, watermark below it) — the same look as the video
+  // export. Falls back to the live-canvas capture when the scene cannot be
+  // built.
   const graphRendered = renderGraphViaScene(ctx, opts ?? {}, exportWidth, graphH);
   if (!graphRendered) {
-    // Legacy path: gradient background + subtle grid + the live canvas.
+    // Legacy path: gradient background + subtle grid + the live canvas,
+    // with the name / equation / watermark drawn in the v22 positions.
     const gradient = ctx.createLinearGradient(0, 0, 0, exportHeight);
     if (isDark) {
       gradient.addColorStop(0, '#0E1216');
@@ -241,95 +272,8 @@ export async function captureCanvasAsBlob(
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(sourceCanvas, 0, 0, displayWidth, displayHeight);
     ctx.restore();
-  }
 
-  // ── 4. Accent line — thin rule separating graph from info bar ─────
-  if (hasInfo) {
-    const accentColour = isDark ? '#FFFFFF' : isLight ? '#000000' : '#C9A24B';
-    ctx.fillStyle = accentColour;
-    ctx.fillRect(0, graphH, exportWidth, accentLineH_px);
-  }
-
-  // ── 5. Info bar below the graph ──────────────────────────────────
-  //    Row: [Equation name  •  equation  —  by Scientist]
-  //    Nothing is drawn inside the graph itself.
-  if (hasInfo) {
-    const barTop = graphH + accentLineH_px;
-    const barBg = isLight
-      ? '#0F0F0F'
-      : isDark
-        ? '#1A1D20'
-        : '#111827';
-    ctx.fillStyle = barBg;
-    ctx.fillRect(0, barTop, exportWidth, infoBarH_px);
-
-    // Compose single-row text: "Name  ·  equation  —  by Founder"
-    // Fall back to whatever pieces are available.
-    const parts: { text: string; font: string; color: string }[] = [];
-    const accentCol = isDark ? '#E8E8E6' : isLight ? '#FFFFFF' : '#C9A24B';
-    const mutedCol  = isDark ? 'rgba(242,242,240,0.65)' : isLight ? 'rgba(255,255,255,0.62)' : 'rgba(237,231,217,0.62)';
-    const eqCol     = isDark ? '#FFFFFF' : '#FFFFFF';
-
-    const nameFs = Math.round(11 * scaleFactor);
-    const eqFs   = Math.round(13 * scaleFactor);
-
-    if (equationName) {
-      parts.push({ text: equationName, font: `700 ${nameFs}px "Fraunces", serif`, color: accentCol });
-    }
-    if (equationText) {
-      if (parts.length) parts.push({ text: '  ·  ', font: `400 ${nameFs}px "Inter", sans-serif`, color: mutedCol });
-      parts.push({ text: equationText, font: `600 ${eqFs}px "JetBrains Mono", monospace`, color: eqCol });
-    }
-    if (scientistName) {
-      parts.push({ text: `  —  by ${scientistName}`, font: `400 ${nameFs}px "Inter", sans-serif`, color: mutedCol });
-    }
-
-    // Measure total width so we can center the row
-    let totalW = 0;
-    for (const p of parts) {
-      ctx.font = p.font;
-      totalW += ctx.measureText(p.text).width;
-    }
-    // If too wide, truncate equation text
-    if (totalW > exportWidth - 24 * scaleFactor) {
-      // Truncate the equation piece to fit
-      const eqIdx = parts.findIndex((p) => p.font.includes('JetBrains'));
-      if (eqIdx !== -1) {
-        const available = exportWidth - 24 * scaleFactor - (totalW - ctx.measureText(parts[eqIdx].text).width);
-        let t = parts[eqIdx].text;
-        ctx.font = parts[eqIdx].font;
-        while (t.length > 1 && ctx.measureText(t + '…').width > available) t = t.slice(0, -1);
-        parts[eqIdx].text = t + (t.length < (equationText?.length ?? 0) ? '…' : '');
-        totalW = 0;
-        for (const p of parts) { ctx.font = p.font; totalW += ctx.measureText(p.text).width; }
-      }
-    }
-
-    let cx = (exportWidth - totalW) / 2;
-    const cy = barTop + infoBarH_px / 2;
-    ctx.textBaseline = 'middle';
-    for (const p of parts) {
-      ctx.font = p.font;
-      ctx.fillStyle = p.color;
-      ctx.textAlign = 'left';
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-      ctx.fillText(p.text, cx, cy);
-      cx += ctx.measureText(p.text).width;
-    }
-  }
-
-  // ── 6. Watermark — ghosted text, bottom-right corner of the graph area ──
-  //    Never in the middle of the curve, never over the axes: the graph
-  //    stays the subject and the watermark stays the signature. Faint text
-  //    only — no pill, no badge — and it never moves.
-  if (showWatermark) {
-    drawWatermark(ctx, exportWidth, graphH, {
-      position: 'bottom-right',
-      fontSize: Math.round(11 * scaleFactor),
-      opacity: 0.5,
-      padding: Math.round(16 * scaleFactor),
-    });
+    if (showWatermark) drawFallbackLabels(ctx, opts ?? {}, exportWidth, graphH);
   }
 
   const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
@@ -352,7 +296,8 @@ export async function exportGraphAsImage(
   });
   const sanitized = equation.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
   const fmt = opts?.format ?? 'png';
-  const filename = `mathsonify.com-graph-${sanitized}.${fmt}`;
+  const suffix = opts?.orientation === 'portrait' ? '-portrait' : '';
+  const filename = `mathsonify.com-graph-${sanitized}${suffix}.${fmt}`;
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

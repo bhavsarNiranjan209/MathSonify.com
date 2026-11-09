@@ -53,7 +53,7 @@ export interface VideoExportOptions {
   speed?: number;
   /** Landscape 16:9 (default) or portrait 9:16 for Reels / Shorts / TikTok. */
   orientation?: VideoOrientation;
-  /** 720p (default) or 1080p. */
+  /** 480p, 720p (default) or 1080p. */
   quality?: VideoQuality;
   /** Curve colour (v21b). White is the black-and-white look; unknown falls back to white. */
   colorTheme?: VideoColorTheme;
@@ -73,12 +73,14 @@ export function targetBitrate(width: number, height: number): number {
 }
 
 /**
- * The bitrate actually used for an export: 8 Mbps at 720p, 14 Mbps at 1080p.
- * The old export used 2.5 Mbps at 720p, which is what made the large flat
- * dark regions quantise into visible blocks.
+ * The bitrate actually used for an export: 4 Mbps at 480p, 8 Mbps at 720p,
+ * 14 Mbps at 1080p. The old export used 2.5 Mbps at 720p, which is what
+ * made the large flat dark regions quantise into visible blocks.
  */
 export function videoBitrateForQuality(quality: VideoQuality): number {
-  return quality === '1080p' ? 14_000_000 : 8_000_000;
+  if (quality === '1080p') return 14_000_000;
+  if (quality === '480p') return 4_000_000;
+  return 8_000_000;
 }
 
 /**
@@ -232,6 +234,7 @@ export async function exportEquationVideo(
   const scene: VideoScene = prepareVideoScene({
     ctx,
     equation,
+    equationName,
     curve,
     minX,
     maxX,

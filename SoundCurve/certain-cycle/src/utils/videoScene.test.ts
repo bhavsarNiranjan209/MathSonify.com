@@ -12,7 +12,6 @@ import assert from 'node:assert/strict';
 
 import {
   bouncePosition,
-  tickerOffset,
   watermarkPosition,
   prepareVideoScene,
   phaseAt,
@@ -20,6 +19,8 @@ import {
   drawStaticLayer,
   drawExportGraph,
   arrowheadPoints,
+  equationDisplay,
+  layoutFor,
   totalDurationMs,
   videoSize,
   WATERMARK_TEXT,
@@ -64,51 +65,7 @@ const SCIENTIST = {
   equations: [],
 };
 
-/* ── ticker: seamless loop ───────────────────────────────────────── */
-
-test('tickerOffset stays inside [0, period) and never jumps', () => {
-  const period = 640;
-  const dtSec = 1 / FPS;          // seconds between frames
-  const dtMs = dtSec * 1000;      // the loop's timestamp step
-  const maxStep = 66 * dtSec + 1e-6; // 66 px/s
-  let prev = tickerOffset(0, period);
-  for (let t = dtMs; t < 60_000; t += dtMs) {
-    const cur = tickerOffset(t, period);
-    assert.ok(cur >= 0 && cur < period, `offset ${cur} out of range at t=${t}`);
-
-    // `tickerOffset` returns how far the tile has advanced; the strip is drawn
-    // at x = -offset, so the offset GROWS steadily as the strip scrolls left.
-    // A normal step therefore makes `backward` (cur - prev) a small positive
-    // number equal to one frame's drift. At the wrap it returns from ~period
-    // to ~0, making `backward` large and NEGATIVE, of magnitude
-    // (period - step). Anything else would mean a skipped tile / visible seam.
-    const backward = cur - prev;
-    // A tiny tolerance absorbs float drift: the wrap lands exactly on
-    // -(period - step), but accumulated 1/60s float error can push it a few
-    // ulps past the bound.
-    const isNormalStep = backward >= -1e-6 && backward <= maxStep + 1e-6;
-    const isWrap = backward < -1e-6 && backward >= -(period - maxStep) - 1e-3;
-    assert.ok(
-      isNormalStep || isWrap,
-      `discontinuity at t=${t}: ${backward.toFixed(3)}px (step ${maxStep.toFixed(3)}, period ${period})`,
-    );
-    prev = cur;
-  }
-});
-
-test('ticker offset is periodic and drift is constant', () => {
-  const period = 500;
-  const oneTileMs = (period / 66) * 1000; // 66 px/s
-  assert.ok(Math.abs(tickerOffset(oneTileMs, period) - 0) < 1e-6);
-  const half = tickerOffset(oneTileMs / 2, period);
-  assert.ok(Math.abs(half - period / 2) < 1e-6, `expected ${period / 2}, got ${half}`);
-});
-
-test('tickerOffset degrades safely when there is no ticker', () => {
-  assert.equal(tickerOffset(1234, 0), 0);
-});
-
-/* ── watermark: true bounce, every edge, no ticker overlap ─────────── */
+/* ── watermark: the domain, below the equation, never on the curve ─── */
 
 test('bouncePosition is continuous and reflects at both bounds', () => {
   const lo = 70;
@@ -151,25 +108,24 @@ test('the watermark text is exactly "mathsonify.com"', () => {
   }
 });
 
-test('the watermark strip sits below the graph and never overlaps it', () => {
+test('the watermark sits centred below the equation, never on the graph', () => {
+  // v22: the watermark is centred just below the bottom equation — not
+  // right-anchored in a strip, and never overlapping the graph.
   const orientations: VideoOrientation[] = ['landscape', 'portrait'];
   const modes: ExportMode[] = ['user', 'scientist'];
   for (const orientation of orientations) {
     for (const mode of modes) {
       const scene = sceneFor('sin(x)', mode === 'scientist' ? SCIENTIST : null, orientation);
-      const strip = scene.watermarkStrip;
-      assert.ok(strip.y >= scene.panel.y + scene.panel.h, `${orientation}/${mode}: strip starts inside the panel`);
-      const floor = scene.ticker ? scene.ticker.top : scene.height;
-      assert.ok(strip.y + strip.h <= floor, `${orientation}/${mode}: watermark strip reaches the ticker/bottom edge`);
-      // Fixed at the right end of the strip: the text's right edge hugs the
-      // strip's right edge, its centre sits on the strip's midline.
+      // Order down the frame: name(s), then the graph, then the equation,
+      // then the watermark.
+      assert.ok(scene.watermarkY > scene.equationY, `${orientation}/${mode}: watermark is not below the equation`);
+      assert.ok(scene.equationY > scene.panel.y + scene.panel.h, `${orientation}/${mode}: equation sits inside the graph`);
+      assert.ok(scene.watermarkY > scene.panel.y + scene.panel.h, `${orientation}/${mode}: watermark overlaps the graph`);
+      assert.ok(scene.watermarkY < scene.height, `${orientation}/${mode}: watermark runs off the bottom of the frame`);
+      // Centred: the watermark's x is the frame's midpoint.
       const { x, y } = watermarkPosition(scene);
-      assert.ok(
-        Math.abs(x + scene.watermarkW / 2 - (strip.x + strip.w)) < 1,
-        `${orientation}/${mode}: watermark is not right-anchored in its strip`,
-      );
-      assert.ok(Math.abs(y - (strip.y + strip.h / 2)) < 1, `${orientation}/${mode}: watermark is not centred on its strip`);
-      assert.ok(y - 8 * scene.uiScale >= scene.panel.y + scene.panel.h, `${orientation}/${mode}: watermark overlaps the graph`);
+      assert.ok(Math.abs(x - scene.width / 2) < 1, `${orientation}/${mode}: watermark is not centred`);
+      assert.ok(Math.abs(y - scene.watermarkY) < 1, `${orientation}/${mode}: watermark is not on its line`);
     }
   }
 });
@@ -200,12 +156,9 @@ test('portrait keeps the graph out of the phone safe zones', () => {
     assert.ok(p.y >= SAFE_TOP * scene.height, `${mode}: graph starts inside the top safe zone`);
     assert.ok(p.y + p.h <= (1 - SAFE_BOTTOM) * scene.height, `${mode}: graph runs into the bottom safe zone`);
     assert.ok(p.x + p.w <= (1 - SAFE_RIGHT) * scene.width, `${mode}: graph runs into the right safe zone`);
-    assert.ok(scene.labelY >= SAFE_TOP * scene.height, `${mode}: label pill inside the top safe zone`);
-    const strip = scene.watermarkStrip;
-    assert.ok(strip.y + strip.h <= (1 - SAFE_BOTTOM) * scene.height, `${mode}: watermark strip inside the bottom safe zone`);
-    if (scene.ticker) {
-      assert.ok(scene.ticker.top + scene.ticker.height <= (1 - SAFE_BOTTOM) * scene.height, `${mode}: ticker inside the bottom safe zone`);
-    }
+    assert.ok(scene.equationNameY >= SAFE_TOP * scene.height, `${mode}: equation name inside the top safe zone`);
+    assert.ok(scene.equationY <= (1 - SAFE_BOTTOM) * scene.height, `${mode}: equation inside the bottom safe zone`);
+    assert.ok(scene.watermarkY <= (1 - SAFE_BOTTOM) * scene.height, `${mode}: watermark inside the bottom safe zone`);
   }
 });
 
@@ -222,19 +175,25 @@ test('tick numbers are about 2.7% of the short side', () => {
   }
 });
 
-test('videoSize covers the four export sizes', () => {
+test('videoSize covers the export sizes, including 480p', () => {
+  assert.deepEqual(videoSize('landscape', '480p'), { width: 854, height: 480 });
   assert.deepEqual(videoSize('landscape', '720p'), { width: 1280, height: 720 });
   assert.deepEqual(videoSize('landscape', '1080p'), { width: 1920, height: 1080 });
+  assert.deepEqual(videoSize('portrait', '480p'), { width: 480, height: 854 });
   assert.deepEqual(videoSize('portrait', '720p'), { width: 720, height: 1280 });
   assert.deepEqual(videoSize('portrait', '1080p'), { width: 1080, height: 1920 });
 });
 
-test('the static layer holds the equation label, tick numbers — and the fixed watermark', () => {
+test('the static layer holds the top name, tick numbers, bottom equation — and the fixed watermark', () => {
+  // v22: the top line is the equation (no name for a user-typed equation),
+  // the bottom line is "f(x) = …" in the theme colour, and the watermark
+  // sits centred just below it.
   const scene = sceneFor('sin(x)', null);
   const { ctx, texts } = recordingCtx();
   drawStaticLayer(ctx, scene);
-  assert.ok(texts.includes('Equation: sin(x)'), `static layer missing the equation label (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes('sin(x)'), `static layer missing the top title (got ${JSON.stringify(texts)})`);
   assert.ok(texts.some((t) => /^-?\d/.test(t)), `static layer missing tick numbers (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes('f(x) = sin(x)'), `static layer missing the bottom equation (got ${JSON.stringify(texts)})`);
   // The watermark is fixed in one place now, so it belongs in the static
   // layer — drawn once, not repainted every frame.
   assert.ok(texts.includes(WATERMARK_TEXT), `static layer missing the watermark (got ${JSON.stringify(texts)})`);
@@ -260,7 +219,8 @@ test('intro and outro cards are unchanged', () => {
   assert.ok(b.texts.includes('Turn math into sound'), `outro lost its tagline (got ${JSON.stringify(b.texts)})`);
 });
 
-test('bitrate is 8 Mbps at 720p and 14 Mbps at 1080p', () => {
+test('bitrate is 4 Mbps at 480p, 8 Mbps at 720p and 14 Mbps at 1080p', () => {
+  assert.equal(videoBitrateForQuality('480p'), 4_000_000);
   assert.equal(videoBitrateForQuality('720p'), 8_000_000);
   assert.equal(videoBitrateForQuality('1080p'), 14_000_000);
 });
@@ -268,7 +228,7 @@ test('bitrate is 8 Mbps at 720p and 14 Mbps at 1080p', () => {
 
 /* ── mode selection ──────────────────────────────────────────────── */
 
-test('no scientist metadata selects user mode with no ticker', () => {
+test('no scientist metadata selects user mode with no scientist line', () => {
   const curve = resolveActiveCurve({
     equation: 'sin(x)', minX: -6.28, maxX: 6.28, isCustomCurve: false, splineControlPoints: [],
   });
@@ -277,12 +237,11 @@ test('no scientist metadata selects user mode with no ticker', () => {
     mainMs: 4000, scientist: null, scientistName: null,
   });
   assert.equal(scene.mode, 'user');
-  assert.equal(scene.tickerText, null);
-  assert.equal(scene.tickerPeriod, 0);
   assert.equal(scene.scientistName, null);
+  assert.equal(scene.scientistNameY, null);
 });
 
-test('scientist metadata selects scientist mode and builds a ticker', () => {
+test('scientist metadata selects scientist mode and puts the name first', () => {
   const curve = resolveActiveCurve({
     equation: 'e^x', minX: -6.28, maxX: 6.28, isCustomCurve: false, splineControlPoints: [],
   });
@@ -292,11 +251,11 @@ test('scientist metadata selects scientist mode and builds a ticker', () => {
   });
   assert.equal(scene.mode, 'scientist');
   assert.equal(scene.scientistName, 'Leonhard Euler');
-  // name · field/context · full equation
-  assert.match(scene.tickerText!, /Leonhard Euler/);
-  assert.match(scene.tickerText!, /mathematician 1707–1783/);
-  assert.match(scene.tickerText!, /e\^x/);
-  assert.ok(scene.tickerPeriod > 0);
+  // v22 order: scientist name first, then the equation name, then the
+  // graph, then the equation, then the watermark.
+  assert.ok(scene.scientistNameY !== null, 'scientist mode has no scientist name line');
+  assert.ok(scene.scientistNameY < scene.equationNameY, 'scientist name is not above the equation name');
+  assert.ok(scene.equationNameY < scene.panel.y, 'equation name is not above the graph');
 });
 
 test('a user-typed equation is not mistaken for a scientist one', () => {
@@ -308,7 +267,7 @@ test('a user-typed equation is not mistaken for a scientist one', () => {
     mainMs: 6000, scientist: null,
   });
   assert.equal(scene.mode, 'user');
-  assert.equal(scene.tickerText, null);
+  assert.equal(scene.scientistNameY, null);
 });
 
 /* ── cards and timeline ──────────────────────────────────────────── */
@@ -488,10 +447,11 @@ test('capture is 60fps at 1280x720', () => {
  * than on an intermediate value. The old `stubCtx` only needed measureText;
  * drawing the real frame needs the whole surface.
  */
-function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; globalAlphas: number[]; strokeStyles: string[] } {
+function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; globalAlphas: number[]; strokeStyles: string[]; fillStyles: string[] } {
   const texts: string[] = [];
   const globalAlphas: number[] = [];
   const strokeStyles: string[] = [];
+  const fillStyles: string[] = [];
   const ctx = {
     font: '',
     fillStyle: '',
@@ -530,7 +490,13 @@ function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; globa
     get: () => _ss,
     set: (v: string) => { _ss = v; strokeStyles.push(v); },
   });
-  return { ctx, texts, globalAlphas, strokeStyles };
+  let _fs = '';
+  Object.defineProperty(ctx, 'fillStyle', {
+    configurable: true,
+    get: () => _fs,
+    set: (v: string) => { _fs = v; fillStyles.push(v); },
+  });
+  return { ctx, texts, globalAlphas, strokeStyles, fillStyles };
 }
 
 /** Structural stand-in for the Scientist record the scene builder needs. */
@@ -542,12 +508,13 @@ function sceneFor(
   orientation: VideoOrientation = 'landscape',
   quality: VideoQuality = '720p',
   colorTheme?: VideoColorTheme,
+  equationName?: string | null,
 ) {
   const curve = resolveActiveCurve({
     equation: 'sin(x)', minX: -Math.PI, maxX: Math.PI, isCustomCurve: false, splineControlPoints: [],
   });
   return prepareVideoScene({
-    ctx: stubCtx(), equation, curve, minX: -Math.PI, maxX: Math.PI,
+    ctx: stubCtx(), equation, equationName, curve, minX: -Math.PI, maxX: Math.PI,
     mainMs: 4000, scientist, orientation, quality, colorTheme,
   });
 }
@@ -558,39 +525,33 @@ test('equationLabel prefixes the formula exactly once', () => {
   assert.equal(equationLabel(''), EQUATION_LABEL_PREFIX, 'a blank equation still yields the prefix');
 });
 
-test('all three equation surfaces render the same "Equation: …" label', () => {
-  // The three places the equation appears: the user-mode top pill, the intro
-  // card subtitle, and the scientist-mode ticker. They must not drift apart.
-  const expected = 'Equation: sin(x)';
-
-  // 1. Top pill, user mode.
+test('the equation reads the same on every surface', () => {
+  // The three places the equation appears: the top title (the formula
+  // itself when the equation has no name), the intro card subtitle, and
+  // the bottom line. They must not drift apart.
   const user = sceneFor('sin(x)', null);
   const a = recordingCtx();
   drawExportFrame(a.ctx, user, INTRO_MS + 500); // main phase
-  assert.ok(a.texts.includes(expected), `user-mode pill missing "${expected}" (got ${JSON.stringify(a.texts)})`);
+  assert.ok(a.texts.includes('sin(x)'), `top title missing "sin(x)" (got ${JSON.stringify(a.texts)})`);
+  assert.ok(a.texts.includes('f(x) = sin(x)'), `bottom line missing "f(x) = sin(x)" (got ${JSON.stringify(a.texts)})`);
 
-  // 2. Intro card subtitle.
+  // Intro card subtitle.
   const b = recordingCtx();
   drawExportFrame(b.ctx, user, INTRO_MS / 2);
-  assert.ok(b.texts.includes(expected), `intro card missing "${expected}" (got ${JSON.stringify(b.texts)})`);
-
-  // 3. Ticker, scientist mode.
-  const sci = sceneFor('sin(x)', SCIENTIST);
-  const c = recordingCtx();
-  drawExportFrame(c.ctx, sci, INTRO_MS + 500);
-  assert.ok(
-    c.texts.some((t) => t.includes(expected)),
-    `scientist ticker missing "${expected}" (got ${JSON.stringify(c.texts)})`,
-  );
+  assert.ok(b.texts.includes('Equation: sin(x)'), `intro card missing "Equation: sin(x)" (got ${JSON.stringify(b.texts)})`);
 });
 
-test('the bare equation never appears unprefixed on its own surface', () => {
-  // Guards against a future edit reintroducing the raw formula in one place.
+test('the bottom equation is always function notation, never a bare formula', () => {
+  // v22: the bottom line is "f(x) = …" — the formula never appears on its
+  // own down there. (The top title IS the bare formula when the equation
+  // has no name; that is the title, not a floating label.)
   const sci = sceneFor('sin(x)', SCIENTIST);
   const { ctx, texts } = recordingCtx();
   drawExportFrame(ctx, sci, INTRO_MS + 500);
+  assert.ok(texts.includes('f(x) = sin(x)'), `bottom line is not "f(x) = sin(x)" (got ${JSON.stringify(texts)})`);
   const bare = texts.filter((t) => t === 'sin(x)');
-  assert.deepEqual(bare, [], 'the equation was drawn without its "Equation:" prefix');
+  // Exactly one bare copy: the top title. The bottom line is "f(x) = …".
+  assert.equal(bare.length, 1, `expected one bare title, got ${bare.length} (got ${JSON.stringify(texts)})`);
 });
 
 /* ── recording format support ────────────────────────────────────── */
@@ -728,17 +689,17 @@ test('the y-axis is drawn when the domain starts at 0 (it sits on the panel edge
   assert.ok(strokeStyles.includes('#FFFFFF'), 'no white axis stroke for a domain starting at 0');
 });
 
-test('drawExportGraph has the numbers but no equation pill and no watermark', () => {
-  // The image export's graph: background + axes + numbers + the full curve.
-  // The top pill ("Equation: …") and the watermark belong to the video's
-  // static layer and to graphExporter's info bar / watermark — this must
-  // not draw them, or the image would show them twice.
+test('drawExportGraph carries the same labels as the video frame', () => {
+  // v22: the image is the video frame with the full curve — the top title,
+  // the bottom equation and the watermark are all drawn here, so image and
+  // video match exactly. (v21b drew none of them here; the info bar did.)
   const scene = sceneFor('sin(x)', null);
   const { ctx, texts } = recordingCtx();
   drawExportGraph(ctx, scene);
   assert.ok(texts.some((t) => /^-?\d/.test(t)), `image graph missing tick numbers (got ${JSON.stringify(texts)})`);
-  assert.ok(!texts.includes('Equation: sin(x)'), `image graph drew the top pill (got ${JSON.stringify(texts)})`);
-  assert.ok(!texts.includes(WATERMARK_TEXT), `image graph drew the watermark (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes('sin(x)'), `image graph missing the top title (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes('f(x) = sin(x)'), `image graph missing the bottom equation (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes(WATERMARK_TEXT), `image graph missing the watermark (got ${JSON.stringify(texts)})`);
 });
 
 test('the image graph draws the full curve in the theme colour', () => {
@@ -748,4 +709,128 @@ test('the image graph draws the full curve in the theme colour', () => {
   const { ctx, strokeStyles } = recordingCtx();
   drawExportGraph(ctx, scene);
   assert.ok(strokeStyles.includes('#E879F9'), `purple curve never stroked (got ${JSON.stringify(strokeStyles)})`);
+});
+
+/* ── v22: the owner's layout — graph in the middle, name at the top,
+ * equation at the bottom in the theme colour, watermark below it ─────────
+ *
+ * The owner liked v21b but the graph covered the whole image. v22 shrinks
+ * it to the middle with blank space around it, puts the equation name at
+ * the top, the equation ("f(x) = …") at the bottom middle in the theme
+ * colour, and the watermark centred just below it. For scientist equations
+ * the scientist name comes first, then the name, then the equation, then
+ * the watermark. The scrolling ticker is gone — it was redundant once the
+ * name is at the top and the equation is at the bottom.
+ */
+
+test('equationDisplay formats the bottom line as function notation', () => {
+  assert.equal(equationDisplay('sin(x)'), 'f(x) = sin(x)');
+  assert.equal(equationDisplay('  x^2 - 1  '), 'f(x) = x^2 - 1', 'surrounding whitespace is trimmed');
+});
+
+test('the graph sits in the middle with blank space on every side', () => {
+  // v22: the panel no longer covers the frame. There is clear black space
+  // to the left, right, above and below it, in both orientations.
+  for (const orientation of ['landscape', 'portrait'] as const) {
+    const scene = sceneFor('sin(x)', null, orientation);
+    const p = scene.panel;
+    assert.ok(p.x > 0.05 * scene.width, `${orientation}: no blank space on the left`);
+    assert.ok(p.x + p.w < 0.95 * scene.width, `${orientation}: no blank space on the right`);
+    assert.ok(p.y > 0.1 * scene.height, `${orientation}: no blank space above the graph`);
+    assert.ok(p.y + p.h < scene.equationY, `${orientation}: no blank space below the graph before the equation`);
+    // Smaller than the v21b panel: it covered 90% of the width in
+    // landscape and 80% in portrait.
+    assert.ok(p.w < 0.8 * scene.width, `${orientation}: graph still covers the whole width`);
+  }
+  // Landscape is centred horizontally. Portrait is shifted left on purpose:
+  // its right edge stops at the 14% right safe zone, so the left margin
+  // (10%) is smaller than the right one (14%).
+  const land = sceneFor('sin(x)', null, 'landscape');
+  const lp = land.panel;
+  assert.ok(
+    Math.abs(lp.x - (land.width - (lp.x + lp.w))) < 2,
+    `landscape graph is not centred (left ${lp.x}, right ${land.width - (lp.x + lp.w)})`,
+  );
+  const port = sceneFor('sin(x)', null, 'portrait');
+  const pp = port.panel;
+  assert.ok(Math.abs(pp.x + pp.w - (1 - SAFE_RIGHT) * port.width) < 1, 'portrait graph does not stop at the right safe zone');
+});
+
+test('the layout order is scientist name, name, graph, equation, watermark', () => {
+  // Scientist mode: every line in the owner's order, top to bottom.
+  const sci = sceneFor('sin(x)', SCIENTIST, 'landscape', '720p', 'purple', 'Sine Wave');
+  assert.ok(sci.scientistNameY !== null);
+  assert.ok(sci.scientistNameY < sci.equationNameY, 'scientist name is not first');
+  assert.ok(sci.equationNameY < sci.panel.y, 'equation name is not above the graph');
+  assert.ok(sci.panel.y + sci.panel.h < sci.equationY, 'equation is not below the graph');
+  assert.ok(sci.equationY < sci.watermarkY, 'watermark is not below the equation');
+
+  // The top title is the equation NAME when there is one.
+  const { ctx, texts } = recordingCtx();
+  drawStaticLayer(ctx, sci);
+  assert.ok(texts.includes('Leonhard Euler'), `scientist name missing (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes('Sine Wave'), `equation name missing (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes('f(x) = sin(x)'), `bottom equation missing (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes(WATERMARK_TEXT), `watermark missing (got ${JSON.stringify(texts)})`);
+});
+
+test('the equation name is the top title; the formula is the title when there is no name', () => {
+  // With a name, the top line is the name — the formula appears only in
+  // the bottom "f(x) = …" line.
+  const named = sceneFor('sin(x)', null, 'landscape', '720p', 'white', 'Sine Wave');
+  assert.equal(named.equationName, 'Sine Wave');
+  const a = recordingCtx();
+  drawStaticLayer(a.ctx, named);
+  assert.ok(a.texts.includes('Sine Wave'), `top title is not the name (got ${JSON.stringify(a.texts)})`);
+  assert.ok(!a.texts.includes('sin(x)'), `formula leaked into the top title (got ${JSON.stringify(a.texts)})`);
+
+  // Without a name, the formula itself is the title line.
+  const unnamed = sceneFor('sin(x)', null);
+  assert.equal(unnamed.equationName, null);
+  const b = recordingCtx();
+  drawStaticLayer(b.ctx, unnamed);
+  assert.ok(b.texts.includes('sin(x)'), `top title missing the formula (got ${JSON.stringify(b.texts)})`);
+});
+
+test('the bottom equation is drawn in the theme colour', () => {
+  // The equation text is a fill, not a stroke, so assert on fillStyle:
+  // the purple theme hex must appear when the scene is purple.
+  const scene = sceneFor('sin(x)', null, 'landscape', '720p', 'purple');
+  const { ctx, fillStyles, texts } = recordingCtx();
+  drawStaticLayer(ctx, scene);
+  assert.ok(texts.includes('f(x) = sin(x)'), `bottom equation missing (got ${JSON.stringify(texts)})`);
+  assert.ok(fillStyles.includes('#E879F9'), `bottom equation is not purple (fillStyles ${JSON.stringify(fillStyles)})`);
+});
+
+test('the scientist name appears only for scientist equations', () => {
+  // Scientist mode: the name is the first line.
+  const sci = sceneFor('sin(x)', SCIENTIST);
+  const a = recordingCtx();
+  drawStaticLayer(a.ctx, sci);
+  assert.ok(a.texts.includes('Leonhard Euler'), `scientist name missing (got ${JSON.stringify(a.texts)})`);
+
+  // User mode: no scientist name anywhere in the frame.
+  const user = sceneFor('sin(x)', null);
+  const b = recordingCtx();
+  drawStaticLayer(b.ctx, user);
+  assert.ok(!b.texts.includes('Leonhard Euler'), `scientist name leaked into a normal equation (got ${JSON.stringify(b.texts)})`);
+  assert.ok(b.texts.includes('f(x) = sin(x)'), `bottom equation missing (got ${JSON.stringify(b.texts)})`);
+});
+
+test('layoutFor gives the v22 panel and line positions', () => {
+  // Landscape 720p: panel 64% wide, 44% tall, centred.
+  const land = layoutFor(1280, 720, 'landscape', 'user');
+  assert.deepEqual(land.panel, { x: 0.18 * 1280, y: 0.2 * 720, w: 0.64 * 1280, h: 0.44 * 720 });
+  assert.equal(land.scientistNameY, null);
+  assert.equal(land.equationNameY, 0.08 * 720);
+  assert.equal(land.equationY, 0.72 * 720);
+  assert.equal(land.watermarkY, 0.8 * 720);
+
+  // Portrait 720p: panel 76% wide, 40% tall, right edge at the safe zone.
+  const port = layoutFor(720, 1280, 'portrait', 'scientist');
+  assert.deepEqual(port.panel, { x: 0.1 * 720, y: 0.22 * 1280, w: 0.76 * 720, h: 0.4 * 1280 });
+  assert.equal(port.scientistNameY, 0.13 * 1280);
+  assert.equal(port.equationNameY, 0.175 * 1280);
+  assert.equal(port.equationY, 0.68 * 1280);
+  assert.equal(port.watermarkY, 0.75 * 1280);
 });

@@ -7,34 +7,37 @@
  * timestamps. That is what makes "does the ticker loop seamlessly" and "does
  * the watermark stay below the graph" checkable rather than a vibe.
  *
- * THE LOOK (v21b — the @lingualin reference, corrected per the owner):
- *   - Pure black #000 background. NO grid — the owner wants the background
- *     clean, like the reference.
+ * THE LOOK (v22 — the owner's layout, after v21b landed):
+ *   - Pure black #000 background. NO grid.
  *   - Axes are solid white, thicker than before, with arrowheads at their
  *     ends. Tick numbers stay exactly as they were: small grey JetBrains
  *     Mono text (~2.7% of the short side), plain — never in pills, never
- *     recoloured. The owner was explicit: only the background, the axis and
- *     the curve colour change.
+ *     recoloured.
  *   - The curve is the chosen theme colour (White / Blue / Green / Purple),
- *     thick and glowing, drawn as stacked strokes. There is NO per-frame
- *     shadowBlur or gradient anywhere in the frame loop — that is what made
- *     the old clips stutter (labelled 60fps, really ~28–52fps).
+ *     thick and glowing, drawn as stacked strokes. No shadowBlur, no
+ *     gradients in the frame loop.
  *   - No faint full curve: the trace reveals the curve, like the reference.
- *   - The static layer (background, axes, numbers, top labels, watermark,
- *     ticker band) is drawn ONCE into an offscreen canvas and reused; each
- *     frame only paints the traced curve, the playhead and the scrolling
- *     ticker text.
- *   - The watermark is exactly "mathsonify.com", fixed at the right end of
- *     a strip BELOW the graph. One place, never moving — it never crosses
- *     the curve. It is NOT a pill and it does NOT say "MathSonify.com".
- *   - The top label pill ("Equation: …" / scientist name) is unchanged.
- *   - The same scene renders the image export (drawExportGraph): background
- *     + axes + numbers + the full curve, with no top pill, no ticker and no
- *     watermark — the image's info bar and watermark are added by
- *     graphExporter, so this must not draw them.
- *   - Landscape 16:9 (default) and portrait 9:16, each at 720p or 1080p.
- *     Portrait keeps the graph out of the top 12% and bottom 20% (and the
- *     right 14% mid-height) that Reels / Shorts / TikTok cover with buttons.
+ *   - The graph sits in the MIDDLE of the frame, smaller than before, with
+ *     blank black space around it — it no longer covers the whole image.
+ *   - Top to bottom, the order the owner asked for: scientist name first
+ *     (scientist equations only), then the equation name, then the graph,
+ *     then the equation, then the watermark. The equation name is plain
+ *     centred text at the top; the equation is "f(x) = …" at the bottom
+ *     middle, in the theme colour, in a free italic serif (Instrument
+ *     Serif); the watermark is small grey "mathsonify.com" centred just
+ *     below the equation — never a pill, never a white background.
+ *   - The static layer (background, axes, numbers, top names, bottom
+ *     equation, watermark) is drawn ONCE into an offscreen canvas and
+ *     reused; each frame only paints the traced curve and the playhead.
+ *     There is no scrolling ticker any more — the scientist name is at the
+ *     top and the equation is at the bottom, so the ticker was redundant.
+ *   - The same scene renders the image export (drawExportGraph): the static
+ *     layer plus the full curve, with no playhead — so image and video
+ *     match exactly, including the name, the equation and the watermark.
+ *   - Landscape 16:9 (default) and portrait 9:16, each at 480p, 720p or
+ *     1080p. Portrait keeps the graph out of the top 12% and bottom 20%
+ *     (and the right 14% mid-height) that Reels / Shorts / TikTok cover
+ *     with buttons.
  *   - Intro and outro cards are unchanged: "MathSonify / Equation: …" in,
  *     "Made with MathSonify.com / Turn math into sound" out.
  */
@@ -53,17 +56,21 @@ export const INTRO_MS = 1100;
 export const OUTRO_MS = 1100;
 
 export type VideoOrientation = 'landscape' | 'portrait';
-export type VideoQuality = '720p' | '1080p';
+export type VideoQuality = '480p' | '720p' | '1080p';
 
-/** The four export sizes. Landscape is the default; portrait is 9:16. */
+/** The export sizes. Landscape is the default; portrait is 9:16. */
 export function videoSize(
   orientation: VideoOrientation,
   quality: VideoQuality,
 ): { width: number; height: number } {
   if (orientation === 'portrait') {
-    return quality === '1080p' ? { width: 1080, height: 1920 } : { width: 720, height: 1280 };
+    if (quality === '1080p') return { width: 1080, height: 1920 };
+    if (quality === '480p') return { width: 480, height: 854 };
+    return { width: 720, height: 1280 };
   }
-  return quality === '1080p' ? { width: 1920, height: 1080 } : { width: 1280, height: 720 };
+  if (quality === '1080p') return { width: 1920, height: 1080 };
+  if (quality === '480p') return { width: 854, height: 480 };
+  return { width: 1280, height: 720 };
 }
 
 /** The watermark is the domain only — never "MathSonify · mathsonify.com". */
@@ -84,14 +91,10 @@ const COLORS = {
   dim: '#7A7A82',
   scientist: '#7FB2E5',
   scientistText: '#DCEBFB',
-  scientistPillBg: 'rgba(127,178,229,0.14)',
-  scientistPillBorder: 'rgba(127,178,229,0.35)',
   /** Axes are solid white (v21b) — the reference look. Was a faint 0.25 alpha. */
   axis: '#FFFFFF',
   /** Tick numbers stay plain grey text, exactly as before (v21b). */
   tick: 'rgba(255,255,255,0.45)',
-  tickerBg: 'rgba(127,178,229,0.07)',
-  tickerBorder: 'rgba(127,178,229,0.2)',
   watermarkAlpha: 0.55,
 };
 
@@ -146,9 +149,10 @@ export interface VideoScene {
   tickFontPx: number;
   /** Equation exactly as typed / selected — never a re-derived string. */
   equation: string;
+  /** Display name of the equation (preset / scientist equation), or null
+   *  for a user-typed equation — the top line falls back to the formula. */
+  equationName: string | null;
   scientistName: string | null;
-  /** `${name} · ${field} · Equation: ${equation}` or null in user mode. */
-  tickerText: string | null;
   /** Valid sample points from the live Create-tab state. */
   points: SamplePoint[];
   /** The same points, pre-mapped to screen pixels once — the frame loop never
@@ -160,18 +164,17 @@ export interface VideoScene {
   paddedMaxY: number;
   /** Length of the animated middle segment, ms. */
   mainMs: number;
-  /** The graph area. No panel is drawn — this is just the mapping region. */
+  /** The graph area, centred in the frame with blank space around it. No
+   *  panel is drawn — this is just the mapping region. */
   panel: Rect;
-  /** Vertical centre of the top label pill ("Equation: …" / scientist name). */
-  labelY: number;
-  /** The horizontal strip below the graph the watermark sits in, fixed at its right end. */
-  watermarkStrip: Rect;
-  /** Measured pixel width of the watermark text (for the right-end anchor). */
-  watermarkW: number;
-  /** Scientist ticker band, or null in user mode. */
-  ticker: { top: number; centerY: number; height: number } | null;
-  /** Pixel width of one ticker repetition; 0 when there is no ticker. */
-  tickerPeriod: number;
+  /** Vertical centre of the scientist name line (scientist mode only). */
+  scientistNameY: number | null;
+  /** Vertical centre of the equation name line at the top. */
+  equationNameY: number;
+  /** Vertical centre of the "f(x) = …" line at the bottom middle. */
+  equationY: number;
+  /** Vertical centre of the watermark line, just below the equation. */
+  watermarkY: number;
   /** The static layer, drawn once and reused; null until first use (and null
    *  in Node, where there is no document — the caller then draws it inline). */
   staticLayer: HTMLCanvasElement | null;
@@ -180,6 +183,8 @@ export interface VideoScene {
 export interface PrepareSceneInput {
   ctx: CanvasRenderingContext2D;
   equation: string;
+  /** Display name of the equation (preset / scientist equation), if any. */
+  equationName?: string | null;
   curve: ActiveCurve;
   minX: number;
   maxX: number;
@@ -199,78 +204,65 @@ export interface PrepareSceneInput {
   width?: number;
   height?: number;
   /**
-   * Exact graph panel, for callers that want the graph to fill more of the
-   * frame than the video layout does (the image export has no top pill or
-   * watermark strip inside the graph area). When omitted the panel comes
-   * from layoutFor(), as before.
+   * Exact graph panel, for callers that want a different panel than the
+   * video layout. When omitted the panel comes from layoutFor(), as before.
    */
   panel?: Rect;
 }
 
-/** Human-readable field/context for the scientist ticker. */
-export function scientistField(scientist: Scientist): string {
-  return `${scientist.category} ${scientist.lifespan}`;
-}
-
 interface Layout {
   panel: Rect;
-  labelY: number;
-  watermarkStrip: Rect;
-  ticker: { top: number; centerY: number; height: number } | null;
+  /** Scientist name line, or null in user mode (no scientist line). */
+  scientistNameY: number | null;
+  equationNameY: number;
+  equationY: number;
+  watermarkY: number;
 }
 
 /**
- * The frame layout for an orientation and mode.
+ * The frame layout for an orientation and mode (v22).
  *
- * Landscape: label at the top, graph in the middle, watermark strip below the
- * graph, ticker (scientist mode) along the very bottom.
+ * Top to bottom, the order the owner asked for: scientist name first
+ * (scientist mode only), then the equation name, then the graph — smaller
+ * than before, centred in the frame with blank black space around it —
+ * then the equation at the bottom middle, then the watermark just below it.
  *
  * Portrait: the graph sits between the 12% top safe zone and the 20% bottom
- * one, its right edge stops at the 14% right safe zone, the watermark strip
- * sits below the graph, and the ticker sits just above the bottom safe zone.
+ * one, its right edge stops at the 14% right safe zone, and the equation +
+ * watermark sit above the bottom safe zone.
  */
 export function layoutFor(
   width: number,
   height: number,
   orientation: VideoOrientation,
   mode: ExportMode,
-  pillH: number,
 ): Layout {
   if (orientation === 'portrait') {
-    const panel: Rect = { x: 0.05 * width, y: 0.19 * height, w: 0.8 * width, h: 0.43 * height };
-    const wmCenterY = 0.7 * height;
-    const watermarkStrip: Rect = {
-      x: panel.x,
-      y: wmCenterY - pillH / 2 - 4,
-      w: panel.w,
-      h: pillH + 8,
+    const panel: Rect = { x: 0.1 * width, y: 0.22 * height, w: 0.76 * width, h: 0.4 * height };
+    return {
+      panel,
+      scientistNameY: mode === 'scientist' ? 0.13 * height : null,
+      equationNameY: mode === 'scientist' ? 0.175 * height : 0.14 * height,
+      equationY: 0.68 * height,
+      watermarkY: 0.75 * height,
     };
-    const ticker =
-      mode === 'scientist'
-        ? { centerY: 0.765 * height, height: 0.045 * height, top: 0.765 * height - 0.0225 * height }
-        : null;
-    return { panel, labelY: 0.15 * height, watermarkStrip, ticker };
   }
 
-  const panel: Rect = { x: 0.05 * width, y: 0.16 * height, w: 0.9 * width, h: 0.64 * height };
-  const wmCenterY = mode === 'scientist' ? 0.855 * height : 0.9 * height;
-  const watermarkStrip: Rect = {
-    x: panel.x,
-    y: wmCenterY - pillH / 2 - 4,
-    w: panel.w,
-    h: pillH + 8,
+  const panel: Rect = { x: 0.18 * width, y: 0.2 * height, w: 0.64 * width, h: 0.44 * height };
+  return {
+    panel,
+    scientistNameY: mode === 'scientist' ? 0.055 * height : null,
+    equationNameY: mode === 'scientist' ? 0.115 * height : 0.08 * height,
+    equationY: 0.72 * height,
+    watermarkY: 0.8 * height,
   };
-  const ticker =
-    mode === 'scientist'
-      ? { centerY: 0.955 * height, height: 0.072 * height, top: 0.955 * height - 0.036 * height }
-      : null;
-  return { panel, labelY: 0.086 * height, watermarkStrip, ticker };
 }
 
 export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
   const {
     ctx,
     equation,
+    equationName,
     curve,
     minX,
     maxX,
@@ -299,31 +291,11 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
   const shortSide = Math.min(width, height);
   const uiScale = shortSide / 720;
   const tickFontPx = Math.round(TICK_FRACTION_OF_SHORT_SIDE * shortSide);
-  const pillH = Math.round(44 * uiScale);
 
-  const layout = layoutFor(width, height, orientation, mode, pillH);
-  // The image export passes its own panel (no top pill / watermark strip
-  // inside the graph area); the video uses the layout panel, as before.
+  const layout = layoutFor(width, height, orientation, mode);
+  // The image export may pass its own panel; the video uses the layout
+  // panel, as before.
   const panel = panelInput ?? layout.panel;
-
-  // The watermark text width is measured once here — the watermark is fixed,
-  // so its position is a pure function of the scene afterwards.
-  const wmFontPx = Math.round(15 * uiScale);
-  ctx.font = `500 ${wmFontPx}px "JetBrains Mono", ui-monospace, monospace`;
-  const watermarkW = ctx.measureText(WATERMARK_TEXT).width;
-
-  let tickerText: string | null = null;
-  let tickerPeriod = 0;
-  if (mode === 'scientist' && name) {
-    const field = scientist ? scientistField(scientist) : '';
-    // Trailing spaces are the gap between repetitions — the strip is a single
-    // tile repeated, which is what makes the wrap point seamless. The
-    // equation goes through the same label helper as the pill and the intro
-    // card, so all three read identically.
-    tickerText = `${name}  ·  ${field}  ·  ${equationLabel(equation)}      `;
-    ctx.font = `500 ${Math.round(18 * uiScale)}px "JetBrains Mono", ui-monospace, monospace`;
-    tickerPeriod = ctx.measureText(tickerText).width;
-  }
 
   const { paddedMinY, paddedMaxY } = paddedYRange(valid);
 
@@ -345,8 +317,8 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
     uiScale,
     tickFontPx,
     equation,
+    equationName: equationName ?? null,
     scientistName: name,
-    tickerText,
     points: valid,
     screenPoints,
     minX,
@@ -355,63 +327,78 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
     paddedMaxY,
     mainMs,
     panel,
-    labelY: layout.labelY,
-    watermarkStrip: layout.watermarkStrip,
-    watermarkW,
-    ticker: layout.ticker,
-    tickerPeriod,
+    scientistNameY: layout.scientistNameY,
+    equationNameY: layout.equationNameY,
+    equationY: layout.equationY,
+    watermarkY: layout.watermarkY,
     staticLayer: null,
   };
 }
 
 /* ── drawing ──────────────────────────────────────────────────────── */
 
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): void {
-  const rad = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + rad, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rad);
-  ctx.arcTo(x + w, y + h, x, y + h, rad);
-  ctx.arcTo(x, y + h, x, y, rad);
-  ctx.arcTo(x, y, x + w, y, rad);
-  ctx.closePath();
+/**
+ * The equation as it appears at the bottom middle of the frame: function
+ * notation, like the reference ("f(x) = sin(x)"), in the theme colour.
+ */
+export function equationDisplay(equation: string): string {
+  return `f(x) = ${equation.trim()}`;
 }
 
-function pill(
+/**
+ * Largest font size (up to `maxPx`) at which `text` fits inside `maxWidth`
+ * on this context. Long equations shrink instead of running off the frame.
+ */
+function fitFontPx(
   ctx: CanvasRenderingContext2D,
   text: string,
-  cx: number,
-  cy: number,
-  opts: { font?: string; bg?: string; border?: string; color?: string; h?: number; padX?: number } = {},
-): void {
-  ctx.font = opts.font || '500 20px "JetBrains Mono", ui-monospace, monospace';
-  const tw = ctx.measureText(text).width;
-  const padX = opts.padX ?? 20;
-  const h = opts.h ?? 44;
-  const w = tw + padX * 2;
-  const x = cx - w / 2;
+  fontFamily: string,
+  maxPx: number,
+  maxWidth: number,
+): number {
+  let px = maxPx;
+  ctx.font = `italic 400 ${px}px ${fontFamily}`;
+  const w = ctx.measureText(text).width;
+  if (w <= maxWidth) return px;
+  px = Math.max(10, Math.floor((maxPx * maxWidth) / w));
+  return px;
+}
 
-  ctx.fillStyle = opts.bg || 'rgba(255,255,255,0.08)';
-  roundRect(ctx, x, cy - h / 2, w, h, h / 2);
-  ctx.fill();
-  if (opts.border) {
-    ctx.strokeStyle = opts.border;
-    ctx.lineWidth = 1;
-    roundRect(ctx, x, cy - h / 2, w, h, h / 2);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle = opts.color || COLORS.text;
+/**
+ * The top names (v22): scientist name first (scientist equations only),
+ * then the equation name — plain centred text, no pill. A user-typed
+ * equation has no name, so the formula itself is the title line.
+ */
+function drawTopLabels(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
+  const s = scene.uiScale;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, cx, cy + 1);
+  if (scene.mode === 'scientist' && scene.scientistName && scene.scientistNameY !== null) {
+    ctx.font = `italic 500 ${Math.round(22 * s)}px "Instrument Serif", Georgia, serif`;
+    ctx.fillStyle = COLORS.scientistText;
+    ctx.fillText(scene.scientistName, scene.width / 2, scene.scientistNameY);
+  }
+  const title = scene.equationName ?? scene.equation;
+  ctx.font = `700 ${Math.round(28 * s)}px "Fraunces", Georgia, serif`;
+  ctx.fillStyle = COLORS.text;
+  ctx.fillText(title, scene.width / 2, scene.equationNameY);
+}
+
+/**
+ * The equation at the bottom middle (v22): "f(x) = …" in the theme colour,
+ * in a free italic serif (Instrument Serif — already loaded for the
+ * scientist name). Shrinks to fit a long formula instead of clipping.
+ */
+function drawBottomEquation(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
+  const s = scene.uiScale;
+  const text = equationDisplay(scene.equation);
+  const maxPx = Math.round(34 * s);
+  const px = fitFontPx(ctx, text, '"Instrument Serif", Georgia, serif', maxPx, scene.width * 0.92);
+  ctx.font = `italic 400 ${px}px "Instrument Serif", Georgia, serif`;
+  ctx.fillStyle = videoColorThemeHex(scene.colorTheme);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, scene.width / 2, scene.equationY);
 }
 
 /**
@@ -427,25 +414,24 @@ function drawGraphBase(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
 }
 
 /**
- * Everything that never moves in the video: the graph, the top label pill,
- * the watermark and (in scientist mode) the ticker band. Drawn once per
- * scene into the static layer.
+ * Everything that never moves in the video: the graph, the top names, the
+ * bottom equation and the watermark. Drawn once per scene into the static
+ * layer.
  */
 export function drawStaticLayer(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
   drawGraphBase(ctx, scene);
   drawTopLabels(ctx, scene);
+  drawBottomEquation(ctx, scene);
   drawWatermark(ctx, scene);
-  if (scene.mode === 'scientist' && scene.ticker) drawTickerBackground(ctx, scene);
 }
 
 /**
- * The image export's graph (v21b): background + axes + numbers + the FULL
- * curve, with no top pill, no ticker and no watermark — the image's info bar
- * and watermark are added by graphExporter, so this must not draw them.
- * The curve is the theme colour, drawn whole (progress 1), with no playhead.
+ * The image export's graph (v22): the static layer (background + axes +
+ * numbers + top names + bottom equation + watermark) plus the FULL curve,
+ * with no playhead — so the image matches the video frame exactly.
  */
 export function drawExportGraph(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
-  drawGraphBase(ctx, scene);
+  drawStaticLayer(ctx, scene);
   drawTracedCurve(ctx, scene, 1);
 }
 
@@ -678,68 +664,13 @@ function drawPlayhead(
   ctx.restore();
 }
 
-function drawTopLabels(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
-  const s = scene.uiScale;
-  if (scene.mode === 'user') {
-    pill(ctx, equationLabel(scene.equation), scene.width / 2, scene.labelY, {
-      font: `500 ${Math.round(22 * s)}px "JetBrains Mono", ui-monospace, monospace`,
-      h: Math.round(44 * s),
-      padX: Math.round(20 * s),
-    });
-  } else {
-    // Scientist mode: serif italic + tinted pill so the name reads as a name,
-    // not as another equation.
-    pill(ctx, `— ${scene.scientistName} —`, scene.width / 2, scene.labelY, {
-      font: `italic 500 ${Math.round(22 * s)}px "Instrument Serif", Georgia, serif`,
-      bg: COLORS.scientistPillBg,
-      border: COLORS.scientistPillBorder,
-      color: COLORS.scientistText,
-      h: Math.round(44 * s),
-      padX: Math.round(20 * s),
-    });
-  }
-}
-
-function drawTickerBackground(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
-  if (!scene.ticker) return;
-  ctx.fillStyle = COLORS.tickerBg;
-  ctx.fillRect(0, scene.ticker.top, scene.width, scene.ticker.height);
-  ctx.strokeStyle = COLORS.tickerBorder;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(0, scene.ticker.top + 0.5);
-  ctx.lineTo(scene.width, scene.ticker.top + 0.5);
-  ctx.stroke();
-}
-
-function drawTickerText(ctx: CanvasRenderingContext2D, scene: VideoScene, tMs: number): void {
-  if (!scene.tickerText || scene.tickerPeriod <= 0 || !scene.ticker) return;
-
-  ctx.font = `500 ${Math.round(18 * scene.uiScale)}px "JetBrains Mono", ui-monospace, monospace`;
-  ctx.fillStyle = COLORS.scientistText;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-
-  // Start part-way into a tile and step by exactly one period. Because the
-  // strip is one tile repeated, every frame is a pure translation of the last
-  // and the wrap point is pixel-identical to any other frame — no seam.
-  const period = scene.tickerPeriod;
-  let x = -tickerOffset(tMs, period);
-  for (let guard = 0; x < scene.width + period && guard < 64; guard++) {
-    ctx.fillText(scene.tickerText, x, scene.ticker.centerY);
-    x += period;
-  }
-}
-
 /**
- * The watermark: exactly "mathsonify.com", fixed at the right end of the
- * strip below the graph. One place, never moving — its y never changes, so
- * it can never cross the curve, and it stays clear of the ticker band by
- * construction of the strip.
+ * The watermark: exactly "mathsonify.com", centred just below the equation.
+ * One place, never moving — small grey text, never a pill, never a white
+ * background. Its position is a pure function of the scene.
  */
 export function watermarkPosition(scene: VideoScene): { x: number; y: number } {
-  const strip = scene.watermarkStrip;
-  return { x: strip.x + strip.w - scene.watermarkW / 2, y: strip.y + strip.h / 2 };
+  return { x: scene.width / 2, y: scene.watermarkY };
 }
 
 function drawWatermark(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
@@ -866,7 +797,6 @@ export function drawExportFrame(
   const progress = Math.max(0, Math.min(1, mainElapsed / scene.mainMs));
   drawTracedCurve(ctx, scene, progress);
   drawPlayhead(ctx, scene, progress, tMs);
-  if (scene.mode === 'scientist') drawTickerText(ctx, scene, tMs);
 }
 
 /** Fraction of the panel height the padded data range occupies. */
@@ -915,14 +845,4 @@ export function bouncePosition(
   const travelled = start - lo + speed * tSeconds;
   const m = ((travelled % cycle) + cycle) % cycle;
   return lo + (m <= span ? m : cycle - m);
-}
-
-/**
- * Ticker scroll offset for a given time. Always inside [0, period), so the
- * strip never jumps by a whole tile and the loop point is invisible.
- */
-export function tickerOffset(tMs: number, period: number): number {
-  if (period <= 0) return 0;
-  const travelled = (tMs / 1000) * 66; // px/second, matches the old mock drift
-  return ((travelled % period) + period) % period;
 }

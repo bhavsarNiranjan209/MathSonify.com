@@ -78,13 +78,14 @@ test('the codec preference leads with High profile and ends with Baseline', () =
   assert.equal(VIDEO_CODEC_PREFERENCE[VIDEO_CODEC_PREFERENCE.length - 1], 'avc1.42001E');
 });
 
-test('the audio encoder config asks for AAC-LC at 128 kbps', () => {
+test('the audio encoder config asks for AAC-LC at 192 kbps', () => {
+  // v22: raised from 128 kbps for clearer sound.
   assert.equal(AUDIO_CODEC, 'mp4a.40.2');
   const config = audioEncoderConfig(44100, 2);
   assert.equal(config.codec, 'mp4a.40.2');
   assert.equal(config.sampleRate, 44100);
   assert.equal(config.numberOfChannels, 2);
-  assert.equal(config.bitrate, 128_000);
+  assert.equal(config.bitrate, 192_000);
 });
 
 test('the audio encoder config takes an explicit codec for the Opus fallback', () => {
