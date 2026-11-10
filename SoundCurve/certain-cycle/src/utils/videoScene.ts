@@ -99,7 +99,7 @@ const COLORS = {
   axis: '#FFFFFF',
   /** Tick numbers stay plain grey text, exactly as before (v21b). */
   tick: 'rgba(255,255,255,0.45)',
-  watermarkAlpha: 0.55,
+  watermarkAlpha: 0.5,
 };
 
 /**
@@ -721,7 +721,10 @@ function drawWatermark(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
   const { x, y } = watermarkPosition(scene);
   ctx.save();
   ctx.globalAlpha = COLORS.watermarkAlpha;
-  ctx.font = `italic 400 ${Math.round(15 * scene.uiScale)}px "Instrument Serif", Georgia, serif`;
+  // v26 (owner's pick from the font board): Manrope, +35% bigger (15px ->
+  // 20px at 720p), ghost 50%. Manrope is a free Google Font (SIL OFL 1.1),
+  // loaded in BaseLayout; it has no italic, so the watermark is upright.
+  ctx.font = `400 ${Math.round(20 * scene.uiScale)}px "Manrope", "Inter", sans-serif`;
   ctx.fillStyle = COLORS.text;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

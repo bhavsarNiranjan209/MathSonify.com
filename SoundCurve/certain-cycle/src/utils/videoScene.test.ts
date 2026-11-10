@@ -666,13 +666,13 @@ test('arrowheadPoints puts the tip beyond the panel and the base on its edge', (
 
 test('the static layer has no grid (the background is pure black)', () => {
   // The old grid was drawn with globalAlpha 0.03. The watermark is the only
-  // other static-layer element that touches globalAlpha (0.55), so if 0.03
-  // never appears, the grid is gone.
+  // other static-layer element that touches globalAlpha (0.5 in v26), so if
+  // 0.03 never appears, the grid is gone.
   const scene = sceneFor('sin(x)', null);
   const { ctx, globalAlphas } = recordingCtx();
   drawStaticLayer(ctx, scene);
   assert.ok(!globalAlphas.includes(0.03), `the grid is back (globalAlpha values: ${globalAlphas})`);
-  assert.ok(globalAlphas.includes(0.55), 'the watermark lost its 0.55 alpha');
+  assert.ok(globalAlphas.includes(0.5), 'the watermark lost its 0.5 alpha');
 });
 
 test('the axes are solid white (not the old faint 0.25 alpha)', () => {
@@ -842,18 +842,22 @@ test('the scientist name appears only for scientist equations', () => {
 /* ── v24: no name at the top for user equations, Instrument Serif italic
  * for the watermark and the outro tagline, small x/y axis letters ─────── */
 
-test('the watermark is in the same Instrument Serif italic as the intro title', () => {
-  // v24: the watermark "mathsonify.com" uses the intro "MathSonify" font —
-  // italic Instrument Serif — not the JetBrains Mono of the tick numbers.
+test('the watermark is Manrope, +35% bigger, ghost 50%', () => {
+  // v26 (owner's pick from the font board): Manrope (free, SIL OFL 1.1),
+  // 20px at 720p (+35% on the old 15px), ghost 50% (alpha 0.5). Manrope
+  // has no italic, so the watermark is upright — not Instrument Serif
+  // italic any more, and not JetBrains Mono.
   for (const scientist of [null, SCIENTIST]) {
     const scene = sceneFor('sin(x)', scientist);
-    const { ctx, drawn } = recordingCtx();
+    const { ctx, drawn, globalAlphas } = recordingCtx();
     drawStaticLayer(ctx, scene);
     const wm = drawn.find((d) => d.text === WATERMARK_TEXT);
     assert.ok(wm, `watermark not drawn (got ${JSON.stringify(drawn.map((d) => d.text))})`);
-    assert.ok(wm.font.includes('Instrument Serif'), `watermark font is not Instrument Serif (got ${wm.font})`);
-    assert.ok(wm.font.includes('italic'), `watermark font is not italic (got ${wm.font})`);
-    assert.ok(!wm.font.includes('JetBrains Mono'), `watermark still uses JetBrains Mono (got ${wm.font})`);
+    assert.ok(wm.font.includes('Manrope'), `watermark font is not Manrope (got ${wm.font})`);
+    assert.ok(!wm.font.includes('Instrument Serif'), `watermark still uses Instrument Serif (got ${wm.font})`);
+    assert.ok(!wm.font.includes('italic'), `watermark is still italic (got ${wm.font})`);
+    assert.ok(wm.font.includes('20px'), `watermark is not 20px at 720p (got ${wm.font})`);
+    assert.ok(globalAlphas.includes(0.5), `watermark alpha is not 0.5 (got ${JSON.stringify(globalAlphas)})`);
   }
 });
 
