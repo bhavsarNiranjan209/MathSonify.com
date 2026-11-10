@@ -7,10 +7,11 @@
  * timestamps. That is what makes "does the ticker loop seamlessly" and "does
  * the watermark stay below the graph" checkable rather than a vibe.
  *
- * THE LOOK (v22 — the owner's layout, after v21b landed):
+ * THE LOOK (v24 — the owner's layout, after v22+v23 landed):
  *   - Pure black #000 background. NO grid.
  *   - Axes are solid white, thicker than before, with arrowheads at their
- *     ends. Tick numbers stay exactly as they were: small grey JetBrains
+ *     ends, and small italic "x" / "y" letters at the arrowhead tips.
+ *     Tick numbers stay exactly as they were: small grey JetBrains
  *     Mono text (~2.7% of the short side), plain — never in pills, never
  *     recoloured.
  *   - The curve is the chosen theme colour (White / Blue / Green / Purple),
@@ -19,13 +20,15 @@
  *   - No faint full curve: the trace reveals the curve, like the reference.
  *   - The graph sits in the MIDDLE of the frame, smaller than before, with
  *     blank black space around it — it no longer covers the whole image.
- *   - Top to bottom, the order the owner asked for: scientist name first
- *     (scientist equations only), then the equation name, then the graph,
- *     then the equation, then the watermark. The equation name is plain
- *     centred text at the top; the equation is "f(x) = …" at the bottom
+ *   - Top to bottom, the order the owner asked for: scientist name first,
+ *     then the equation name, then the graph, then the equation, then the
+ *     watermark — but ONLY for scientist equations. A user equation has NO
+ *     name at the top: the graph, the bottom equation and the watermark
+ *     are the whole frame. The equation is "f(x) = …" at the bottom
  *     middle, in the theme colour, in a free italic serif (Instrument
  *     Serif); the watermark is small grey "mathsonify.com" centred just
- *     below the equation — never a pill, never a white background.
+ *     below the equation — never a pill, never a white background — in
+ *     the same Instrument Serif italic as the intro's "MathSonify".
  *   - The static layer (background, axes, numbers, top names, bottom
  *     equation, watermark) is drawn ONCE into an offscreen canvas and
  *     reused; each frame only paints the traced curve and the playhead.
@@ -38,8 +41,9 @@
  *     1080p. Portrait keeps the graph out of the top 12% and bottom 20%
  *     (and the right 14% mid-height) that Reels / Shorts / TikTok cover
  *     with buttons.
- *   - Intro and outro cards are unchanged: "MathSonify / Equation: …" in,
- *     "Made with MathSonify.com / Turn math into sound" out.
+ *   - Intro and outro cards: "MathSonify / Equation: …" in,
+ *     "Made with MathSonify.com / Turn math into sound" out — the outro
+ *     tagline is now in the same Instrument Serif italic as the intro.
  */
 
 import { paddedYRange, type ActiveCurve } from './activeCurve';
@@ -365,15 +369,19 @@ function fitFontPx(
 }
 
 /**
- * The top names (v22): scientist name first (scientist equations only),
- * then the equation name — plain centred text, no pill. A user-typed
- * equation has no name, so the formula itself is the title line.
+ * The top names (v24): scientist equations show the scientist name first,
+ * then the equation name — plain centred text, no pill. A user equation
+ * has NO name at the top: the graph, the bottom equation and the watermark
+ * are the whole frame.
  */
 function drawTopLabels(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
+  // v24: the equation name appears only for scientist equations. A user
+  // equation has no name at the top, so there is nothing to draw here.
+  if (scene.mode !== 'scientist') return;
   const s = scene.uiScale;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  if (scene.mode === 'scientist' && scene.scientistName && scene.scientistNameY !== null) {
+  if (scene.scientistName && scene.scientistNameY !== null) {
     ctx.font = `italic 500 ${Math.round(22 * s)}px "Instrument Serif", Georgia, serif`;
     ctx.fillStyle = COLORS.scientistText;
     ctx.fillText(scene.scientistName, scene.width / 2, scene.scientistNameY);
@@ -562,6 +570,40 @@ function drawAxes(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
     ctx.stroke();
     ctx.fillText(fmt(yVal), yAxisVisible ? yTickBase - 7 : yTickBase + 7, sy + scene.tickFontPx / 2 - 1);
   }
+
+  drawAxisLabels(ctx, scene, xAxisVisible, yAxisVisible);
+}
+
+/**
+ * Small axis letters (v24): a small italic "x" just past the x-axis
+ * arrowhead and a small italic "y" just above the y-axis arrowhead.
+ * Only drawn when the axis itself is visible, so a missing axis never
+ * leaves a floating letter. Same Instrument Serif italic as the bottom
+ * equation, small enough to read as a label, not a title.
+ */
+function drawAxisLabels(
+  ctx: CanvasRenderingContext2D,
+  scene: VideoScene,
+  xAxisVisible: boolean,
+  yAxisVisible: boolean,
+): void {
+  const p = scene.panel;
+  const s = scene.uiScale;
+  const zeroY = mapY(scene, 0);
+  const zeroX = mapX(scene, 0);
+  const arrowLen = 14 * s;
+  ctx.font = `italic 400 ${Math.round(18 * s)}px "Instrument Serif", Georgia, serif`;
+  ctx.fillStyle = COLORS.text;
+  if (xAxisVisible) {
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('x', p.x + p.w + arrowLen + Math.round(10 * s), zeroY);
+  }
+  if (yAxisVisible) {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('y', zeroX, p.y - arrowLen - Math.round(8 * s));
+  }
 }
 
 /**
@@ -667,7 +709,9 @@ function drawPlayhead(
 /**
  * The watermark: exactly "mathsonify.com", centred just below the equation.
  * One place, never moving — small grey text, never a pill, never a white
- * background. Its position is a pure function of the scene.
+ * background. Its position is a pure function of the scene. The font is
+ * the same Instrument Serif italic as the intro's "MathSonify" (v24) —
+ * not the JetBrains Mono the tick numbers use.
  */
 export function watermarkPosition(scene: VideoScene): { x: number; y: number } {
   return { x: scene.width / 2, y: scene.watermarkY };
@@ -677,7 +721,7 @@ function drawWatermark(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
   const { x, y } = watermarkPosition(scene);
   ctx.save();
   ctx.globalAlpha = COLORS.watermarkAlpha;
-  ctx.font = `500 ${Math.round(15 * scene.uiScale)}px "JetBrains Mono", ui-monospace, monospace`;
+  ctx.font = `italic 400 ${Math.round(15 * scene.uiScale)}px "Instrument Serif", Georgia, serif`;
   ctx.fillStyle = COLORS.text;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -725,7 +769,10 @@ function drawOutro(
   ctx.font = `400 ${Math.round(26 * s)}px "Instrument Serif", Georgia, serif`;
   ctx.fillStyle = COLORS.text;
   ctx.fillText('Made with MathSonify.com', scene.width / 2, scene.height / 2 - Math.round(10 * s));
-  ctx.font = `500 ${Math.round(14 * s)}px "JetBrains Mono", ui-monospace, monospace`;
+  // v24: the tagline is in the same Instrument Serif italic as the intro
+  // title (was JetBrains Mono). A touch larger than before so the serif
+  // stays readable at this size.
+  ctx.font = `italic 400 ${Math.round(18 * s)}px "Instrument Serif", Georgia, serif`;
   ctx.fillStyle = COLORS.dim;
   ctx.fillText('Turn math into sound', scene.width / 2, scene.height / 2 + Math.round(26 * s));
   ctx.restore();

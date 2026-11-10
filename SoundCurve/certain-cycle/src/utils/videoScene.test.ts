@@ -184,19 +184,26 @@ test('videoSize covers the export sizes, including 480p', () => {
   assert.deepEqual(videoSize('portrait', '1080p'), { width: 1080, height: 1920 });
 });
 
-test('the static layer holds the top name, tick numbers, bottom equation — and the fixed watermark', () => {
-  // v22: the top line is the equation (no name for a user-typed equation),
-  // the bottom line is "f(x) = …" in the theme colour, and the watermark
+test('the static layer holds tick numbers, bottom equation — and the fixed watermark', () => {
+  // v24: a user equation has NO name at the top — the top line is gone.
+  // The bottom line is "f(x) = …" in the theme colour, and the watermark
   // sits centred just below it.
   const scene = sceneFor('sin(x)', null);
   const { ctx, texts } = recordingCtx();
   drawStaticLayer(ctx, scene);
-  assert.ok(texts.includes('sin(x)'), `static layer missing the top title (got ${JSON.stringify(texts)})`);
+  assert.ok(!texts.includes('sin(x)'), `user equation leaked a top title (got ${JSON.stringify(texts)})`);
   assert.ok(texts.some((t) => /^-?\d/.test(t)), `static layer missing tick numbers (got ${JSON.stringify(texts)})`);
   assert.ok(texts.includes('f(x) = sin(x)'), `static layer missing the bottom equation (got ${JSON.stringify(texts)})`);
   // The watermark is fixed in one place now, so it belongs in the static
   // layer — drawn once, not repainted every frame.
   assert.ok(texts.includes(WATERMARK_TEXT), `static layer missing the watermark (got ${JSON.stringify(texts)})`);
+
+  // Scientist mode still has the name at the top, above the graph.
+  const sci = sceneFor('sin(x)', SCIENTIST, 'landscape', '720p', 'white', 'Sine Wave');
+  const s = recordingCtx();
+  drawStaticLayer(s.ctx, sci);
+  assert.ok(s.texts.includes('Leonhard Euler'), `scientist name missing (got ${JSON.stringify(s.texts)})`);
+  assert.ok(s.texts.includes('Sine Wave'), `equation name missing (got ${JSON.stringify(s.texts)})`);
 });
 
 test('the watermark is drawn once per frame, from the static layer', () => {
@@ -447,8 +454,12 @@ test('capture is 60fps at 1280x720', () => {
  * than on an intermediate value. The old `stubCtx` only needed measureText;
  * drawing the real frame needs the whole surface.
  */
-function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; globalAlphas: number[]; strokeStyles: string[]; fillStyles: string[] } {
+function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; drawn: { text: string; font: string }[]; globalAlphas: number[]; strokeStyles: string[]; fillStyles: string[] } {
   const texts: string[] = [];
+  // (text, font) pairs, so tests can assert on the FONT a line was drawn
+  // in (v24: the watermark and the outro tagline are Instrument Serif
+  // italic, not JetBrains Mono). `font` is read at fillText time.
+  const drawn: { text: string; font: string }[] = [];
   const globalAlphas: number[] = [];
   const strokeStyles: string[] = [];
   const fillStyles: string[] = [];
@@ -463,7 +474,7 @@ function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; globa
     shadowColor: '',
     shadowBlur: 0,
     measureText: (t: string) => ({ width: t.length * 11 }),
-    fillText: (t: string) => { texts.push(t); },
+    fillText: (t: string) => { texts.push(t); drawn.push({ text: t, font: ctx.font }); },
     save() {}, restore() {}, beginPath() {}, closePath() {},
     moveTo() {}, lineTo() {}, stroke() {}, fill() {}, arc() {},
     // `roundRect` is built from arcTo, so the stub must provide it.
@@ -496,7 +507,7 @@ function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; globa
     get: () => _fs,
     set: (v: string) => { _fs = v; fillStyles.push(v); },
   });
-  return { ctx, texts, globalAlphas, strokeStyles, fillStyles };
+  return { ctx, texts, drawn, globalAlphas, strokeStyles, fillStyles };
 }
 
 /** Structural stand-in for the Scientist record the scene builder needs. */
@@ -526,13 +537,13 @@ test('equationLabel prefixes the formula exactly once', () => {
 });
 
 test('the equation reads the same on every surface', () => {
-  // The three places the equation appears: the top title (the formula
-  // itself when the equation has no name), the intro card subtitle, and
-  // the bottom line. They must not drift apart.
+  // The places the equation appears: the intro card subtitle, and the
+  // bottom line. They must not drift apart. (v24: a user equation has no
+  // top title any more, so the main frame has no bare "sin(x)".)
   const user = sceneFor('sin(x)', null);
   const a = recordingCtx();
   drawExportFrame(a.ctx, user, INTRO_MS + 500); // main phase
-  assert.ok(a.texts.includes('sin(x)'), `top title missing "sin(x)" (got ${JSON.stringify(a.texts)})`);
+  assert.ok(!a.texts.includes('sin(x)'), `user equation leaked a top title (got ${JSON.stringify(a.texts)})`);
   assert.ok(a.texts.includes('f(x) = sin(x)'), `bottom line missing "f(x) = sin(x)" (got ${JSON.stringify(a.texts)})`);
 
   // Intro card subtitle.
@@ -543,8 +554,9 @@ test('the equation reads the same on every surface', () => {
 
 test('the bottom equation is always function notation, never a bare formula', () => {
   // v22: the bottom line is "f(x) = …" — the formula never appears on its
-  // own down there. (The top title IS the bare formula when the equation
-  // has no name; that is the title, not a floating label.)
+  // own down there. (In scientist mode the top title IS the bare formula
+  // when the equation has no name; that is the title, not a floating
+  // label. In user mode there is no top title at all in v24.)
   const sci = sceneFor('sin(x)', SCIENTIST);
   const { ctx, texts } = recordingCtx();
   drawExportFrame(ctx, sci, INTRO_MS + 500);
@@ -690,14 +702,15 @@ test('the y-axis is drawn when the domain starts at 0 (it sits on the panel edge
 });
 
 test('drawExportGraph carries the same labels as the video frame', () => {
-  // v22: the image is the video frame with the full curve — the top title,
-  // the bottom equation and the watermark are all drawn here, so image and
-  // video match exactly. (v21b drew none of them here; the info bar did.)
+  // v22: the image is the video frame with the full curve — the bottom
+  // equation and the watermark are drawn here, so image and video match
+  // exactly. (v21b drew none of them here; the info bar did.) v24: a
+  // user equation has no top title, so the image has none either.
   const scene = sceneFor('sin(x)', null);
   const { ctx, texts } = recordingCtx();
   drawExportGraph(ctx, scene);
   assert.ok(texts.some((t) => /^-?\d/.test(t)), `image graph missing tick numbers (got ${JSON.stringify(texts)})`);
-  assert.ok(texts.includes('sin(x)'), `image graph missing the top title (got ${JSON.stringify(texts)})`);
+  assert.ok(!texts.includes('sin(x)'), `image graph leaked a top title (got ${JSON.stringify(texts)})`);
   assert.ok(texts.includes('f(x) = sin(x)'), `image graph missing the bottom equation (got ${JSON.stringify(texts)})`);
   assert.ok(texts.includes(WATERMARK_TEXT), `image graph missing the watermark (got ${JSON.stringify(texts)})`);
 });
@@ -774,22 +787,31 @@ test('the layout order is scientist name, name, graph, equation, watermark', () 
   assert.ok(texts.includes(WATERMARK_TEXT), `watermark missing (got ${JSON.stringify(texts)})`);
 });
 
-test('the equation name is the top title; the formula is the title when there is no name', () => {
-  // With a name, the top line is the name — the formula appears only in
-  // the bottom "f(x) = …" line.
-  const named = sceneFor('sin(x)', null, 'landscape', '720p', 'white', 'Sine Wave');
-  assert.equal(named.equationName, 'Sine Wave');
+test('the equation name is the top title only for scientist equations', () => {
+  // v24: the top title exists only in scientist mode. A user equation has
+  // no name at the top — not the name, not the formula — even when it has
+  // a name. The formula appears only in the bottom "f(x) = …" line.
+  const namedUser = sceneFor('sin(x)', null, 'landscape', '720p', 'white', 'Sine Wave');
+  assert.equal(namedUser.equationName, 'Sine Wave');
   const a = recordingCtx();
-  drawStaticLayer(a.ctx, named);
-  assert.ok(a.texts.includes('Sine Wave'), `top title is not the name (got ${JSON.stringify(a.texts)})`);
-  assert.ok(!a.texts.includes('sin(x)'), `formula leaked into the top title (got ${JSON.stringify(a.texts)})`);
+  drawStaticLayer(a.ctx, namedUser);
+  assert.ok(!a.texts.includes('Sine Wave'), `user equation leaked its name to the top (got ${JSON.stringify(a.texts)})`);
+  assert.ok(!a.texts.includes('sin(x)'), `user equation leaked a top title (got ${JSON.stringify(a.texts)})`);
+  assert.ok(a.texts.includes('f(x) = sin(x)'), `bottom equation missing (got ${JSON.stringify(a.texts)})`);
 
-  // Without a name, the formula itself is the title line.
-  const unnamed = sceneFor('sin(x)', null);
-  assert.equal(unnamed.equationName, null);
+  // Scientist mode: with a name, the top line is the name.
+  const namedSci = sceneFor('sin(x)', SCIENTIST, 'landscape', '720p', 'white', 'Sine Wave');
   const b = recordingCtx();
-  drawStaticLayer(b.ctx, unnamed);
-  assert.ok(b.texts.includes('sin(x)'), `top title missing the formula (got ${JSON.stringify(b.texts)})`);
+  drawStaticLayer(b.ctx, namedSci);
+  assert.ok(b.texts.includes('Sine Wave'), `top title is not the name (got ${JSON.stringify(b.texts)})`);
+  assert.ok(!b.texts.includes('sin(x)'), `formula leaked into the top title (got ${JSON.stringify(b.texts)})`);
+
+  // Scientist mode without a name: the formula itself is the title line.
+  const unnamedSci = sceneFor('sin(x)', SCIENTIST);
+  assert.equal(unnamedSci.equationName, null);
+  const c = recordingCtx();
+  drawStaticLayer(c.ctx, unnamedSci);
+  assert.ok(c.texts.includes('sin(x)'), `top title missing the formula (got ${JSON.stringify(c.texts)})`);
 });
 
 test('the bottom equation is drawn in the theme colour', () => {
@@ -815,6 +837,56 @@ test('the scientist name appears only for scientist equations', () => {
   drawStaticLayer(b.ctx, user);
   assert.ok(!b.texts.includes('Leonhard Euler'), `scientist name leaked into a normal equation (got ${JSON.stringify(b.texts)})`);
   assert.ok(b.texts.includes('f(x) = sin(x)'), `bottom equation missing (got ${JSON.stringify(b.texts)})`);
+});
+
+/* ── v24: no name at the top for user equations, Instrument Serif italic
+ * for the watermark and the outro tagline, small x/y axis letters ─────── */
+
+test('the watermark is in the same Instrument Serif italic as the intro title', () => {
+  // v24: the watermark "mathsonify.com" uses the intro "MathSonify" font —
+  // italic Instrument Serif — not the JetBrains Mono of the tick numbers.
+  for (const scientist of [null, SCIENTIST]) {
+    const scene = sceneFor('sin(x)', scientist);
+    const { ctx, drawn } = recordingCtx();
+    drawStaticLayer(ctx, scene);
+    const wm = drawn.find((d) => d.text === WATERMARK_TEXT);
+    assert.ok(wm, `watermark not drawn (got ${JSON.stringify(drawn.map((d) => d.text))})`);
+    assert.ok(wm.font.includes('Instrument Serif'), `watermark font is not Instrument Serif (got ${wm.font})`);
+    assert.ok(wm.font.includes('italic'), `watermark font is not italic (got ${wm.font})`);
+    assert.ok(!wm.font.includes('JetBrains Mono'), `watermark still uses JetBrains Mono (got ${wm.font})`);
+  }
+});
+
+test('the outro tagline is in Instrument Serif italic, not JetBrains Mono', () => {
+  // v24: "Turn math into sound" matches the intro title font. The intro
+  // title itself is unchanged (still Instrument Serif italic).
+  const scene = sceneFor('sin(x)', null);
+  const { ctx, drawn } = recordingCtx();
+  drawExportFrame(ctx, scene, totalDurationMs(4000) - 100); // outro phase
+  const tag = drawn.find((d) => d.text === 'Turn math into sound');
+  assert.ok(tag, `outro tagline not drawn (got ${JSON.stringify(drawn.map((d) => d.text))})`);
+  assert.ok(tag.font.includes('Instrument Serif'), `outro tagline font is not Instrument Serif (got ${tag.font})`);
+  assert.ok(tag.font.includes('italic'), `outro tagline font is not italic (got ${tag.font})`);
+  assert.ok(!tag.font.includes('JetBrains Mono'), `outro tagline still uses JetBrains Mono (got ${tag.font})`);
+});
+
+test('small x and y letters sit at the axis arrowheads', () => {
+  // v24: a small italic "x" just past the x-axis arrowhead and a small
+  // italic "y" just above the y-axis arrowhead, in both modes and both
+  // orientations (the axes are visible for sin(x) in both).
+  for (const scientist of [null, SCIENTIST]) {
+    for (const orientation of ['landscape', 'portrait'] as const) {
+      const scene = sceneFor('sin(x)', scientist, orientation);
+      const { ctx, drawn } = recordingCtx();
+      drawStaticLayer(ctx, scene);
+      const x = drawn.find((d) => d.text === 'x');
+      const y = drawn.find((d) => d.text === 'y');
+      assert.ok(x, `x axis letter missing (${orientation}, ${scientist ? 'scientist' : 'user'})`);
+      assert.ok(y, `y axis letter missing (${orientation}, ${scientist ? 'scientist' : 'user'})`);
+      assert.ok(x.font.includes('Instrument Serif'), `x letter font is not Instrument Serif (got ${x.font})`);
+      assert.ok(y.font.includes('Instrument Serif'), `y letter font is not Instrument Serif (got ${y.font})`);
+    }
+  }
 });
 
 test('layoutFor gives the v22 panel and line positions', () => {
