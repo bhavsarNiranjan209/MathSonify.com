@@ -16,6 +16,7 @@ import {
   chooseVideoExportMode,
   pickAudioCodec,
 } from '../utils/offlineVideoExporter';
+import { export3DVideoOffline } from '../utils/export3DVideoOffline';
 import { videoSize, VIDEO_COLOR_THEMES, isVideoColorTheme, type VideoColorTheme, type VideoOrientation, type VideoQuality } from '../utils/videoScene';
 import { performSave, type SaveOutcome } from '../utils/fileSave';
 
@@ -56,12 +57,21 @@ export default function ExportModal() {
   const scale = useStudioStore((s) => s.scale);
   const activeScientist = useStudioStore((s) => s.activeScientist);
   const activeEquationName = useStudioStore((s) => s.activeEquationName);
+  // The live 3D scene's export API, present only while a 3D viewer is
+  // mounted (the Studio's GraphPanel in 3D mode). When it exists, the
+  // image and video tabs offer a 3D option alongside the 2D one.
+  const threeDApi = useStudioStore((s) => s.threeDApi);
 
   const [exportType, setExportType] = useState<'audio' | 'image' | 'video'>('audio');
   const [isExporting, setIsExporting] = useState(false);
   const [downloadReady, setDownloadReady] = useState(false);
   const [exportError, setExportError] = useState('');
   const [imageFormat, setImageFormat] = useState<'png' | 'jpeg'>('png');
+  // 2D or 3D, per tab. Defaults to 3D when a 3D viewer is mounted (the user
+  // opened the export from 3D mode), otherwise 2D. Only shown when a 3D
+  // viewer exists; in 2D mode there is nothing to choose.
+  const [imageDimension, setImageDimension] = useState<'2d' | '3d'>('3d');
+  const [videoDimension, setVideoDimension] = useState<'2d' | '3d'>('3d');
 
   // ── Video results ────────────────────────────────────────────────
   // The recorded clip is shown inline and saved explicitly, because a bare
@@ -171,6 +181,27 @@ export default function ExportModal() {
     }
   };
 
+  /**
+   * 3D image export (v29). Uses the live 3D scene's own render3DImage —
+   * one frame, footer, PNG up to 2048px — so the picture is the 3D view
+   * exactly as it looks on screen. Only offered while a 3D viewer is
+   * mounted (threeDApi is present).
+   */
+  const handleExport3DImage = async () => {
+    if (!threeDApi) return;
+    try {
+      setIsExporting(true);
+      setExportError('');
+      const s = useStudioStore.getState();
+      await threeDApi.exportImage(s.equation);
+      setDownloadReady(true);
+      setIsExporting(false);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : '3D image export failed');
+      setIsExporting(false);
+    }
+  };
+
   const handleExportWav = async () => {
     try {
       setIsExporting(true);
@@ -229,7 +260,15 @@ export default function ExportModal() {
       };
 
       let result: VideoExportResult;
-      if (offlineReady) {
+      // 3D video (v29): the frame-exact offline 3D render, when the user
+      // asked for 3D and a 3D viewer is mounted. It drives the live 3D
+      // scene frame-by-frame. If it fails, the error is surfaced — falling
+      // back to a 2D clip would silently give the user the wrong video.
+      if (videoDimension === '3d' && threeDApi) {
+        result = await export3DVideoOffline(threeDApi, base, (done, total) =>
+          setVideoProgress({ done, total }),
+        );
+      } else if (offlineReady) {
         // Frame-exact offline render first. If it fails (e.g. this browser
         // has WebCodecs but no H.264 encoder), fall back to the live recorder
         // instead of failing outright — unless there is no recorder either.
@@ -559,6 +598,31 @@ export default function ExportModal() {
 
         {exportType === 'image' && (
           <div className="relative space-y-3">
+            {/* 2D / 3D — only while a 3D viewer is mounted. Defaults to 3D
+                (the user opened the export from 3D mode); 2D is the
+                familiar picture export. */}
+            {threeDApi && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-sc-text-soft">View</span>
+                <div className="flex rounded-full p-0.5 gap-0.5" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)' }}>
+                  {(['2d', '3d'] as const).map((dim) => (
+                    <button
+                      key={dim}
+                      type="button"
+                      onClick={() => setImageDimension(dim)}
+                      className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px]"
+                      style={{
+                        background: imageDimension === dim ? 'var(--sc-accent)' : 'transparent',
+                        color: imageDimension === dim ? 'var(--sc-on-accent)' : 'var(--sc-text-faint)',
+                        boxShadow: imageDimension === dim ? '0 0 10px -2px rgba(var(--sc-accent)/0.35)' : 'none',
+                      }}
+                    >
+                      {dim === '2d' ? '2D' : '3D'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <span className="text-xs text-sc-text-soft">{t('export.imageFormat')}</span>
               <div className="flex rounded-full p-0.5 gap-0.5" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)' }}>
@@ -587,6 +651,31 @@ export default function ExportModal() {
 
         {exportType === 'video' && (
           <div className="relative space-y-3">
+            {/* 2D / 3D — only while a 3D viewer is mounted. Defaults to 3D
+                (the user opened the export from 3D mode). The 3D clip is a
+                frame-exact render of the live 3D scene. */}
+            {threeDApi && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-sc-text-soft">View</span>
+                <div className="flex rounded-full p-0.5 gap-0.5" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)' }}>
+                  {(['2d', '3d'] as const).map((dim) => (
+                    <button
+                      key={dim}
+                      type="button"
+                      onClick={() => setVideoDimension(dim)}
+                      className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px]"
+                      style={{
+                        background: videoDimension === dim ? 'var(--sc-accent)' : 'transparent',
+                        color: videoDimension === dim ? 'var(--sc-on-accent)' : 'var(--sc-text-faint)',
+                        boxShadow: videoDimension === dim ? '0 0 10px -2px rgba(var(--sc-accent)/0.35)' : 'none',
+                      }}
+                    >
+                      {dim === '2d' ? '2D' : '3D'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {orientationPicker}
             <div className="flex items-center justify-between">
               <span className="text-xs text-sc-text-soft">Quality</span>
@@ -673,7 +762,7 @@ export default function ExportModal() {
             <button
               type="button"
               disabled={isExporting}
-              onClick={handleExportImage}
+              onClick={imageDimension === '3d' && threeDApi ? handleExport3DImage : handleExportImage}
               className="w-full rounded-full text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 min-h-[44px] disabled:cursor-not-allowed"
               style={{
                 background: isExporting ? 'color-mix(in srgb, var(--sc-accent) 42%, transparent)' : 'linear-gradient(135deg, var(--sc-accent) 0%, color-mix(in srgb, var(--sc-accent) 82%, white 10%) 100%)',

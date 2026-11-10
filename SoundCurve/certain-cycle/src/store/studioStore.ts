@@ -4,6 +4,9 @@ import type { ScaleKey } from '../utils/equationParser';
 // it for real would pull the whole Web Audio module into the store's graph.
 import type { PlaybackReadout } from '../utils/audioEngine';
 import type { Scientist } from '../data/scientists';
+// Type-only import: the 3D scene API lives in the viewer, and importing it
+// for real would pull Three.js into the store's graph.
+import type { SceneApi } from '../components/Studio/Curve3DViewer';
 import {
   sampleEquationToControlPoints,
   deformControlPointsWithBrush,
@@ -92,6 +95,14 @@ export interface StudioState {
   presetDrawerOpen: boolean;
   shortcutModalOpen: boolean;
   hasPendingChanges: boolean;
+
+  /**
+   * The live 3D scene's export API, when a 3D viewer is mounted (the
+   * Studio's GraphPanel in 3D mode). Null in 2D mode or when no 3D viewer
+   * exists. The ExportModal reads this to offer 3D picture/video; the
+   * GraphPanel sets it via the viewer's onReady and clears it on unmount.
+   */
+  threeDApi: SceneApi | null;
 }
 
 export interface StudioActions {
@@ -155,6 +166,7 @@ export interface StudioActions {
   setExportModalOpen: (open: boolean) => void;
   setPresetDrawerOpen: (open: boolean) => void;
   setHasPendingChanges: (pending: boolean) => void;
+  setThreeDApi: (api: SceneApi | null) => void;
 
   loadPreset: (preset: {
     equation: string;
@@ -229,6 +241,7 @@ const initialState: StudioState = {
   presetDrawerOpen: false,
   shortcutModalOpen: false,
   hasPendingChanges: false,
+  threeDApi: null,
 };
 
 export const useStudioStore = create<StudioState & StudioActions>((set) => ({
@@ -419,6 +432,7 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
   setPresetDrawerOpen: (presetDrawerOpen) => set({ presetDrawerOpen }),
   setShortcutModalOpen: (shortcutModalOpen) => set({ shortcutModalOpen }),
   setHasPendingChanges: (hasPendingChanges) => set({ hasPendingChanges }),
+  setThreeDApi: (threeDApi) => set({ threeDApi }),
 
   loadPreset: (preset) =>
     set((state) => ({

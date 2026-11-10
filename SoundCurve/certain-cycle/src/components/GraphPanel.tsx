@@ -172,6 +172,10 @@ export default function GraphPanel({
                   const s = useStudioStore.getState();
                   return s.isPlaying ? s.progress : null;
                 }}
+                // Hand the live scene's export API to the store so the
+                // ExportModal can offer 3D picture/video while this viewer
+                // is mounted (and clear it when it unmounts / 2D mode).
+                onReady={(api) => useStudioStore.getState().setThreeDApi(api)}
               />
             )}
           </div>

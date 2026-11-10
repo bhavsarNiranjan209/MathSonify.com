@@ -18,6 +18,7 @@ import * as THREE from 'three';
 import { computeView, formatTick, type View, type XY } from '../../utils/plotMath';
 import { resolveBackground, watchTheme, type BgInfo } from '../../utils/themeWatch';
 import { curve3DPalette, type Curve3DPalette } from '../../utils/curve3dPalette';
+import { render3DImage } from '../../utils/render3DImage';
 
 export interface Curve3DViewerProps {
   points: XY[];
@@ -27,6 +28,13 @@ export interface Curve3DViewerProps {
    *  and mouse-wheel zoom needs Ctrl/Cmd (so an embedded card never hijacks page scroll). */
   touchAction?: 'none' | 'pan-y';
   className?: string;
+  /**
+   * Called with the scene API once the WebGL scene is ready (and with `null`
+   * when it is destroyed). The API is how the export UI reaches the live 3D
+   * scene: `exportImage` for a 3D picture, `renderFrame` for a 3D video.
+   * The caller stores it (in the Studio store) and clears it on `null`.
+   */
+  onReady?: (api: SceneApi | null) => void;
 }
 
 const W3 = 8, H3 = 4, D3 = 3; // plot box in scene units
@@ -35,17 +43,37 @@ const W3 = 8, H3 = 4, D3 = 3; // plot box in scene units
 // GPU). Light mode is designed, not inverted: brass curve on a paper floor.
 type Pal = Curve3DPalette;
 
-type SceneApi = {
+/**
+ * The live 3D scene's export API. `exportImage` and `renderFrame` are the
+ * two export entry points (picture and video); `pause`/`resume` let an
+ * offline video drive the scene frame-by-frame without the live animation
+ * loop overwriting its frames.
+ */
+export type SceneApi = {
   setPoints(p: XY[]): { ok: boolean; clipped: boolean };
   setTouchAction(t: 'none' | 'pan-y'): void;
   destroy(): void;
+  /** Save the current 3D frame as a PNG (up to 2048px) via render3DImage. */
+  exportImage(equation: string): Promise<{ blob: Blob; filename: string }>;
+  /**
+   * Render ONE frame at the given playhead progress (0..1, or null for the
+   * idle full curve) and return the WebGL canvas. The caller captures it
+   * in the same task (drawImage / toBlob) before the live loop can redraw.
+   */
+  renderFrame(progress: number | null): HTMLCanvasElement;
+  /** Stop the live animation loop (for an offline export driving frames). */
+  pause(): void;
+  /** Restart the live animation loop after a pause. */
+  resume(): void;
 };
 
-export default function Curve3DViewer({ points, label, getProgress, touchAction = 'none', className }: Curve3DViewerProps) {
+export default function Curve3DViewer({ points, label, getProgress, touchAction = 'none', className, onReady }: Curve3DViewerProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<SceneApi | null>(null);
   const progressRef = useRef(getProgress);
   progressRef.current = getProgress;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
   const [problem, setProblem] = useState<string | null>(null);
   const [clipped, setClipped] = useState(false);
 
@@ -53,11 +81,12 @@ export default function Curve3DViewer({ points, label, getProgress, touchAction 
     const mount = mountRef.current!;
     try {
       apiRef.current = createScene(mount, () => progressRef.current?.(), touchAction, (m) => setProblem(m));
+      onReadyRef.current?.(apiRef.current);
     } catch (e) {
       console.error('[Curve3DViewer] could not start WebGL', e);
       setProblem('3D view unavailable on this device.');
     }
-    return () => { apiRef.current?.destroy(); apiRef.current = null; };
+    return () => { apiRef.current?.destroy(); apiRef.current = null; onReadyRef.current?.(null); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -166,6 +195,10 @@ function createScene(
   const target = new THREE.Vector3(0, 0, 0);
   let touchAction = initialTouch;
   let needs = true, visible = true, lastP: number | null | undefined = undefined, raf = 0;
+  // Paused while an offline export drives frames by hand (renderFrame).
+  // The tick loop is the only thing that reschedules itself, so pausing is
+  // just cancelling the pending frame and refusing to schedule another.
+  let paused = false;
 
   function clearData() {
     while (data.children.length) { const c = data.children[0]; data.remove(c); disposeTree(c); }
@@ -408,7 +441,7 @@ function createScene(
   let last = performance.now();
   function tick(now: number) {
     raf = requestAnimationFrame(tick);
-    if (!visible || document.hidden) { last = now; return; }
+    if (paused || !visible || document.hidden) { last = now; return; }
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     let changed = needs; needs = false;
     const k = 1 - Math.pow(0.82, dt * 60);
@@ -438,6 +471,45 @@ function createScene(
       return build();
     },
     setTouchAction(t) { touchAction = t; canvas.style.touchAction = t; },
+    /**
+     * Save the current 3D frame as a PNG. Renders one frame first (via
+     * render3DImage, which grabs in the same task), so the
+     * preserveDrawingBuffer problem does not apply.
+     */
+    async exportImage(equation: string) {
+      return render3DImage(renderer, scene, camera, { equation });
+    },
+    /**
+     * Render ONE frame at the given playhead progress and return the WebGL
+     * canvas. Uses the camera's current orbit (frozen while paused), so an
+     * offline export gets a stable view. The caller must capture the canvas
+     * in the same task — the live loop (or the next renderFrame) redraws it.
+     */
+    renderFrame(progress: number | null) {
+      const p = typeof progress === 'number' && Number.isFinite(progress)
+        ? Math.min(1, Math.max(0, progress))
+        : null;
+      if (p !== lastP) { lastP = p; applyProgress(p); }
+      camera.position.set(
+        target.x + radius * Math.sin(phi) * Math.sin(theta),
+        target.y + radius * Math.cos(phi),
+        target.z + radius * Math.sin(phi) * Math.cos(theta),
+      );
+      camera.lookAt(target);
+      renderer.render(scene, camera);
+      return renderer.domElement;
+    },
+    /** Stop the live animation loop so an offline export can drive frames. */
+    pause() {
+      paused = true;
+      cancelAnimationFrame(raf);
+    },
+    /** Restart the live animation loop after a pause. */
+    resume() {
+      paused = false;
+      needs = true;
+      raf = requestAnimationFrame(tick);
+    },
     destroy() {
       cancelAnimationFrame(raf); cancelAnimationFrame(rs);
       ro.disconnect(); io.disconnect(); unwatch(); clearTimeout(firstRead);
