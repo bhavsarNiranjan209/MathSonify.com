@@ -1,0 +1,5 @@
+*.patch
+*.log
+test-out.txt
+test-run.txt
+.test-out.txt
