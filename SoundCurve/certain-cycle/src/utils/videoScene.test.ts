@@ -12,7 +12,8 @@ import assert from 'node:assert/strict';
 
 import {
   bouncePosition,
-  watermarkPosition,
+  watermarkCenter,
+  WATERMARK_ANGLE,
   prepareVideoScene,
   phaseAt,
   drawExportFrame,
@@ -93,14 +94,15 @@ test('bouncePosition is continuous and reflects at both bounds', () => {
 
 /* ── watermark: the domain, below the graph, never on the curve ─── */
 
-test('the watermark text is exactly "mathsonify.com"', () => {
+test('the watermark text is exactly "Mathsonify.com"', () => {
   // The old label read "MathSonify  ·  mathsonify.com"; the owner wants the
-  // domain only. Both modes, same check.
+  // domain only, capital M as in the v27 reference. Both modes, same check.
   for (const scientist of [null, SCIENTIST]) {
     const scene = sceneFor('sin(x)', scientist);
     const { ctx, texts } = recordingCtx();
     drawExportFrame(ctx, scene, INTRO_MS + 500); // main phase
     assert.ok(texts.includes(WATERMARK_TEXT), `watermark missing (got ${JSON.stringify(texts)})`);
+    assert.equal(WATERMARK_TEXT, 'Mathsonify.com', `watermark text changed (got ${WATERMARK_TEXT})`);
     assert.ok(
       !texts.some((t) => t.includes('MathSonify') && t.includes('mathsonify.com')),
       `the old two-part watermark label is back (got ${JSON.stringify(texts)})`,
@@ -108,39 +110,41 @@ test('the watermark text is exactly "mathsonify.com"', () => {
   }
 });
 
-test('the watermark sits centred below the equation, never on the graph', () => {
-  // v22: the watermark is centred just below the bottom equation — not
-  // right-anchored in a strip, and never overlapping the graph.
+test('the watermark is a diagonal across the graph, centred on the panel', () => {
+  // v27 (owner's reference): a big diagonal "Mathsonify.com" across the
+  // graph — not a footer line below the equation. Centred on the panel,
+  // tilted -30° (rising to the right), in both modes and both orientations.
   const orientations: VideoOrientation[] = ['landscape', 'portrait'];
   const modes: ExportMode[] = ['user', 'scientist'];
   for (const orientation of orientations) {
     for (const mode of modes) {
       const scene = sceneFor('sin(x)', mode === 'scientist' ? SCIENTIST : null, orientation);
-      // Order down the frame: name(s), then the graph, then the equation,
-      // then the watermark.
-      assert.ok(scene.watermarkY > scene.equationY, `${orientation}/${mode}: watermark is not below the equation`);
-      assert.ok(scene.equationY > scene.panel.y + scene.panel.h, `${orientation}/${mode}: equation sits inside the graph`);
-      assert.ok(scene.watermarkY > scene.panel.y + scene.panel.h, `${orientation}/${mode}: watermark overlaps the graph`);
-      assert.ok(scene.watermarkY < scene.height, `${orientation}/${mode}: watermark runs off the bottom of the frame`);
-      // Centred: the watermark's x is the frame's midpoint.
-      const { x, y } = watermarkPosition(scene);
-      assert.ok(Math.abs(x - scene.width / 2) < 1, `${orientation}/${mode}: watermark is not centred`);
-      assert.ok(Math.abs(y - scene.watermarkY) < 1, `${orientation}/${mode}: watermark is not on its line`);
+      const c = watermarkCenter(scene);
+      const p = scene.panel;
+      // Centre of the panel.
+      assert.ok(Math.abs(c.x - (p.x + p.w / 2)) < 1, `${orientation}/${mode}: watermark is not centred on the panel`);
+      assert.ok(Math.abs(c.y - (p.y + p.h / 2)) < 1, `${orientation}/${mode}: watermark is not centred on the panel`);
+      // The tilt is -30°.
+      assert.ok(Math.abs(WATERMARK_ANGLE - (-Math.PI / 6)) < 1e-9, `watermark angle is not -30° (got ${WATERMARK_ANGLE})`);
+      // And the draw call actually rotates by it.
+      const { ctx, rotations } = recordingCtx();
+      drawStaticLayer(ctx, scene);
+      assert.ok(rotations.includes(WATERMARK_ANGLE), `watermark was not drawn rotated (got ${JSON.stringify(rotations)})`);
     }
   }
 });
 
 test('the watermark never moves during a clip', () => {
-  // The owner wants it in one place: fixed at the right end of its strip.
+  // The owner wants it in one place: fixed at the centre of the panel.
   // The position is a pure function of the scene — time does not enter it,
   // so the same position comes back at every timestamp of a 6s clip.
   const orientations: VideoOrientation[] = ['landscape', 'portrait'];
   for (const orientation of orientations) {
     const scene = sceneFor('sin(x)', null, orientation);
-    const first = watermarkPosition(scene);
+    const first = watermarkCenter(scene);
     const total = totalDurationMs(6000);
     for (let t = 0; t <= total; t += 16) {
-      const p = watermarkPosition(scene);
+      const p = watermarkCenter(scene);
       assert.equal(p.x, first.x, `${orientation}: watermark x moved at t=${t}`);
       assert.equal(p.y, first.y, `${orientation}: watermark y moved at t=${t}`);
     }
@@ -158,7 +162,6 @@ test('portrait keeps the graph out of the phone safe zones', () => {
     assert.ok(p.x + p.w <= (1 - SAFE_RIGHT) * scene.width, `${mode}: graph runs into the right safe zone`);
     assert.ok(scene.equationNameY >= SAFE_TOP * scene.height, `${mode}: equation name inside the top safe zone`);
     assert.ok(scene.equationY <= (1 - SAFE_BOTTOM) * scene.height, `${mode}: equation inside the bottom safe zone`);
-    assert.ok(scene.watermarkY <= (1 - SAFE_BOTTOM) * scene.height, `${mode}: watermark inside the bottom safe zone`);
   }
 });
 
@@ -454,7 +457,7 @@ test('capture is 60fps at 1280x720', () => {
  * than on an intermediate value. The old `stubCtx` only needed measureText;
  * drawing the real frame needs the whole surface.
  */
-function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; drawn: { text: string; font: string }[]; globalAlphas: number[]; strokeStyles: string[]; fillStyles: string[] } {
+function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; drawn: { text: string; font: string }[]; globalAlphas: number[]; strokeStyles: string[]; fillStyles: string[]; rotations: number[] } {
   const texts: string[] = [];
   // (text, font) pairs, so tests can assert on the FONT a line was drawn
   // in (v24: the watermark and the outro tagline are Instrument Serif
@@ -463,6 +466,8 @@ function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; drawn
   const globalAlphas: number[] = [];
   const strokeStyles: string[] = [];
   const fillStyles: string[] = [];
+  // Rotation angles passed to ctx.rotate (v27: the diagonal watermark).
+  const rotations: number[] = [];
   const ctx = {
     font: '',
     fillStyle: '',
@@ -480,7 +485,7 @@ function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; drawn
     // `roundRect` is built from arcTo, so the stub must provide it.
     arcTo() {}, quadraticCurveTo() {}, bezierCurveTo() {},
     fillRect() {}, strokeRect() {}, clearRect() {}, clip() {}, rect() {}, drawImage() {},
-    translate() {}, scale() {}, rotate() {}, setLineDash() {},
+    translate() {}, scale() {}, rotate: (a: number) => { rotations.push(a); }, setLineDash() {},
     createRadialGradient: () => ({ addColorStop() {} }),
     createLinearGradient: () => ({ addColorStop() {} }),
     createPattern: () => null,
@@ -507,7 +512,7 @@ function recordingCtx(): { ctx: CanvasRenderingContext2D; texts: string[]; drawn
     get: () => _fs,
     set: (v: string) => { _fs = v; fillStyles.push(v); },
   });
-  return { ctx, texts, drawn, globalAlphas, strokeStyles, fillStyles };
+  return { ctx, texts, drawn, globalAlphas, strokeStyles, fillStyles, rotations };
 }
 
 /** Structural stand-in for the Scientist record the scene builder needs. */
@@ -666,7 +671,7 @@ test('arrowheadPoints puts the tip beyond the panel and the base on its edge', (
 
 test('the static layer has no grid (the background is pure black)', () => {
   // The old grid was drawn with globalAlpha 0.03. The watermark is the only
-  // other static-layer element that touches globalAlpha (0.5 in v26), so if
+  // other static-layer element that touches globalAlpha (0.5 in v27), so if
   // 0.03 never appears, the grid is gone.
   const scene = sceneFor('sin(x)', null);
   const { ctx, globalAlphas } = recordingCtx();
@@ -769,14 +774,14 @@ test('the graph sits in the middle with blank space on every side', () => {
   assert.ok(Math.abs(pp.x + pp.w - (1 - SAFE_RIGHT) * port.width) < 1, 'portrait graph does not stop at the right safe zone');
 });
 
-test('the layout order is scientist name, name, graph, equation, watermark', () => {
-  // Scientist mode: every line in the owner's order, top to bottom.
+test('the layout order is scientist name, name, graph, equation', () => {
+  // Scientist mode: every line in the owner's order, top to bottom. The
+  // watermark is a diagonal across the graph (v27), not a footer line.
   const sci = sceneFor('sin(x)', SCIENTIST, 'landscape', '720p', 'purple', 'Sine Wave');
   assert.ok(sci.scientistNameY !== null);
   assert.ok(sci.scientistNameY < sci.equationNameY, 'scientist name is not first');
   assert.ok(sci.equationNameY < sci.panel.y, 'equation name is not above the graph');
   assert.ok(sci.panel.y + sci.panel.h < sci.equationY, 'equation is not below the graph');
-  assert.ok(sci.equationY < sci.watermarkY, 'watermark is not below the equation');
 
   // The top title is the equation NAME when there is one.
   const { ctx, texts } = recordingCtx();
@@ -842,22 +847,26 @@ test('the scientist name appears only for scientist equations', () => {
 /* ── v24: no name at the top for user equations, Instrument Serif italic
  * for the watermark and the outro tagline, small x/y axis letters ─────── */
 
-test('the watermark is Manrope, +35% bigger, ghost 50%', () => {
-  // v26 (owner's pick from the font board): Manrope (free, SIL OFL 1.1),
-  // 20px at 720p (+35% on the old 15px), ghost 50% (alpha 0.5). Manrope
-  // has no italic, so the watermark is upright — not Instrument Serif
-  // italic any more, and not JetBrains Mono.
+test('the watermark is Manrope, big, diagonal, ghost 50% — not bold', () => {
+  // v27 (owner's reference): a big diagonal "Mathsonify.com" across the
+  // graph — Manrope regular 400 (the owner's font pick, v26; NOT bold —
+  // the owner wants a watermark, not a headline), ~50px at 720p (7% of
+  // the short side), ghost 50% (alpha 0.5), tilted -30°. It replaces the
+  // small 20px footer line below the equation (v26).
   for (const scientist of [null, SCIENTIST]) {
     const scene = sceneFor('sin(x)', scientist);
-    const { ctx, drawn, globalAlphas } = recordingCtx();
+    const { ctx, drawn, globalAlphas, rotations } = recordingCtx();
     drawStaticLayer(ctx, scene);
     const wm = drawn.find((d) => d.text === WATERMARK_TEXT);
     assert.ok(wm, `watermark not drawn (got ${JSON.stringify(drawn.map((d) => d.text))})`);
     assert.ok(wm.font.includes('Manrope'), `watermark font is not Manrope (got ${wm.font})`);
+    assert.ok(wm.font.includes('400'), `watermark is not regular weight (got ${wm.font})`);
+    assert.ok(!wm.font.includes('700'), `watermark is bold (got ${wm.font})`);
     assert.ok(!wm.font.includes('Instrument Serif'), `watermark still uses Instrument Serif (got ${wm.font})`);
     assert.ok(!wm.font.includes('italic'), `watermark is still italic (got ${wm.font})`);
-    assert.ok(wm.font.includes('20px'), `watermark is not 20px at 720p (got ${wm.font})`);
+    assert.ok(wm.font.includes('50px'), `watermark is not 50px at 720p (got ${wm.font})`);
     assert.ok(globalAlphas.includes(0.5), `watermark alpha is not 0.5 (got ${JSON.stringify(globalAlphas)})`);
+    assert.ok(rotations.includes(-Math.PI / 6), `watermark is not tilted -30° (got ${JSON.stringify(rotations)})`);
   }
 });
 
@@ -900,9 +909,6 @@ test('layoutFor gives the v22 panel and line positions', () => {
   assert.equal(land.scientistNameY, null);
   assert.equal(land.equationNameY, 0.08 * 720);
   assert.equal(land.equationY, 0.72 * 720);
-  // v25: the watermark sits just below the equation (gap ~3.5% of height),
-  // not a distant footer (was 0.8 * 720).
-  assert.equal(land.watermarkY, 0.755 * 720);
 
   // Portrait 720p: panel 76% wide, 40% tall, right edge at the safe zone.
   const port = layoutFor(720, 1280, 'portrait', 'scientist');
@@ -910,19 +916,6 @@ test('layoutFor gives the v22 panel and line positions', () => {
   assert.equal(port.scientistNameY, 0.13 * 1280);
   assert.equal(port.equationNameY, 0.175 * 1280);
   assert.equal(port.equationY, 0.68 * 1280);
-  assert.equal(port.watermarkY, 0.715 * 1280);
-});
-
-test('the watermark sits just below the equation, not far below it', () => {
-  // v25: the equation + watermark read as one tight block. The gap is
-  // about twice the watermark's own font size, in both orientations.
-  for (const orientation of ['landscape', 'portrait'] as const) {
-    const layout = layoutFor(orientation === 'landscape' ? 1280 : 720, orientation === 'landscape' ? 720 : 1280, orientation, 'user');
-    const height = orientation === 'landscape' ? 720 : 1280;
-    const gap = layout.watermarkY - layout.equationY;
-    assert.ok(gap > 0, `watermark is not below the equation (${orientation})`);
-    assert.ok(gap <= 0.04 * height, `watermark gap too large: ${gap}px on a ${height}px frame (${orientation})`);
-  }
 });
 
 /** Scene for an arbitrary equation + domain, for the v25 axis tests. */

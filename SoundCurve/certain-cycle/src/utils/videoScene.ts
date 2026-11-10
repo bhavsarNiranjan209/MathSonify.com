@@ -78,7 +78,7 @@ export function videoSize(
 }
 
 /** The watermark is the domain only — never "MathSonify · mathsonify.com". */
-export const WATERMARK_TEXT = 'mathsonify.com';
+export const WATERMARK_TEXT = 'Mathsonify.com';
 
 /** Tick numbers are ~2.7% of the short side (19px at 720p, 29px at 1080p). */
 export const TICK_FRACTION_OF_SHORT_SIDE = 0.027;
@@ -177,8 +177,6 @@ export interface VideoScene {
   equationNameY: number;
   /** Vertical centre of the "f(x) = …" line at the bottom middle. */
   equationY: number;
-  /** Vertical centre of the watermark line, just below the equation. */
-  watermarkY: number;
   /** The static layer, drawn once and reused; null until first use (and null
    *  in Node, where there is no document — the caller then draws it inline). */
   staticLayer: HTMLCanvasElement | null;
@@ -220,7 +218,6 @@ interface Layout {
   scientistNameY: number | null;
   equationNameY: number;
   equationY: number;
-  watermarkY: number;
 }
 
 /**
@@ -229,11 +226,12 @@ interface Layout {
  * Top to bottom, the order the owner asked for: scientist name first
  * (scientist mode only), then the equation name, then the graph — smaller
  * than before, centred in the frame with blank black space around it —
- * then the equation at the bottom middle, then the watermark just below it.
+ * then the equation at the bottom middle. The watermark is a big diagonal
+ * "Mathsonify.com" across the graph itself (v27), not a footer line.
  *
  * Portrait: the graph sits between the 12% top safe zone and the 20% bottom
- * one, its right edge stops at the 14% right safe zone, and the equation +
- * watermark sit above the bottom safe zone.
+ * one, its right edge stops at the 14% right safe zone, and the equation
+ * sits above the bottom safe zone.
  */
 export function layoutFor(
   width: number,
@@ -241,9 +239,6 @@ export function layoutFor(
   orientation: VideoOrientation,
   mode: ExportMode,
 ): Layout {
-  // v25: the watermark sits just below the equation — a tight pair, not a
-  // distant footer. The gap is ~3.5% of the frame height (was 7–8%), about
-  // twice the watermark's own font size, so the two read as one block.
   if (orientation === 'portrait') {
     const panel: Rect = { x: 0.1 * width, y: 0.22 * height, w: 0.76 * width, h: 0.4 * height };
     return {
@@ -251,7 +246,6 @@ export function layoutFor(
       scientistNameY: mode === 'scientist' ? 0.13 * height : null,
       equationNameY: mode === 'scientist' ? 0.175 * height : 0.14 * height,
       equationY: 0.68 * height,
-      watermarkY: 0.715 * height,
     };
   }
 
@@ -261,7 +255,6 @@ export function layoutFor(
     scientistNameY: mode === 'scientist' ? 0.055 * height : null,
     equationNameY: mode === 'scientist' ? 0.115 * height : 0.08 * height,
     equationY: 0.72 * height,
-    watermarkY: 0.755 * height,
   };
 }
 
@@ -337,7 +330,6 @@ export function prepareVideoScene(input: PrepareSceneInput): VideoScene {
     scientistNameY: layout.scientistNameY,
     equationNameY: layout.equationNameY,
     equationY: layout.equationY,
-    watermarkY: layout.watermarkY,
     staticLayer: null,
   };
 }
@@ -710,28 +702,38 @@ function drawPlayhead(
 }
 
 /**
- * The watermark: exactly "mathsonify.com", centred just below the equation.
- * One place, never moving — small grey text, never a pill, never a white
- * background. Its position is a pure function of the scene. The font is
- * the same Instrument Serif italic as the intro's "MathSonify" (v24) —
- * not the JetBrains Mono the tick numbers use.
+ * The watermark (v27, owner's reference): a big diagonal "Mathsonify.com"
+ * across the graph itself — regular Manrope (NOT bold, per the owner),
+ * tilted -30° (rising to the right), ghosted at 50%, centred on the
+ * graph panel. It replaces the small footer line below the equation
+ * (v22–v26): the diagonal is the watermark now, in the picture AND the
+ * video, because it lives in the static layer. The curve is drawn after
+ * it, so the curve crosses over the text, as in the reference.
  */
-export function watermarkPosition(scene: VideoScene): { x: number; y: number } {
-  return { x: scene.width / 2, y: scene.watermarkY };
+
+/** The diagonal watermark's tilt: -30°, rising to the right. */
+export const WATERMARK_ANGLE = -Math.PI / 6;
+
+/** Centre of the diagonal watermark: the centre of the graph panel. */
+export function watermarkCenter(scene: VideoScene): { x: number; y: number } {
+  return { x: scene.panel.x + scene.panel.w / 2, y: scene.panel.y + scene.panel.h / 2 };
 }
 
 function drawWatermark(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
-  const { x, y } = watermarkPosition(scene);
+  const { x, y } = watermarkCenter(scene);
   ctx.save();
   ctx.globalAlpha = COLORS.watermarkAlpha;
-  // v26 (owner's pick from the font board): Manrope, +35% bigger (15px ->
-  // 20px at 720p), ghost 50%. Manrope is a free Google Font (SIL OFL 1.1),
-  // loaded in BaseLayout; it has no italic, so the watermark is upright.
-  ctx.font = `400 ${Math.round(20 * scene.uiScale)}px "Manrope", "Inter", sans-serif`;
+  ctx.translate(x, y);
+  ctx.rotate(WATERMARK_ANGLE);
+  // Manrope regular (the owner's font pick, v26; NOT bold — the owner
+  // wants a watermark, not a headline), ~7% of the short side (50px at
+  // 720p) — big enough to read across the graph. Ghosted 50%, the
+  // owner's pick: faint, so the curve shows through.
+  ctx.font = `400 ${Math.round(50 * scene.uiScale)}px "Manrope", "Inter", sans-serif`;
   ctx.fillStyle = COLORS.text;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(WATERMARK_TEXT, x, y);
+  ctx.fillText(WATERMARK_TEXT, 0, 0);
   ctx.restore();
 }
 

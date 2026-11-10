@@ -11,13 +11,17 @@
  *      blank black space around it — it no longer covers the whole image.
  *   4. Equation — "f(x) = …" at the bottom middle, in the theme colour,
  *      in a free italic serif
- *   5. Ghosted "MathSonify.com" text, centred just below the equation
+ *   5. Watermark — a big diagonal "Mathsonify.com" across the graph
+ *      itself (v27): regular Manrope (NOT bold), tilted -30°, ghosted
+ *      50%, centred on the panel. It is the watermark now, in the picture
+ *      AND the video, because it lives in the shared static layer.
  *
- * The graph interior is never obstructed: no pill or text sits on it.
- * If the scene cannot be built (missing curve inputs, or an equation that
- * produces no valid values) it falls back to the live-canvas capture:
- * gradient background + subtle grid + the Studio canvas as-is, with the
- * name / equation / watermark drawn in the same positions.
+ * The watermark sits on the graph by design (it is a watermark, not a
+ * label) — the curve is drawn over it. If the scene cannot be built
+ * (missing curve inputs, or an equation that produces no valid values)
+ * it falls back to the live-canvas capture: gradient background +
+ * subtle grid + the Studio canvas as-is, with the name / equation /
+ * watermark drawn in the same positions.
  */
 
 import { getThemeMode, getCanvasPalette } from './theme';
@@ -29,6 +33,7 @@ import {
   isVideoColorTheme,
   DEFAULT_VIDEO_COLOR_THEME,
   videoColorThemeHex,
+  WATERMARK_TEXT,
   type VideoColorTheme,
   type VideoOrientation,
 } from './videoScene';
@@ -176,11 +181,17 @@ function drawFallbackLabels(
     );
     ctx.fillText(`f(x) = ${equationText.trim()}`, exportWidth / 2, layout.equationY);
   }
+  // v27: the watermark is the big diagonal "Mathsonify.com" across the
+  // graph (same as the video scene) — Manrope regular (NOT bold), tilted
+  // -30°, ghosted 50%, centred on the panel. It replaces the small
+  // footer line.
   ctx.save();
-  ctx.globalAlpha = 0.55;
-  ctx.font = `500 ${Math.round(15 * uiScale)}px "JetBrains Mono", ui-monospace, monospace`;
+  ctx.globalAlpha = 0.5;
+  ctx.translate(layout.panel.x + layout.panel.w / 2, layout.panel.y + layout.panel.h / 2);
+  ctx.rotate(-Math.PI / 6);
+  ctx.font = `400 ${Math.round(50 * uiScale)}px "Manrope", "Inter", sans-serif`;
   ctx.fillStyle = '#F5F5F2';
-  ctx.fillText('mathsonify.com', exportWidth / 2, layout.watermarkY);
+  ctx.fillText(WATERMARK_TEXT, 0, 0);
   ctx.restore();
 }
 
