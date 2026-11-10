@@ -44,8 +44,14 @@ export default function ScientistModal() {
 
   const setActiveScientist = useStudioStore((s) => s.setActiveScientist);
 
+  // v25: sci + eqName ride in the URL so the scientist survives the page
+  // navigation. The click handler also sets it in the store, but a full
+  // <a href> navigation reloads the app and wipes in-memory state — the URL
+  // is the only thing that survives, and the Studio restores the scientist
+  // from these two params on mount. Without them the export ran in user
+  // mode and the scientist name never appeared.
   const studioUrl = (eq: Scientist['equations'][0]) =>
-    `/studio?eq=${encodeURIComponent(eq.equation)}&inst=${eq.instrument}&mode=${eq.sonificationMode}&minX=${eq.minX}&maxX=${eq.maxX}&dur=${eq.duration}`;
+    `/studio?eq=${encodeURIComponent(eq.equation)}&inst=${eq.instrument}&mode=${eq.sonificationMode}&minX=${eq.minX}&maxX=${eq.maxX}&dur=${eq.duration}&sci=${scientist?.id ?? ''}&eqName=${encodeURIComponent(eq.name)}`;
 
   return (
     <AnimatePresence>

@@ -922,25 +922,24 @@ function draw2DGraph(
     }
   }
 
-  // Axes
+  // Axes (v25): always drawn — when 0 sits outside the visible range the
+  // axis is clamped to the nearest canvas edge, so a graph on an
+  // all-positive domain (e.g. sqrt(x) on 0.2..10) never looks axis-less.
+  // The tick labels still show the true values; only the axis line is
+  // pinned to the edge.
   ctx.strokeStyle = p.axis;
   ctx.lineWidth = 1.25;
+  const axisY = Math.max(0, Math.min(height, toScreenY(0)));
+  const axisX = Math.max(0, Math.min(width, toScreenX(0)));
+  ctx.beginPath();
+  ctx.moveTo(0, axisY);
+  ctx.lineTo(width, axisY);
+  ctx.stroke();
 
-  if (paddedMinY <= 0 && paddedMaxY >= 0) {
-    const y0 = toScreenY(0);
-    ctx.beginPath();
-    ctx.moveTo(0, y0);
-    ctx.lineTo(width, y0);
-    ctx.stroke();
-  }
-
-  if (minX <= 0 && maxX >= 0) {
-    const x0 = toScreenX(0);
-    ctx.beginPath();
-    ctx.moveTo(x0, 0);
-    ctx.lineTo(x0, height);
-    ctx.stroke();
-  }
+  ctx.beginPath();
+  ctx.moveTo(axisX, 0);
+  ctx.lineTo(axisX, height);
+  ctx.stroke();
 
   // Segment stroker
   const strokeSegment = (
@@ -1053,45 +1052,58 @@ function draw2DGraph(
     ctx.font = '9px "JetBrains Mono", ui-monospace, monospace';
     const fmt = (v: number) => String(Math.round(v * 10) / 10);
 
-    const y0 = toScreenY(0);
-    const xAxisVisible = y0 > 0 && y0 < height;
-    const tickBaseY = xAxisVisible ? y0 : height - 4;
-    for (let i = 0; i <= 6; i++) {
-      const xVal = minX + (i / 6) * (maxX - minX);
-      const sx = toScreenX(xVal);
-      ctx.strokeStyle = p.axis;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(sx, tickBaseY - 3);
-      ctx.lineTo(sx, tickBaseY + 3);
-      ctx.stroke();
+    // v25: labels that would collide at the origin are skipped (the tick
+    // mark is still drawn). A y label sitting on the x-axis would land on
+    // top of the x "0" label, and an x label sitting on the y-axis would
+    // land on top of the y labels — both read as garbled numbers.
+    // The axes are clamped to the canvas edge when 0 is outside, so they
+    // are always drawn (same as the export).
+    const y0 = Math.max(0, Math.min(height, toScreenY(0)));
+    const x0 = Math.max(0, Math.min(width, toScreenX(0)));
+    const tickBaseY = y0;
+    const yLabelClear = 18;
+    const xLabelClear = 22;
+  for (let i = 0; i <= 6; i++) {
+    const xVal = minX + (i / 6) * (maxX - minX);
+    const sx = toScreenX(xVal);
+    ctx.strokeStyle = p.axis;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(sx, tickBaseY - 3);
+    ctx.lineTo(sx, tickBaseY + 3);
+    ctx.stroke();
+    if (Math.abs(sx - x0) >= xLabelClear) {
       ctx.textAlign = 'center';
       // Edge labels are pulled inside the frame: the first/last tick sits
       // exactly on the canvas edge, so a centred label would be half-clipped.
       const xLabel = fmt(xVal);
       const labelX = clampTickLabelX(sx, ctx.measureText(xLabel).width / 2, width);
-      ctx.fillText(xLabel, labelX, xAxisVisible ? tickBaseY + 11 : height - 8);
+      ctx.fillText(xLabel, labelX, tickBaseY + 11);
     }
+  }
 
-    const x0 = toScreenX(0);
-    const yAxisVisible = x0 > 0 && x0 < width;
-    const tickBaseX = yAxisVisible ? x0 : 7;
-    for (let i = 0; i <= 6; i++) {
-      const yVal = paddedMaxY - (i / 6) * (paddedMaxY - paddedMinY);
-      const sy = toScreenY(yVal);
-      ctx.strokeStyle = p.axis;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(tickBaseX - 3, sy);
-      ctx.lineTo(tickBaseX + 3, sy);
-      ctx.stroke();
-      ctx.textAlign = yAxisVisible ? 'right' : 'left';
+  const tickBaseX = x0;
+  // Labels sit left of the axis when there is room; when the axis is pinned
+  // to the left edge there is no room, so they go right of it instead.
+  const yLabelsLeft = tickBaseX >= 45;
+  ctx.textAlign = yLabelsLeft ? 'right' : 'left';
+  for (let i = 0; i <= 6; i++) {
+    const yVal = paddedMaxY - (i / 6) * (paddedMaxY - paddedMinY);
+    const sy = toScreenY(yVal);
+    ctx.strokeStyle = p.axis;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tickBaseX - 3, sy);
+    ctx.lineTo(tickBaseX + 3, sy);
+    ctx.stroke();
+    if (Math.abs(sy - y0) >= yLabelClear) {
       // The outermost ticks sit exactly on the canvas edge (y = 0 / height),
       // so their labels are clamped inside — unclamped, the top and bottom
       // labels were drawn half outside the frame and cut by the panel.
-      ctx.fillText(fmt(yVal), yAxisVisible ? tickBaseX - 5 : tickBaseX + 5, clampTickLabelY(sy + 3, height));
+      ctx.fillText(fmt(yVal), yLabelsLeft ? tickBaseX - 5 : tickBaseX + 5, clampTickLabelY(sy + 3, height));
     }
-  };
+  }
+};
 
   // Vignette
   const drawVignette = () => {

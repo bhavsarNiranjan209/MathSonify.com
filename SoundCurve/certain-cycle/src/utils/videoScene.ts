@@ -241,6 +241,9 @@ export function layoutFor(
   orientation: VideoOrientation,
   mode: ExportMode,
 ): Layout {
+  // v25: the watermark sits just below the equation — a tight pair, not a
+  // distant footer. The gap is ~3.5% of the frame height (was 7–8%), about
+  // twice the watermark's own font size, so the two read as one block.
   if (orientation === 'portrait') {
     const panel: Rect = { x: 0.1 * width, y: 0.22 * height, w: 0.76 * width, h: 0.4 * height };
     return {
@@ -248,7 +251,7 @@ export function layoutFor(
       scientistNameY: mode === 'scientist' ? 0.13 * height : null,
       equationNameY: mode === 'scientist' ? 0.175 * height : 0.14 * height,
       equationY: 0.68 * height,
-      watermarkY: 0.75 * height,
+      watermarkY: 0.715 * height,
     };
   }
 
@@ -258,7 +261,7 @@ export function layoutFor(
     scientistNameY: mode === 'scientist' ? 0.055 * height : null,
     equationNameY: mode === 'scientist' ? 0.115 * height : 0.08 * height,
     equationY: 0.72 * height,
-    watermarkY: 0.8 * height,
+    watermarkY: 0.755 * height,
   };
 }
 
@@ -508,36 +511,30 @@ function drawAxes(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
   const zeroY = mapY(scene, 0);
   const zeroX = mapX(scene, 0);
 
-  // Solid white axes (v21b), thicker than the old faint 1px lines. The
-  // bounds are inclusive: an axis that sits exactly on the panel edge (e.g.
-  // a domain starting at 0) is drawn, not dropped.
-  const xAxisVisible = zeroY >= p.y && zeroY <= p.y + p.h;
-  const yAxisVisible = zeroX >= p.x && zeroX <= p.x + p.w;
+  // Solid white axes (v21b), thicker than the old faint 1px lines.
+  // v25: the axes are ALWAYS drawn — when 0 sits outside the panel the axis
+  // is clamped to the nearest panel edge, so a graph on an all-positive
+  // domain (e.g. sqrt(x) on 0.2..10) never looks axis-less. The tick labels
+  // still show the true values; only the axis line is pinned to the edge.
+  const axisY = Math.max(p.y, Math.min(p.y + p.h, zeroY));
+  const axisX = Math.max(p.x, Math.min(p.x + p.w, zeroX));
   ctx.lineWidth = 2.5 * s;
   ctx.strokeStyle = COLORS.axis;
-  if (xAxisVisible) {
-    ctx.beginPath();
-    ctx.moveTo(p.x, zeroY);
-    ctx.lineTo(p.x + p.w, zeroY);
-    ctx.stroke();
-  }
-  if (yAxisVisible) {
-    ctx.beginPath();
-    ctx.moveTo(zeroX, p.y);
-    ctx.lineTo(zeroX, p.y + p.h);
-    ctx.stroke();
-  }
+  ctx.beginPath();
+  ctx.moveTo(p.x, axisY);
+  ctx.lineTo(p.x + p.w, axisY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(axisX, p.y);
+  ctx.lineTo(axisX, p.y + p.h);
+  ctx.stroke();
 
   // Arrowheads at the ends, reaching into the margins past the panel edge
   // so the end tick numbers never cover them.
   const arrowLen = 14 * s;
   const arrowHalf = 5 * s;
-  if (xAxisVisible) {
-    drawArrowhead(ctx, { x: p.x + p.w + arrowLen, y: zeroY }, { x: 1, y: 0 }, arrowLen, arrowHalf);
-  }
-  if (yAxisVisible) {
-    drawArrowhead(ctx, { x: zeroX, y: p.y - arrowLen }, { x: 0, y: -1 }, arrowLen, arrowHalf);
-  }
+  drawArrowhead(ctx, { x: p.x + p.w + arrowLen, y: axisY }, { x: 1, y: 0 }, arrowLen, arrowHalf);
+  drawArrowhead(ctx, { x: axisX, y: p.y - arrowLen }, { x: 0, y: -1 }, arrowLen, arrowHalf);
 
   // Ruler ticks, kept faint so the curve stays the brightest element.
   // Numbers are ~2.7% of the short side — about 3x the old 11px at 720p.
@@ -547,7 +544,14 @@ function drawAxes(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
   ctx.font = `500 ${scene.tickFontPx}px "JetBrains Mono", ui-monospace, monospace`;
   ctx.strokeStyle = COLORS.tick;
 
-  const xTickBase = xAxisVisible ? zeroY : p.y + p.h;
+  // v25: labels that would collide at the origin are skipped (the tick mark
+  // is still drawn). A y label sitting on the x-axis would land on top of
+  // the x "0" label, and an x label sitting on the y-axis would land on top
+  // of the y labels — both read as garbled numbers (e.g. "0:10.2"). The
+  // neighbouring ticks still label the scale, so nothing is lost.
+  const yLabelClear = scene.tickFontPx * 2.0;
+  const xLabelClear = scene.tickFontPx * 2.5;
+  const xTickBase = axisY;
   for (let i = 0; i <= 6; i++) {
     const xVal = scene.minX + (i / 6) * (scene.maxX - scene.minX);
     const sx = mapX(scene, xVal);
@@ -555,12 +559,14 @@ function drawAxes(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
     ctx.moveTo(sx, xTickBase - 3);
     ctx.lineTo(sx, xTickBase + 3);
     ctx.stroke();
-    ctx.textAlign = 'center';
-    ctx.fillText(fmt(xVal), sx, xTickBase + scene.tickFontPx + 4);
+    if (Math.abs(sx - axisX) >= xLabelClear) {
+      ctx.textAlign = 'center';
+      ctx.fillText(fmt(xVal), sx, xTickBase + scene.tickFontPx + 4);
+    }
   }
 
-  const yTickBase = yAxisVisible ? zeroX : p.x;
-  ctx.textAlign = yAxisVisible ? 'right' : 'left';
+  const yTickBase = axisX;
+  ctx.textAlign = 'right';
   for (let i = 0; i <= 6; i++) {
     const yVal = scene.paddedMinY + (i / 6) * (scene.paddedMaxY - scene.paddedMinY);
     const sy = mapY(scene, yVal);
@@ -568,42 +574,39 @@ function drawAxes(ctx: CanvasRenderingContext2D, scene: VideoScene): void {
     ctx.moveTo(yTickBase - 3, sy);
     ctx.lineTo(yTickBase + 3, sy);
     ctx.stroke();
-    ctx.fillText(fmt(yVal), yAxisVisible ? yTickBase - 7 : yTickBase + 7, sy + scene.tickFontPx / 2 - 1);
+    if (Math.abs(sy - axisY) >= yLabelClear) {
+      ctx.fillText(fmt(yVal), yTickBase - 7, sy + scene.tickFontPx / 2 - 1);
+    }
   }
 
-  drawAxisLabels(ctx, scene, xAxisVisible, yAxisVisible);
+  drawAxisLabels(ctx, scene, axisX, axisY);
 }
 
 /**
  * Small axis letters (v24): a small italic "x" just past the x-axis
  * arrowhead and a small italic "y" just above the y-axis arrowhead.
- * Only drawn when the axis itself is visible, so a missing axis never
- * leaves a floating letter. Same Instrument Serif italic as the bottom
- * equation, small enough to read as a label, not a title.
+ * v25: the axes are always drawn (clamped to the panel edge when 0 is
+ * outside), so the letters are always drawn too, at the clamped axis
+ * position. Same Instrument Serif italic as the bottom equation, small
+ * enough to read as a label, not a title.
  */
 function drawAxisLabels(
   ctx: CanvasRenderingContext2D,
   scene: VideoScene,
-  xAxisVisible: boolean,
-  yAxisVisible: boolean,
+  axisX: number,
+  axisY: number,
 ): void {
   const p = scene.panel;
   const s = scene.uiScale;
-  const zeroY = mapY(scene, 0);
-  const zeroX = mapX(scene, 0);
   const arrowLen = 14 * s;
   ctx.font = `italic 400 ${Math.round(18 * s)}px "Instrument Serif", Georgia, serif`;
   ctx.fillStyle = COLORS.text;
-  if (xAxisVisible) {
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('x', p.x + p.w + arrowLen + Math.round(10 * s), zeroY);
-  }
-  if (yAxisVisible) {
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText('y', zeroX, p.y - arrowLen - Math.round(8 * s));
-  }
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('x', p.x + p.w + arrowLen + Math.round(10 * s), axisY);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('y', axisX, p.y - arrowLen - Math.round(8 * s));
 }
 
 /**

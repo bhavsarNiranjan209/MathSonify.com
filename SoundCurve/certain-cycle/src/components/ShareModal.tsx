@@ -16,6 +16,8 @@ export default function ShareModal() {
   const duration = useStudioStore((s) => s.duration);
   const minX = useStudioStore((s) => s.minX);
   const maxX = useStudioStore((s) => s.maxX);
+  const activeScientist = useStudioStore((s) => s.activeScientist);
+  const activeEquationName = useStudioStore((s) => s.activeEquationName);
 
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
@@ -23,6 +25,9 @@ export default function ShareModal() {
   const reduceMotion = !!useReducedMotion();
 
   // Build query string — src=ms brands every shared URL as MathSonify-origin
+  // v25: sci + eqName ride along when a scientist equation is loaded, so a
+  // shared link restores the scientist (and the export keeps the name).
+  // Without them the link opened in user mode and the name was lost.
   const params = new URLSearchParams({
     eq: equation,
     inst: instrument,
@@ -31,6 +36,9 @@ export default function ShareModal() {
     minX: minX.toString(),
     maxX: maxX.toString(),
     src: 'sc',
+    ...(activeScientist && activeEquationName
+      ? { sci: activeScientist.id, eqName: activeEquationName }
+      : {}),
   });
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://mathsonify.com';

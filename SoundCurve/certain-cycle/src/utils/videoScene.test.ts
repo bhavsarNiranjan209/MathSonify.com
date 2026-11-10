@@ -900,7 +900,9 @@ test('layoutFor gives the v22 panel and line positions', () => {
   assert.equal(land.scientistNameY, null);
   assert.equal(land.equationNameY, 0.08 * 720);
   assert.equal(land.equationY, 0.72 * 720);
-  assert.equal(land.watermarkY, 0.8 * 720);
+  // v25: the watermark sits just below the equation (gap ~3.5% of height),
+  // not a distant footer (was 0.8 * 720).
+  assert.equal(land.watermarkY, 0.755 * 720);
 
   // Portrait 720p: panel 76% wide, 40% tall, right edge at the safe zone.
   const port = layoutFor(720, 1280, 'portrait', 'scientist');
@@ -908,5 +910,83 @@ test('layoutFor gives the v22 panel and line positions', () => {
   assert.equal(port.scientistNameY, 0.13 * 1280);
   assert.equal(port.equationNameY, 0.175 * 1280);
   assert.equal(port.equationY, 0.68 * 1280);
-  assert.equal(port.watermarkY, 0.75 * 1280);
+  assert.equal(port.watermarkY, 0.715 * 1280);
+});
+
+test('the watermark sits just below the equation, not far below it', () => {
+  // v25: the equation + watermark read as one tight block. The gap is
+  // about twice the watermark's own font size, in both orientations.
+  for (const orientation of ['landscape', 'portrait'] as const) {
+    const layout = layoutFor(orientation === 'landscape' ? 1280 : 720, orientation === 'landscape' ? 720 : 1280, orientation, 'user');
+    const height = orientation === 'landscape' ? 720 : 1280;
+    const gap = layout.watermarkY - layout.equationY;
+    assert.ok(gap > 0, `watermark is not below the equation (${orientation})`);
+    assert.ok(gap <= 0.04 * height, `watermark gap too large: ${gap}px on a ${height}px frame (${orientation})`);
+  }
+});
+
+/** Scene for an arbitrary equation + domain, for the v25 axis tests. */
+function sceneForDomain(
+  equation: string,
+  minX: number,
+  maxX: number,
+  scientist: ScientistStub = null,
+  orientation: VideoOrientation = 'landscape',
+) {
+  const curve = resolveActiveCurve({
+    equation, minX, maxX, isCustomCurve: false, splineControlPoints: [],
+  });
+  return prepareVideoScene({
+    ctx: stubCtx(), equation, curve, minX, maxX,
+    mainMs: 4000, scientist, orientation, quality: '720p',
+  });
+}
+
+test('the y-axis is drawn even when the domain starts past 0', () => {
+  // v25: sqrt(x) on 0.2..10 has no x=0 inside the panel, but the y-axis
+  // must still be there (clamped to the panel edge), with its "y" letter —
+  // otherwise the graph looks axis-less. Same for the x-axis when y=0 is
+  // outside the padded range.
+  const scene = sceneForDomain('sqrt(x)', 0.2, 10);
+  const { ctx, texts } = recordingCtx();
+  drawStaticLayer(ctx, scene);
+  assert.ok(texts.includes('y'), `y axis letter missing for sqrt(x) on 0.2..10 (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes('x'), `x axis letter missing for sqrt(x) on 0.2..10 (got ${JSON.stringify(texts)})`);
+  // The y tick labels are still the true (positive) values for sqrt(x).
+  assert.ok(texts.includes('3.7'), `top y tick wrong for sqrt(x) on 0.2..10 (got ${JSON.stringify(texts)})`);
+  assert.ok(!texts.includes('-3.7'), `y ticks are negative for sqrt(x) on 0.2..10 (got ${JSON.stringify(texts)})`);
+});
+
+test('tick labels never collide at the origin', () => {
+  // v25: for sqrt(x) on 0..10 the y tick near 0 ("0.1") and the x tick "0"
+  // used to land on top of each other and read as garbled numbers
+  // ("0:10.2"). The colliding labels are skipped (the tick marks stay),
+  // so no two labels share the origin corner.
+  const scene = sceneForDomain('sqrt(x)', 0, 10);
+  const { ctx, texts } = recordingCtx();
+  drawStaticLayer(ctx, scene);
+  // The y tick "0.1" sits on the x-axis — it must not be drawn.
+  assert.ok(!texts.includes('0.1'), `y tick "0.1" still drawn at the origin (got ${JSON.stringify(texts)})`);
+  // The remaining y ticks still label the scale.
+  assert.ok(texts.includes('3.7'), `top y tick missing (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes('1.6'), `mid y tick missing (got ${JSON.stringify(texts)})`);
+  // The x ticks still label the scale (the one at the y-axis is skipped).
+  assert.ok(texts.includes('10'), `last x tick missing (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes('5'), `mid x tick missing (got ${JSON.stringify(texts)})`);
+  // Both axis letters are still drawn.
+  assert.ok(texts.includes('x'), `x axis letter missing (got ${JSON.stringify(texts)})`);
+  assert.ok(texts.includes('y'), `y axis letter missing (got ${JSON.stringify(texts)})`);
+});
+
+test('sqrt(x) tick values are positive, never negative', () => {
+  // Regression: sqrt(x) is >= 0, so its y ticks must be (mostly) positive.
+  // The padded range dips just below 0 for headroom, so one small negative
+  // tick ("-0.6") is expected — but the top of the scale must be positive.
+  for (const [minX, maxX] of [[0, 10], [0.2, 10], [0.01, 10]] as const) {
+    const scene = sceneForDomain('sqrt(x)', minX, maxX);
+    const { ctx, texts } = recordingCtx();
+    drawStaticLayer(ctx, scene);
+    assert.ok(texts.includes('3.7'), `top y tick not 3.7 for sqrt(x) on ${minX}..${maxX} (got ${JSON.stringify(texts)})`);
+    assert.ok(!texts.includes('-3.7'), `y ticks are negative for sqrt(x) on ${minX}..${maxX} (got ${JSON.stringify(texts)})`);
+  }
 });
