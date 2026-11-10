@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Navigation from '../components/Navigation.astro';
 import Hero from '../components/Hero.astro';
 import Footer from '../components/Footer.astro';
+import TryItCard from '../components/TryItCard';
 // The curated-sonifications grid, the feature grid and the SoundLab teaser
 // were removed from this page: the homepage is now Hero -> quote/CTA -> Footer.
 // `PRESETS` and `FEATURE_FLAGS` were only imported for those sections.
@@ -14,34 +15,10 @@ import Footer from '../components/Footer.astro';
   <main>
     <Hero />
 
-    <!-- Studio teaser — the AI-generated sphere art beside real text, in the
-      site's own theme. Only the button below is a link; the art itself is
-      not clickable. -->
-    <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-      <div class="grid overflow-hidden rounded-lg border border-sc-line/15 bg-sc-surface md:grid-cols-2">
-        <div class="relative min-h-[220px]">
-          <img
-            src="/images/home-banner-sphere.png"
-            alt="Glowing wireframe sphere showing x squared plus y squared equals r squared, over gold wave curves."
-            width="425"
-            height="243"
-            loading="lazy"
-            class="absolute inset-0 h-full w-full object-cover"
-          />
-        </div>
-        <div class="flex flex-col items-start justify-center gap-4 p-6 sm:p-10">
-          <h2 class="font-serif text-3xl sm:text-4xl font-semibold leading-tight text-sc-text">
-            Where logic
-            <em class="italic text-sc-accent" style="font-family: 'Playfair Display', serif;">creates music.</em>
-          </h2>
-          <p class="text-sm leading-relaxed text-sc-text-soft">
-            A fusion of mathematics, acoustics, and visual art — designed for exploration.
-          </p>
-          <a href="/studio" class="px-6 py-3 text-sm btn-primary">
-            Enter the Studio →
-          </a>
-        </div>
-      </div>
+    <!-- Try-it card — the working y = sin(x) player beside "Try it
+      yourself." and an Open Studio button. Replaces the old globe banner. -->
+    <section class="py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+      <TryItCard client:load equation="sin(x)" duration={5} />
     </section>
   </main>
 
