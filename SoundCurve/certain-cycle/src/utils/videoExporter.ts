@@ -57,6 +57,13 @@ export interface VideoExportOptions {
   quality?: VideoQuality;
   /** Curve colour (v21b). White is the black-and-white look; unknown falls back to white. */
   colorTheme?: VideoColorTheme;
+  /**
+   * 3D only (v30): orbit the camera a full 360° around the scene over the
+   * clip (turntable style), starting from the viewer's current orbit.
+   * Defaults to true — a 3D clip is a turntable clip unless the user turns
+   * the orbit off. Ignored by the 2D exporters.
+   */
+  orbit360?: boolean;
 }
 
 /**

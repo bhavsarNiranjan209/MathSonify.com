@@ -23,17 +23,20 @@ import { performSave, type SaveOutcome } from '../utils/fileSave';
 /** localStorage key for the last export choices (video orientation + quality, curve colour). */
 export const VIDEO_EXPORT_PREFS_KEY = 'mathsonify-video-export';
 
-function loadVideoPrefs(): { orientation: VideoOrientation; quality: VideoQuality; colorTheme: VideoColorTheme } {
-  const fallback = { orientation: 'landscape' as VideoOrientation, quality: '720p' as VideoQuality, colorTheme: 'white' as VideoColorTheme };
+function loadVideoPrefs(): { orientation: VideoOrientation; quality: VideoQuality; colorTheme: VideoColorTheme; orbit360: boolean } {
+  const fallback = { orientation: 'landscape' as VideoOrientation, quality: '720p' as VideoQuality, colorTheme: 'white' as VideoColorTheme, orbit360: true };
   if (typeof window === 'undefined') return fallback;
   try {
     const raw = window.localStorage.getItem(VIDEO_EXPORT_PREFS_KEY);
     if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as { orientation?: unknown; quality?: unknown; colorTheme?: unknown };
+    const parsed = JSON.parse(raw) as { orientation?: unknown; quality?: unknown; colorTheme?: unknown; orbit360?: unknown };
     return {
       orientation: parsed.orientation === 'portrait' ? 'portrait' : 'landscape',
       quality: parsed.quality === '1080p' ? '1080p' : parsed.quality === '480p' ? '480p' : '720p',
       colorTheme: isVideoColorTheme(parsed.colorTheme) ? parsed.colorTheme : 'white',
+      // 360° orbit (v30): on by default — a 3D clip is a turntable clip
+      // unless the user turns the orbit off. Old saved prefs have no key.
+      orbit360: parsed.orbit360 === false ? false : true,
     };
   } catch {
     return fallback;
@@ -72,6 +75,10 @@ export default function ExportModal() {
   // viewer exists; in 2D mode there is nothing to choose.
   const [imageDimension, setImageDimension] = useState<'2d' | '3d'>('3d');
   const [videoDimension, setVideoDimension] = useState<'2d' | '3d'>('3d');
+  // 360° turntable picture (v30): four views in one PNG, instead of the
+  // single view. Only in the 3D image tab; off by default so a plain 3D
+  // picture still exports exactly as before.
+  const [image360, setImage360] = useState(false);
 
   // ── Video results ────────────────────────────────────────────────
   // The recorded clip is shown inline and saved explicitly, because a bare
@@ -202,6 +209,26 @@ export default function ExportModal() {
     }
   };
 
+  /**
+   * 360° turntable picture (v30). Four views (0°/90°/180°/270°) in one
+   * 2×2 PNG, each with the billboard watermark. Same handler shape as
+   * the single 3D picture above.
+   */
+  const handleExport3DTurntableImage = async () => {
+    if (!threeDApi) return;
+    try {
+      setIsExporting(true);
+      setExportError('');
+      const s = useStudioStore.getState();
+      await threeDApi.exportTurntableImage(s.equation);
+      setDownloadReady(true);
+      setIsExporting(false);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : '3D turntable image export failed');
+      setIsExporting(false);
+    }
+  };
+
   const handleExportWav = async () => {
     try {
       setIsExporting(true);
@@ -257,6 +284,9 @@ export default function ExportModal() {
         orientation: videoOrientation,
         quality: videoQuality,
         colorTheme: videoPrefs.colorTheme,
+        // 360° orbit (v30): the 3D clip circles the scene once. Only the
+        // 3D exporter reads it; the 2D paths ignore the extra field.
+        orbit360: videoPrefs.orbit360,
       };
 
       let result: VideoExportResult;
@@ -644,6 +674,34 @@ export default function ExportModal() {
               </div>
             </div>
             <p className="text-[11px] text-sc-text-faint">Est. file size: <span className="font-mono text-sc-text-soft">{imageSizeLabel}</span> · 2× retina · includes MathSonify.com watermark</p>
+            {/* 360° turntable picture (v30) — only in the 3D image tab: one
+                PNG with four views (0°/90°/180°/270°) instead of the single
+                view. Each view carries the billboard watermark. */}
+            {threeDApi && imageDimension === '3d' && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-sc-text-soft">360° picture</span>
+                <div className="flex rounded-full p-0.5 gap-0.5" style={{ background: 'color-mix(in srgb, var(--sc-surface) 80%, transparent)', border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)' }}>
+                  {([
+                    { id: false, label: 'Single view' },
+                    { id: true, label: '🔄 Turntable · 4 views' },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => setImage360(opt.id)}
+                      className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px]"
+                      style={{
+                        background: image360 === opt.id ? 'var(--sc-accent)' : 'transparent',
+                        color: image360 === opt.id ? 'var(--sc-on-accent)' : 'var(--sc-text-faint)',
+                        boxShadow: image360 === opt.id ? '0 0 10px -2px rgba(var(--sc-accent)/0.35)' : 'none',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {orientationPicker}
             {colourPicker}
           </div>
@@ -674,6 +732,30 @@ export default function ExportModal() {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+            {/* 360° orbit (v30) — only for the 3D video: the camera circles
+                the scene once over the clip (turntable style), starting from
+                the view on screen now. On by default; the billboard
+                watermark stays readable from every angle. */}
+            {threeDApi && videoDimension === '3d' && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-sc-text-soft">🔄 360° orbit</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={videoPrefs.orbit360}
+                  onClick={() => setVideoPrefs((p) => ({ ...p, orbit360: !p.orbit360 }))}
+                  className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px]"
+                  style={{
+                    background: videoPrefs.orbit360 ? 'var(--sc-accent)' : 'color-mix(in srgb, var(--sc-surface) 80%, transparent)',
+                    color: videoPrefs.orbit360 ? 'var(--sc-on-accent)' : 'var(--sc-text-faint)',
+                    border: '1px solid color-mix(in srgb, var(--sc-line) 13%, transparent)',
+                    boxShadow: videoPrefs.orbit360 ? '0 0 10px -2px rgba(var(--sc-accent)/0.35)' : 'none',
+                  }}
+                >
+                  {videoPrefs.orbit360 ? 'On · camera circles once' : 'Off · fixed view'}
+                </button>
               </div>
             )}
             {orientationPicker}
@@ -762,7 +844,7 @@ export default function ExportModal() {
             <button
               type="button"
               disabled={isExporting}
-              onClick={imageDimension === '3d' && threeDApi ? handleExport3DImage : handleExportImage}
+              onClick={imageDimension === '3d' && threeDApi ? (image360 ? handleExport3DTurntableImage : handleExport3DImage) : handleExportImage}
               className="w-full rounded-full text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 min-h-[44px] disabled:cursor-not-allowed"
               style={{
                 background: isExporting ? 'color-mix(in srgb, var(--sc-accent) 42%, transparent)' : 'linear-gradient(135deg, var(--sc-accent) 0%, color-mix(in srgb, var(--sc-accent) 82%, white 10%) 100%)',

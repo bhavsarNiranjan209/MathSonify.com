@@ -16,6 +16,10 @@
  * The audio is the equation's own sonification, rendered fully offline,
  * identical to the 2D video's.
  *
+ * v30: the camera orbits a full 360° over the clip (turntable style,
+ * `azimuthAtTime`), starting from the viewer's current orbit, and the
+ * billboard watermark is shown in every frame.
+ *
  * The 2D canvas is filled with the theme's canvas colour first (the WebGL
  * canvas is transparent), so the video has a solid background in both
  * light and dark mode.
@@ -56,6 +60,18 @@ export function progressAtTime(tMs: number, mainMs: number): number {
   return (tMs - INTRO_MS) / mainMs;
 }
 
+/**
+ * Orbit azimuth (radians) for the 360° turntable video at video time `tMs`.
+ * One full turn over the whole clip — intro, main and outro — starting
+ * from the viewer's current orbit, so frame 0 is exactly what the user
+ * sees and the last frame has come all the way back around to it.
+ */
+export function azimuthAtTime(tMs: number, totalMs: number, startAzimuth: number): number {
+  if (totalMs <= 0) return startAzimuth;
+  const clamped = Math.min(Math.max(tMs, 0), totalMs);
+  return startAzimuth + (Math.PI * 2 * clamped) / totalMs;
+}
+
 export async function export3DVideoOffline(
   api: SceneApi,
   opts: VideoExportOptions,
@@ -81,6 +97,9 @@ export async function export3DVideoOffline(
     speed = 1,
     orientation = 'landscape',
     quality = '720p',
+    // 360° orbit (v30): on by default — a 3D clip is a turntable clip
+    // unless the user turns the orbit off in the Export modal.
+    orbit360 = true,
   } = opts;
 
   // Resolve live state once, exactly like the 2D path: the same points the
@@ -202,11 +221,16 @@ export async function export3DVideoOffline(
     // playhead progress, copied onto the 2D canvas in the same task (the
     // WebGL canvas is only valid until the next render), and handed to the
     // encoder. The queue is kept short on purpose, as in the 2D path.
+    // v30: the camera orbits a full 360° over the clip (turntable style),
+    // starting from the viewer's current orbit, and the billboard
+    // watermark is shown in every frame.
+    const startAzimuth = api.getAzimuth();
     const frameUs = frameDurationUs(FPS);
     for (let i = 0; i < frameCount; i++) {
       const tMs = i * (1000 / FPS);
       const progress = progressAtTime(tMs, mainMs);
-      const webglCanvas = api.renderFrame(progress);
+      const azimuth = orbit360 ? azimuthAtTime(tMs, totalMs, startAzimuth) : undefined;
+      const webglCanvas = api.renderFrame(progress, { azimuth, watermark: true });
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, VIDEO_W, VIDEO_H);
       ctx.drawImage(webglCanvas, 0, 0, VIDEO_W, VIDEO_H);
@@ -239,7 +263,8 @@ export async function export3DVideoOffline(
   const label = equationName || equation || 'export';
   const safeName = label.replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').toLowerCase();
   const suffix = orientation === 'portrait' ? '-portrait' : '';
-  const filename = `mathsonify.com-${safeName}-3d${suffix}.mp4`;
+  const orbitSuffix = orbit360 ? '-360' : '';
+  const filename = `mathsonify.com-${safeName}-3d${orbitSuffix}${suffix}.mp4`;
 
   return { blob, url, filename, mimeType: 'video/mp4' };
 }

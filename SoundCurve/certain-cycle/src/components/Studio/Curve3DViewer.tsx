@@ -8,6 +8,10 @@
  *  - Curve draws itself in while playing (ghost curve + bright traced tube), parametrised by
  *    sample index so it matches the 2D graph and audio playhead exactly.
  *  - Renders only when something changed; pauses when off-screen. Idle cost ~0 GPU.
+ *  - v30: a billboard watermark sprite ("Mathsonify.com", Manrope 400, -30°, ghost 50%)
+ *    that always faces the camera — shown only while an export renders — plus a 360°
+ *    turntable picture (four views in one PNG) and a 360° orbit video (the camera
+ *    circles the scene once over the clip).
  *
  * Playback is read through `getProgress` (called every frame, no React re-renders):
  *   getProgress={() => { const s = useStudioStore.getState(); return s.isPlaying ? s.progress : null; }}
@@ -19,6 +23,12 @@ import { computeView, formatTick, type View, type XY } from '../../utils/plotMat
 import { resolveBackground, watchTheme, type BgInfo } from '../../utils/themeWatch';
 import { curve3DPalette, type Curve3DPalette } from '../../utils/curve3dPalette';
 import { render3DImage } from '../../utils/render3DImage';
+import { render3DTurntableImage } from '../../utils/render3DTurntable';
+import {
+  buildWatermarkBillboardCanvas,
+  watermarkBillboardSpriteScale,
+  WATERMARK_3D_OPACITY,
+} from '../../utils/watermark3D';
 
 export interface Curve3DViewerProps {
   points: XY[];
@@ -47,7 +57,9 @@ type Pal = Curve3DPalette;
  * The live 3D scene's export API. `exportImage` and `renderFrame` are the
  * two export entry points (picture and video); `pause`/`resume` let an
  * offline video drive the scene frame-by-frame without the live animation
- * loop overwriting its frames.
+ * loop overwriting its frames. v30 adds the 360° turntable picture
+ * (`exportTurntableImage`), a per-frame orbit angle on `renderFrame`, and
+ * the billboard watermark (shown only while an export renders).
  */
 export type SceneApi = {
   setPoints(p: XY[]): { ok: boolean; clipped: boolean };
@@ -56,11 +68,21 @@ export type SceneApi = {
   /** Save the current 3D frame as a PNG (up to 2048px) via render3DImage. */
   exportImage(equation: string): Promise<{ blob: Blob; filename: string }>;
   /**
+   * Save a 360° turntable picture: four views (0°/90°/180°/270° from the
+   * current orbit) in one 2×2 PNG, each with the billboard watermark.
+   */
+  exportTurntableImage(equation: string): Promise<{ blob: Blob; filename: string }>;
+  /**
    * Render ONE frame at the given playhead progress (0..1, or null for the
    * idle full curve) and return the WebGL canvas. The caller captures it
    * in the same task (drawImage / toBlob) before the live loop can redraw.
+   * `opts.azimuth` renders from an absolute orbit angle (radians) for this
+   * frame only, without moving the user's orbit; `opts.watermark` shows
+   * the billboard watermark for this frame only.
    */
-  renderFrame(progress: number | null): HTMLCanvasElement;
+  renderFrame(progress: number | null, opts?: { azimuth?: number; watermark?: boolean }): HTMLCanvasElement;
+  /** Current orbit azimuth (radians) — the turntable video starts here. */
+  getAzimuth(): number;
   /** Stop the live animation loop (for an offline export driving frames). */
   pause(): void;
   /** Restart the live animation loop after a pause. */
@@ -188,6 +210,53 @@ function createScene(
   let segs: { start: number; end: number; curve: THREE.CatmullRomCurve3; bright: THREE.Mesh; ghost: THREE.Mesh }[] = [];
   let head: THREE.Mesh | null = null;
   const sprites: { s: THREE.Sprite; pxW: number; pxH: number }[] = [];
+
+  // ── Billboard watermark (v30) ──────────────────────────────────────
+  // A THREE.Sprite ("Mathsonify.com", Manrope regular 400, tilted -30°,
+  // ghost 50% — the same mark as the 2D diagonal watermark) floating at the
+  // centre of the plot box. A sprite always faces the camera, so the mark
+  // stays readable from every angle as the camera orbits. It lives in the
+  // scene root (not `data`, so rebuilds never dispose it), is hidden by
+  // default so the live view stays clean, and is shown only while an
+  // export renders. Rebuilt when the theme changes (ink colour follows
+  // the mode) and once the webfonts finish loading (Manrope over fallback).
+  let watermark: THREE.Sprite | null = null;
+  let watermarkTexture: THREE.CanvasTexture | null = null;
+  function buildWatermark() {
+    const pal = curve3DPalette(bg.dark);
+    const built = buildWatermarkBillboardCanvas(pal.text);
+    const tex = new THREE.CanvasTexture(built.canvas); srgb(tex);
+    tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter;
+    const { scaleX, scaleY } = watermarkBillboardSpriteScale(
+      built.width, built.height, built.capHeightPx, camera.fov,
+    );
+    if (watermark && watermarkTexture) {
+      watermarkTexture.dispose();
+      (watermark.material as THREE.SpriteMaterial).map = tex;
+      (watermark.material as THREE.SpriteMaterial).needsUpdate = true;
+      watermark.scale.set(scaleX, scaleY, 1);
+      watermarkTexture = tex;
+      return;
+    }
+    const mat = new THREE.SpriteMaterial({
+      map: tex, transparent: true, opacity: WATERMARK_3D_OPACITY,
+      depthTest: false, depthWrite: false, toneMapped: false,
+      sizeAttenuation: false, fog: false,
+    });
+    const s = new THREE.Sprite(mat);
+    s.scale.set(scaleX, scaleY, 1);
+    s.position.set(0, 0, 0);
+    s.center.set(0.5, 0.5);
+    s.renderOrder = 20; // above the axis/tick label sprites (10)
+    s.visible = false; // exports only — the live view never carries it
+    watermark = s;
+    watermarkTexture = tex;
+    scene.add(s);
+  }
+  /** A watermark failure must never break the 3D view itself. */
+  function safeBuildWatermark() {
+    try { buildWatermark(); } catch (e) { console.warn('[Curve3DViewer] billboard watermark unavailable', e); }
+  }
 
   const DEF = { theta: 0.62, phi: 1.18 };
   let theta = DEF.theta, tTheta = DEF.theta, phi = DEF.phi, tPhi = DEF.phi;
@@ -433,9 +502,15 @@ function createScene(
   ro.observe(mount);
   const io = new IntersectionObserver((en) => { visible = en[0]?.isIntersecting ?? true; if (visible) needs = true; });
   io.observe(mount);
-  const refreshTheme = (info: BgInfo) => { bg = info; if (points.length) build(); needs = true; };
+  const refreshTheme = (info: BgInfo) => { bg = info; safeBuildWatermark(); if (points.length) build(); needs = true; };
   const unwatch = watchTheme(mount, refreshTheme);
   const firstRead = window.setTimeout(() => refreshTheme(resolveBackground(mount)), 250); // CSS may not be applied yet at hydration
+  // Rebuild once the webfonts arrive, so the billboard uses Manrope (not
+  // the Inter fallback it was first drawn with, if fonts were still loading).
+  if (typeof document !== 'undefined' && document.fonts) {
+    document.fonts.ready.then(() => { safeBuildWatermark(); }).catch(() => {});
+  }
+  safeBuildWatermark();
 
   /* ---------- render on demand: no idle animation, so an idle graph costs ~0 GPU ---------- */
   let last = performance.now();
@@ -464,6 +539,47 @@ function createScene(
   raf = requestAnimationFrame(tick);
   layout();
 
+  /**
+   * Render one frame at the given playhead progress, from the given orbit
+   * azimuth (or the user's current orbit when undefined), with the
+   * billboard watermark shown only when asked. The azimuth never moves the
+   * user's orbit — the turntable frames are rendered from a temporary
+   * angle and the live view resumes exactly where it was.
+   */
+  function renderFrameAt(progress: number | null, azimuth: number | undefined, showWm: boolean): HTMLCanvasElement {
+    const p = typeof progress === 'number' && Number.isFinite(progress)
+      ? Math.min(1, Math.max(0, progress))
+      : null;
+    if (p !== lastP) { lastP = p; applyProgress(p); }
+    const th = typeof azimuth === 'number' && Number.isFinite(azimuth) ? azimuth : theta;
+    camera.position.set(
+      target.x + radius * Math.sin(phi) * Math.sin(th),
+      target.y + radius * Math.cos(phi),
+      target.z + radius * Math.sin(phi) * Math.cos(th),
+    );
+    camera.lookAt(target);
+    // Billboard watermark: visible only for this frame when asked (exports).
+    const prevVisible = watermark ? watermark.visible : false;
+    if (watermark) watermark.visible = showWm;
+    try {
+      renderer.render(scene, camera);
+    } finally {
+      if (watermark) watermark.visible = prevVisible;
+    }
+    return renderer.domElement;
+  }
+  /** Stop the live animation loop so an offline export can drive frames. */
+  function pauseLoop() {
+    paused = true;
+    cancelAnimationFrame(raf);
+  }
+  /** Restart the live animation loop after a pause. */
+  function resumeLoop() {
+    paused = false;
+    needs = true;
+    raf = requestAnimationFrame(tick);
+  }
+
   return {
     setPoints(next) {
       points = next; userZoomed = false; tTheta = DEF.theta; tPhi = DEF.phi; target.set(0, 0, 0);
@@ -474,41 +590,53 @@ function createScene(
     /**
      * Save the current 3D frame as a PNG. Renders one frame first (via
      * render3DImage, which grabs in the same task), so the
-     * preserveDrawingBuffer problem does not apply.
+     * preserveDrawingBuffer problem does not apply. The billboard
+     * watermark is shown for the render, then hidden again.
      */
     async exportImage(equation: string) {
-      return render3DImage(renderer, scene, camera, { equation });
+      if (watermark) watermark.visible = true;
+      try {
+        return await render3DImage(renderer, scene, camera, { equation });
+      } finally {
+        if (watermark) watermark.visible = false;
+      }
+    },
+    /**
+     * Save a 360° turntable picture: four views (0°/90°/180°/270° from
+     * the current orbit) in one 2×2 PNG, each with the billboard
+     * watermark. Pauses the live loop so it cannot redraw between the
+     * four angle renders.
+     */
+    async exportTurntableImage(equation: string) {
+      pauseLoop();
+      try {
+        return await render3DTurntableImage(
+          (offsetRad) => renderFrameAt(null, theta + offsetRad, true),
+          { equation },
+        );
+      } finally {
+        resumeLoop();
+      }
     },
     /**
      * Render ONE frame at the given playhead progress and return the WebGL
-     * canvas. Uses the camera's current orbit (frozen while paused), so an
-     * offline export gets a stable view. The caller must capture the canvas
-     * in the same task — the live loop (or the next renderFrame) redraws it.
+     * canvas. Uses the camera's current orbit (frozen while paused) unless
+     * opts.azimuth gives a temporary angle, so an offline export gets a
+     * stable view. The caller must capture the canvas in the same task —
+     * the live loop (or the next renderFrame) redraws it.
      */
-    renderFrame(progress: number | null) {
-      const p = typeof progress === 'number' && Number.isFinite(progress)
-        ? Math.min(1, Math.max(0, progress))
-        : null;
-      if (p !== lastP) { lastP = p; applyProgress(p); }
-      camera.position.set(
-        target.x + radius * Math.sin(phi) * Math.sin(theta),
-        target.y + radius * Math.cos(phi),
-        target.z + radius * Math.sin(phi) * Math.cos(theta),
-      );
-      camera.lookAt(target);
-      renderer.render(scene, camera);
-      return renderer.domElement;
+    renderFrame(progress: number | null, opts?: { azimuth?: number; watermark?: boolean }) {
+      return renderFrameAt(progress, opts?.azimuth, opts?.watermark === true);
     },
-    /** Stop the live animation loop so an offline export can drive frames. */
+    /** Current orbit azimuth (radians) — the turntable video starts here. */
+    getAzimuth() {
+      return theta;
+    },
     pause() {
-      paused = true;
-      cancelAnimationFrame(raf);
+      pauseLoop();
     },
-    /** Restart the live animation loop after a pause. */
     resume() {
-      paused = false;
-      needs = true;
-      raf = requestAnimationFrame(tick);
+      resumeLoop();
     },
     destroy() {
       cancelAnimationFrame(raf); cancelAnimationFrame(rs);
@@ -519,6 +647,13 @@ function createScene(
       canvas.removeEventListener('contextmenu', noMenu);
       canvas.removeEventListener('webglcontextlost', onLost); canvas.removeEventListener('webglcontextrestored', onRestored);
       clearData(); scene.remove(data);
+      if (watermark) {
+        scene.remove(watermark);
+        (watermark.material as THREE.SpriteMaterial).map?.dispose();
+        watermark.material.dispose();
+        watermark = null;
+      }
+      if (watermarkTexture) { watermarkTexture.dispose(); watermarkTexture = null; }
       renderer.dispose(); renderer.forceContextLoss(); // frees the GL context now (iOS caps live contexts)
       canvas.remove();
     },

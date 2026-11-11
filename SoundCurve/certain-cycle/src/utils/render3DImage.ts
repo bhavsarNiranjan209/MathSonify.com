@@ -80,6 +80,14 @@ export async function render3DImage(
   if (!ctx) throw new Error('2D context failed');
 
   try {
+    // The WebGL canvas is transparent; fill the theme's canvas colour
+    // first, so the picture has a solid background in both modes. (Light
+    // mode used to come out with a black surround — v30 fix. The video
+    // exporter and the turntable composer already filled first.)
+    const palette = getCanvasPalette(getThemeMode());
+    ctx.fillStyle = palette.canvas;
+    ctx.fillRect(0, 0, width, height);
+
     // Compose the export offscreen from the live WebGL frame, not a 2D redraw
     // of the curve.
     ctx.drawImage(webglCanvas, 0, 0, width, height);
@@ -87,7 +95,6 @@ export async function render3DImage(
     // Footer band — "Equation: <equation>" left, "mathsonify.com" right.
     // Colours follow the current theme's canvas palette.
     const eq = opts?.equation ?? '';
-    const palette = getCanvasPalette(getThemeMode());
     const footerH = Math.max(12, Math.round(height * 0.08));
     const footerY = height - footerH;
 
