@@ -4,7 +4,7 @@ import Navigation from '../components/Navigation.astro';
 import Footer from '../components/Footer.astro';
 ---
 
-<BaseLayout title="Contact Us - MathSonify" description="Get in touch with MathSonify — feedback, partnerships, and creative collaborations welcome.">
+<BaseLayout title="Contact Us - MathSonify" description="Get in touch with MathSonify — questions, feedback, and support.">
   <Navigation />
 
   <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
@@ -41,7 +41,7 @@ import Footer from '../components/Footer.astro';
     </div>
 
     <!-- Contact cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-20">
 
       <!-- General Inquiries -->
       <div class="panel p-8 space-y-5 group hover:border-sc-accent/50 transition-all duration-300 relative overflow-hidden">
@@ -62,40 +62,21 @@ import Footer from '../components/Footer.astro';
         </a>
       </div>
 
-      <!-- Bug Reports -->
+      <!-- Support -->
       <div class="panel p-8 space-y-5 group hover:border-sc-accent/50 transition-all duration-300 relative overflow-hidden">
         <div class="absolute -top-4 -right-4 text-7xl opacity-[0.04] font-serif select-none pointer-events-none">∫</div>
         <div class="w-12 h-12 rounded-xl bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center text-xl">
           🔧
         </div>
-        <h3 class="font-serif text-lg font-semibold text-sc-text">Bug Reports</h3>
+        <h3 class="font-serif text-lg font-semibold text-sc-text">Support</h3>
         <p class="text-sm text-sc-text-soft leading-relaxed">
-          Something sounds off? A graph misbehaving? An equation producing silence when it should scream? Help us debug the mathematics.
+          Something sounds off? A graph misbehaving? An equation producing silence when it should scream? Need help using the Studio? Reach out and we'll help you get back in tune.
         </p>
         <a
-          href="mailto:bugs@mathsonify.com"
+          href="mailto:support@mathsonify.com"
           class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-sc-accent/15 border border-sc-accent/40 text-sc-accent text-sm font-medium hover:bg-sc-accent/25 hover:border-sc-accent/60 transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(var(--sc-accent),0.12)]"
         >
-          bugs@mathsonify.com
-          <span class="text-xs opacity-60">→</span>
-        </a>
-      </div>
-
-      <!-- Collaborations -->
-      <div class="panel p-8 space-y-5 group hover:border-sc-accent/50 transition-all duration-300 relative overflow-hidden">
-        <div class="absolute -top-4 -right-4 text-7xl opacity-[0.04] font-serif select-none pointer-events-none">∞</div>
-        <div class="w-12 h-12 rounded-xl bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center text-xl">
-          🤝
-        </div>
-        <h3 class="font-serif text-lg font-semibold text-sc-text">Collaborations</h3>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
-          Educators, researchers, composers, and creative technologists — let's compose something extraordinary together.
-        </p>
-        <a
-          href="mailto:collab@mathsonify.com"
-          class="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-sc-accent/15 border border-sc-accent/40 text-sc-accent text-sm font-medium hover:bg-sc-accent/25 hover:border-sc-accent/60 transition-all duration-300 group-hover:shadow-[0_0_20px_rgba(var(--sc-accent),0.12)]"
-        >
-          collab@mathsonify.com
+          support@mathsonify.com
           <span class="text-xs opacity-60">→</span>
         </a>
       </div>
