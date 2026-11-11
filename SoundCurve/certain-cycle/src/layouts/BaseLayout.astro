@@ -17,6 +17,14 @@ const {
   description = "Turn Math Into Music - Type an equation, watch it come alive, and hear what mathematics sounds like.",
   noindex = false,
 } = Astro.props;
+
+/**
+ * The service worker is registered only in production builds, so the dev
+ * server never installs a worker that could serve stale pages while
+ * building. It caches the offline page on first visit and serves it when
+ * a navigation fails — see public/sw.js.
+ */
+const registerServiceWorker = import.meta.env.PROD;
 ---
 
 <!doctype html>
@@ -425,5 +433,17 @@ const {
         buildLoaderArt();
       })();
     </script>
+    <!-- Service worker — offline page + cached shell. Production only,
+         registered after load so it never delays first paint. -->
+    {registerServiceWorker && (
+      <script is:inline>
+        (function () {
+          if (!('serviceWorker' in navigator)) return;
+          window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js').catch(function () {});
+          });
+        })();
+      </script>
+    )}
   </body>
 </html>

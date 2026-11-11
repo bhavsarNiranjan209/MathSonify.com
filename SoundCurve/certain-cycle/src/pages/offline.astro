@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>You're offline · MathSonify</title>
+<meta name="description" content="No internet? No problem. The wave still plays — MathSonify's offline page.">
+<link rel="icon" href="/favicon.jpeg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Apply the saved theme before first paint, same key as the rest of the site. -->
+<script is:inline>
+(function () {
+  try {
+    var saved = localStorage.getItem('mathsonify-theme');
+    if (saved === 'digital') saved = 'light';
+    if (saved === 'mono') saved = 'dark';
+    document.documentElement.dataset.theme = saved === 'light' || saved === 'dark' ? saved : 'dark';
+  } catch (e) {
+    document.documentElement.dataset.theme = 'dark';
+  }
+})();
+</script>
+<style is:inline>
+:root{--bg:#0A0A0C;--panel:#101013;--panel2:#15151A;--border:#26262C;--border2:#34343c;--text:#F5F5F2;--muted:#9A9AA2;--ink:245,245,242;--btn:#F2F2EE;--btnText:#0A0A0C;--ok:#3DD68C;--warn:#FF8A80}
+html[data-theme=light]{--bg:#F3F1EB;--panel:#FBFAF7;--panel2:#EFECE4;--border:#D0CBBD;--border2:#B3AE9F;--text:#14161A;--muted:#575B63;--ink:20,22,26;--btn:#14161A;--btnText:#F5F4F0;--ok:#1E9E62;--warn:#D6453D}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow-x:hidden;transition:background .3s,color .3s}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse 60% 45% at 50% 38%,rgba(var(--ink),.06),transparent 70%);pointer-events:none}
+.top{position:relative;display:flex;justify-content:space-between;align-items:center;padding:18px 24px}
+.logo{display:flex;gap:10px;align-items:center;font-family:"Instrument Serif",serif;font-size:21px}.logo i{width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);display:grid;place-items:center;font-style:italic;font-size:18px}
+.tog{display:flex;border:1px solid var(--border);border-radius:999px;padding:3px;background:var(--panel)}.tog button{font:inherit;font-size:12px;border:0;background:none;color:var(--muted);padding:6px 12px;border-radius:999px;cursor:pointer}.tog button.on{background:var(--btn);color:var(--btnText);font-weight:600}
+main{position:relative;flex:1;max-width:760px;width:100%;margin:0 auto;padding:18px 20px 40px;text-align:center}
+.pill{display:inline-flex;align-items:center;gap:9px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;border:1px solid var(--border2);background:var(--panel);border-radius:999px;padding:8px 15px;margin-bottom:22px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--warn);animation:pulse 1.4s ease-in-out infinite}.pill.ok .dot{background:var(--ok);animation:none}
+@keyframes pulse{0%,100%{opacity:.35;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+h1{font-family:"Instrument Serif",serif;font-weight:400;font-size:clamp(42px,8vw,68px);line-height:1;letter-spacing:-.015em;margin:0 0 14px}h1 em{font-style:italic}
+.sub{color:var(--text);opacity:.8;font-size:16.5px;line-height:1.65;max-width:50ch;margin:0 auto 26px;min-height:54px}
+.stage{position:relative;margin:6px auto 0;max-width:720px;border:1px solid var(--border);border-radius:18px;background:linear-gradient(180deg,var(--panel),var(--bg));overflow:hidden}
+.stage canvas{display:block;width:100%;height:210px}
+.stage.shake{animation:shake .45s}@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.cap{position:absolute;bottom:12px;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.cap.l{left:16px;color:var(--text);opacity:.85}.cap.r{right:16px}
+.mid{position:absolute;top:14px;left:58%;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--warn);transform:translateX(-50%);transition:opacity .4s}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+.btn{font:inherit;font-weight:600;font-size:14.5px;border-radius:12px;padding:14px 22px;border:1px solid var(--border2);background:none;color:var(--text);cursor:pointer;text-decoration:none;display:inline-flex;gap:9px;align-items:center;transition:transform .2s,box-shadow .2s,background .2s;min-height:48px}
+.btn:hover{transform:translateY(-2px)}.btn.solid{background:var(--btn);color:var(--btnText);border-color:var(--btn)}.btn.solid:hover{box-shadow:0 12px 30px -14px rgba(var(--ink),.6)}.btn.ghost{border-style:dashed}
+.btn[disabled]{opacity:.6;cursor:default;transform:none}
+button:focus-visible,a:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:rot .7s linear infinite}@keyframes rot{to{transform:rotate(360deg)}}
+.status{min-height:22px;margin-top:16px;font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted)}.status b{color:var(--ok);font-weight:500}
+.dots::after{content:"";animation:dots 1.6s steps(4,end) infinite}@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+.works{margin:30px auto 0;max-width:720px;display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left}
+.works .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
+.works h3{margin:0 0 10px;font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.works li{list-style:none;font-size:13.5px;line-height:1.5;padding:5px 0 5px 24px;position:relative}.works ul{margin:0;padding:0}
+.works li::before{position:absolute;left:0;font-weight:700}.yes li::before{content:"✓";color:var(--ok)}.no li::before{content:"–";color:var(--muted)}
+.works .card{animation:rise .6s both}.works .card+.card{animation-delay:.1s}@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+footer{position:relative;text-align:center;padding:18px;font-size:12px;color:var(--muted)}
+.toast{position:fixed;left:50%;top:70px;transform:translate(-50%,-10px);background:var(--btn);color:var(--btnText);font-weight:600;font-size:13px;border-radius:10px;padding:10px 16px;opacity:0;pointer-events:none;transition:.3s;z-index:10}.toast.on{opacity:1;transform:translate(-50%,0)}
+@media(max-width:640px){.works{grid-template-columns:1fr}.stage canvas{height:180px}.sub{font-size:15.5px}.actions .btn{flex:1 1 100%;justify-content:center}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="top"><span class="logo"><i>S</i>MathSonify.com</span><div class="tog" id="theme"><button data-t="light">Light</button><button data-t="dark" class="on">Dark</button></div></div>
+<main>
+ <span class="pill" id="pill"><i class="dot"></i><span id="pillT">offline</span></span>
+ <h1 id="h1">The signal <em>dropped.</em></h1>
+ <p class="sub" id="sub"></p>
+ <div class="stage" id="stage"><canvas id="cv" aria-label="A wave on the left, your device, that cannot reach a dotted line on the right, the internet, because the line is broken in the middle"></canvas><div class="mid" id="mid">no route</div><span class="cap l">your device · f(x) = sin(x)</span><span class="cap r" id="capR">the internet</span></div>
+ <div class="actions"><button class="btn solid" id="retry"><span id="retryT">Try again</span></button><a class="btn" id="open" href="/studio">Open the Studio →</a><button class="btn ghost" id="hear">♪ Hear the signal</button></div>
+ <div class="status" id="status" role="status" aria-live="polite"></div>
+ <section class="works" id="works"><div class="card yes"><h3>Still works, offline</h3><ul><li>Studio — type, graph, play</li><li>Guess — practice rounds</li><li>Exports you already made</li></ul></div><div class="card no"><h3>Needs the internet</h3><ul><li>Opening shared links</li><li>Notify-me sign-ups</li><li>Support and payments</li></ul></div></section>
+</main>
+<footer>MathSonify.com · your equations are drawn on your device</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script is:inline>
+const $=s=>document.querySelector(s),TAU=Math.PI*2,RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ink=a=>'rgba('+getComputedStyle(document.documentElement).getPropertyValue('--ink').trim()+','+a+')';
+const warn=a=>document.documentElement.dataset.theme==='light'?'rgba(214,69,61,'+a+')':'rgba(255,138,128,'+a+')';
+const sm=x=>{x=Math.min(1,Math.max(0,x));return x*x*(3-2*x);};
+/* Real state: the service worker precaches /studio, so the Studio is
+   cached by construction — the button and the works cards are always on
+   while offline. `online` comes from the browser, not a preview toggle. */
+let online=navigator.onLine,cached=true,gap=online?0:1,checking=false,vis=true,parts=[],hit=false,lastNow=0,backTimer=null;
+const cv=$('#cv');new IntersectionObserver(e=>vis=e[0].isIntersecting).observe(cv);
+function syncThemeButtons(){var t=document.documentElement.dataset.theme;document.querySelectorAll('#theme button').forEach(x=>x.classList.toggle('on',x.dataset.t===t));}
+document.querySelectorAll('#theme button').forEach(b=>b.onclick=()=>{document.documentElement.dataset.theme=b.dataset.t;try{localStorage.setItem('mathsonify-theme',b.dataset.t);}catch(e){}syncThemeButtons();});
+syncThemeButtons();
+function fit(){const d=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,h=cv.clientHeight;if(!w)return null;if(cv.width!==Math.round(w*d)){cv.width=Math.round(w*d);cv.height=Math.round(h*d);}const x=cv.getContext('2d');x.setTransform(d,0,0,d,0,0);return{x,w,h};}
+function copy(){
+ $('#pill').classList.toggle('ok',online);$('#pillT').textContent=online?'back online':'offline';
+ $('#h1').innerHTML=online?'Signal <em>restored.</em>':'The signal <em>dropped.</em>';
+ $('#sub').textContent=online?'You are connected again. Nothing was lost — pick up exactly where you left off.':cached?'You are not connected, but the Studio still runs on your device. Equations are drawn and played right here.':'You are not connected right now. Check your Wi-Fi or mobile data — we will be here when you are back.';
+ var rt=$('#retryT');if(rt)rt.textContent=online?'Continue':'Try again';$('#open').style.display=(cached&&!online)?'':'none';$('#works').style.display=(cached&&!online)?'':'none';
+ $('#capR').textContent=online?'the internet · connected':'the internet';$('#mid').style.opacity=online?0:1;
+ $('#status').innerHTML=online?'<b>connected</b> · welcome back':'waiting for a connection<span class="dots"></span> we will reconnect automatically';}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2200);}
+function setOnline(v,say){
+  if(v===online)return;online=v;copy();if(say)toast(v?'Back online':'Connection lost');
+  /* The worker serves this page under the URL the visitor wanted, so a
+     reload on reconnect takes them straight back to where they were. */
+  if(v){backTimer=setTimeout(function(){window.location.reload();},1400);}
+  else if(backTimer){clearTimeout(backTimer);backTimer=null;}
+}
+window.addEventListener('online',function(){setOnline(true,true);});
+window.addEventListener('offline',function(){setOnline(false,true);});
+/* A real connectivity check: a tiny same-origin fetch with a short
+   timeout. The query string matters — the worker precaches /favicon.jpeg,
+   so a plain fetch would succeed from cache even with no network.
+   Success means the network is back — reload to the wanted URL.
+   Failure shakes the stage, exactly like the design. */
+$('#retry').onclick=()=>{
+  if(online){window.location.reload();return;}
+  if(checking)return;checking=true;const b=$('#retry');b.disabled=true;b.innerHTML='<span class="spin"></span> Checking';
+  let done=false;
+  const ctl=new AbortController();const timer=setTimeout(function(){ctl.abort();},4000);
+  fetch('/favicon.jpeg?probe='+Date.now(),{cache:'no-store',signal:ctl.signal}).then(function(r){
+    clearTimeout(timer);if(done)return;done=true;checking=false;b.disabled=false;
+    b.innerHTML='<span id="retryT">Try again</span>';
+    if(r&&r.ok){setOnline(true,true);return;}
+    throw new Error('not ok');
+  }).catch(function(){
+    clearTimeout(timer);if(done)return;done=true;checking=false;b.disabled=false;b.innerHTML='<span id="retryT">Try again</span>';
+    $('#stage').classList.remove('shake');void $('#stage').offsetWidth;$('#stage').classList.add('shake');
+    $('#status').textContent='still offline — nothing came back';setTimeout(copy,2200);
+  });
+};
+let ac;$('#hear').onclick=()=>{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=440;o.connect(g).connect(ac.destination);
+ g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.05);g.gain.setValueAtTime(.12,t+.9);g.gain.setValueAtTime(.0001,t+.905); // the signal cuts out, abruptly
+ if(online){g.gain.setValueAtTime(.12,t+.905);g.gain.exponentialRampToValueAtTime(.0001,t+1.6);}o.start(t);o.stop(t+1.7);toast(online?'A steady signal':'…and then silence');};
+function spark(x,y){if(RM)return;for(let i=0;i<16;i++){const a=Math.random()*TAU,s=40+Math.random()*90;parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:1});}}
+function draw(now){requestAnimationFrame(draw);const dt=Math.min(.05,(now-lastNow)/1000);lastNow=now;if(!vis)return;
+ gap+=((online?0:1)-gap)*Math.min(1,dt*(online?4:6));if(Math.abs(gap-(online?0:1))<.002)gap=online?0:1;
+ const f=fit();if(!f)return;const{x:c,w:W,h:H}=f,t=RM?0:now/1000,mid=H/2,gx=W*.58,gw=W*.11*gap,L=gx-gw/2,R=gx+gw/2,amp=H*.27;c.clearRect(0,0,W,H);
+ c.lineWidth=1;c.strokeStyle=ink(.12);c.beginPath();c.moveTo(0,mid);c.lineTo(L,mid);c.stroke();
+ if(gap>.03){c.setLineDash([2,7]);c.strokeStyle=ink(.2*gap);c.beginPath();c.moveTo(R,mid);c.lineTo(W,mid);c.stroke();c.setLineDash([]);}
+ const end=W-gap*(W-L),fade0=W*.34;
+ [[7,.05],[3.6,.14],[2,1]].forEach(([lw,a])=>{c.strokeStyle=ink(a);c.lineWidth=lw;c.lineCap='round';c.lineJoin='round';c.beginPath();
+  for(let x=0;x<=end;x+=3){const env=1-gap*.9*sm((x-fade0)/Math.max(1,L-fade0)),y=mid-amp*env*Math.sin(x*.034-t*3.2);x?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();});
+ // a signal pulse travels toward the gap and breaks into sparks there
+ const ph=((t/2.8)%1),px=ph*W;if(ph<.03)hit=false;
+ if(gap>.4&&px>=L){if(!hit){hit=true;spark(L,mid);}}else{const g=c.createRadialGradient(px,mid,0,px,mid,22);g.addColorStop(0,ink(.7));g.addColorStop(1,ink(0));c.fillStyle=g;c.beginPath();c.arc(px,mid,22,0,TAU);c.fill();c.fillStyle=ink(1);c.beginPath();c.arc(px,mid,3.2,0,TAU);c.fill();}
+ if(gap>.05){const fl=.45+.4*Math.sin(t*9);[[L,1],[R,.5]].forEach(([x,k])=>{c.fillStyle=ink(.9*k);c.beginPath();c.arc(x,mid,4.2,0,TAU);c.fill();c.strokeStyle=warn(fl*gap);c.lineWidth=2;c.beginPath();c.arc(x,mid,8.5,0,TAU);c.stroke();});}
+ parts=parts.filter(p=>p.l>0);parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.96;p.vy*=.96;p.l-=dt*1.4;c.fillStyle=warn(Math.max(0,p.l)*.9);c.beginPath();c.arc(p.x,p.y,1.8,0,TAU);c.fill();});}
+copy();requestAnimationFrame(draw);
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+---
+/**
+ * 503 — "Taking a short breather."
+ *
+ * Sibling of /500: same typography, same theme tokens, same graph
+ * language. The difference is the story. 500 means something broke
+ * unexpectedly, so the signal clips and dies. 503 means the site is down
+ * on purpose — a deploy, a tune-up — so the wave does not break, it
+ * settles: three humps easing into a flat rest, breathing slowly until
+ * the site is back.
+ *
+ * Unlike the 500 it may depend on the shared stylesheet: a maintenance
+ * window is a planned deploy, and the static assets on the CDN are up
+ * even while the site is paused. It is noindex and stays out of the
+ * sitemap. Vercel does not serve it automatically — it is wired in by
+ * hand when maintenance actually happens (a rewrite in vercel.json or a
+ * dashboard redirect), so the page is the cheap part and the wiring is
+ * a deploy-time decision.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="503 — Taking a Short Breather | MathSonify"
+  description="MathSonify is down for a moment — maintenance, a deploy, a quick tune-up. The equations will be right back."
+  noindex
+>
+  <main class="maint relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 pb-16 pt-24">
+
+    <!-- Graph paper, from the shared --sc-* tokens so it tracks the theme. -->
+    <div class="maint-grid pointer-events-none absolute inset-0" aria-hidden="true"></div>
+    <!-- A slow, warm wash — resting, not alarming. -->
+    <div class="maint-aura pointer-events-none absolute inset-0" aria-hidden="true"></div>
+
+    <div class="relative z-10 flex w-full max-w-2xl flex-col items-center text-center">
+
+      <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-sc-text-faint">
+        Error 503 · maintenance
+      </p>
+
+      <svg
+        class="maint-stage mt-8 w-full max-w-lg"
+        viewBox="0 0 480 180"
+        role="img"
+        aria-label="A sound wave easing into a flat resting line"
+      >
+        <line x1="0" y1="90" x2="480" y2="90" stroke="rgb(var(--sc-line) / 0.28)" stroke-width="1" />
+
+        <!-- A wave that settles: full humps, then smaller, then rest. -->
+        <path
+          class="maint-wave"
+          d="M0 90 C 20 40, 40 40, 60 90 S 100 140, 120 90 S 160 50, 180 90 S 220 130, 240 90 S 280 62, 300 90 S 340 118, 360 90 L 480 90"
+          fill="none" stroke="rgb(var(--sc-accent))" stroke-width="2" stroke-linecap="round" />
+        <!-- The pause mark where the wave rests. -->
+        <g class="maint-pause" stroke="rgb(var(--sc-text-faint))" stroke-width="3" stroke-linecap="round">
+          <line x1="396" y1="74" x2="396" y2="106" />
+          <line x1="410" y1="74" x2="410" y2="106" />
+        </g>
+        <!-- The resting tail: quiet, not dead. -->
+        <path
+          class="maint-rest"
+          d="M420 90 L 480 90"
+          fill="none" stroke="rgb(var(--sc-text-faint))" stroke-width="1.5" stroke-dasharray="4 5" />
+      </svg>
+
+      <p class="code-mat mt-6 px-3 py-1.5 text-[12px] text-sc-text-soft">
+        f(x) → resting
+      </p>
+
+      <h1 class="mt-6 font-serif text-3xl font-semibold leading-tight text-sc-text sm:text-4xl">
+        Taking a short breather.
+      </h1>
+
+      <p class="mt-4 max-w-md text-sm leading-relaxed text-sc-text-soft">
+        MathSonify is down for a moment — a deploy, a tune-up, something small.
+        The equations will be right back.
+      </p>
+
+      <div class="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+        <button
+          type="button"
+          id="ms-retry"
+          class="btn-primary inline-flex min-h-[44px] items-center justify-center px-6 py-2.5 text-sm"
+        >
+          Try Again
+        </button>
+        <a
+          href="/"
+          class="btn-ghost inline-flex min-h-[44px] items-center justify-center px-6 py-2.5 text-sm"
+        >
+          Back to MathSonify
+        </a>
+      </div>
+
+      <p class="mt-8 max-w-md text-xs leading-relaxed text-sc-text-faint">
+        Usually just a few minutes. If it lasts longer, something bigger broke — check back soon.
+      </p>
+    </div>
+  </main>
+
+  <script is:inline>
+    (function () {
+      var btn = document.getElementById('ms-retry');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        btn.disabled = true;
+        btn.textContent = 'Retrying…';
+        try { window.location.reload(); } catch (e) { window.location.href = '/'; }
+      });
+    })();
+  </script>
+</BaseLayout>
+
+<style is:global>
+  /* ── 503 state ──────────────────────────────────────────────────────
+     Scoped to .maint so nothing can leak onto other pages. Colours come
+     from the shared theme tokens, so light and dark both work with no
+     second palette and no separate theme state. */
+  .maint-grid {
+    background-image:
+      linear-gradient(rgb(var(--sc-line) / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--sc-line) / 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* A restrained warm wash — resting, not alarming. Slow and low-contrast. */
+  .maint-aura {
+    background:
+      radial-gradient(60% 45% at 22% 18%, rgb(var(--sc-live) / 0.08), transparent 70%),
+      radial-gradient(55% 45% at 80% 78%, rgb(var(--sc-accent) / 0.07), transparent 70%);
+    animation: maint-drift 16s ease-in-out infinite alternate;
+  }
+  @keyframes maint-drift {
+    from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+    to   { transform: translate3d(1.5%, 1%, 0) scale(1.04); }
+  }
+
+  /* The wave breathes gently as it rests. */
+  .maint-wave { animation: maint-breathe 5s ease-in-out infinite; transform-origin: left center; }
+  @keyframes maint-breathe {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 0.55; }
+  }
+
+  /* The pause mark holds steady — the site is paused, not broken. */
+  .maint-pause { animation: maint-pause 5s ease-in-out infinite; }
+  @keyframes maint-pause {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 0.5; }
+  }
+
+  .maint-rest { animation: maint-rest 5s ease-in-out infinite; }
+  @keyframes maint-rest {
+    0%, 100% { opacity: 0.25; }
+    50% { opacity: 0.55; }
+  }
+
+  /* Reduced motion: hold a composed frame. The story still reads —
+     a wave settling into rest. */
+  @media (prefers-reduced-motion: reduce) {
+    .maint-aura, .maint-wave, .maint-pause, .maint-rest { animation: none !important; }
+    .maint-wave { opacity: 0.9; }
+    .maint-pause { opacity: 0.9; }
+    .maint-rest { opacity: 0.45; }
+  }
+</style>
