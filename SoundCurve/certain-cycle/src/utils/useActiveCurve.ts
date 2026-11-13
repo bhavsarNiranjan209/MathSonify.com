@@ -24,14 +24,26 @@
  * Deriving with `useMemo` (rather than an effect writing a ref) is the important
  * part: the value is correct during the same render that changed the equation,
  * so there is no frame in which a view can paint the previous curve.
+ *
+ * PERFORMANCE (Nov 2026) — the typed equation is debounced before it reaches
+ * the resolver. Every keystroke used to re-sample 800 points and rebuild the
+ * whole 3D scene, which is the lag the user reported. The input field, the
+ * store, playback and exports all keep reading the LIVE equation, so only
+ * the expensive derived work waits for a 200ms pause. Sculpted / freehand
+ * curves are NOT debounced: dragging a point must follow the pointer live,
+ * and a pending timer is cancelled the moment sculpting starts so a stale
+ * equation can never overwrite the drag. Preset loads and scientist picks
+ * pass through the same 200ms window — the field updates at once, the graph
+ * follows a beat later.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   resolveActiveCurve,
   CURVE_SAMPLE_COUNT,
   type ActiveCurve,
   type ActiveCurveSource,
 } from './activeCurve';
+import { debounce, EQUATION_COMMIT_DEBOUNCE_MS, type DebouncedFunction } from './debounce';
 import type { SamplePoint } from './equationParser';
 import type { SplineControlPoint } from './curveSpline';
 
@@ -63,12 +75,39 @@ export interface ActiveCurveState {
 export function useActiveCurve(input: UseActiveCurveInput): ActiveCurveState {
   const { equation, minX, maxX, isCustomCurve, splineControlPoints } = input;
 
+  // The equation the graph actually resolves — the live one while sculpting,
+  // the debounced one while typing. Starts live, so the first paint never waits.
+  const [debouncedEquation, setDebouncedEquation] = useState({ equation, minX, maxX });
+  const commitRef = useRef<DebouncedFunction<
+    (next: { equation: string; minX: number; maxX: number }) => void
+  > | null>(null);
+  if (commitRef.current === null) {
+    commitRef.current = debounce(
+      (next: { equation: string; minX: number; maxX: number }) => setDebouncedEquation(next),
+      EQUATION_COMMIT_DEBOUNCE_MS,
+    );
+  }
+  useEffect(() => {
+    if (isCustomCurve) {
+      // Sculpting follows the pointer; never let a stale timer overwrite it.
+      commitRef.current?.cancel();
+      setDebouncedEquation({ equation, minX, maxX });
+    } else {
+      commitRef.current?.({ equation, minX, maxX });
+    }
+  }, [equation, minX, maxX, isCustomCurve]);
+  useEffect(() => () => commitRef.current?.cancel(), []);
+
+  const resolvedEquation = isCustomCurve ? equation : debouncedEquation.equation;
+  const resolvedMinX = isCustomCurve ? minX : debouncedEquation.minX;
+  const resolvedMaxX = isCustomCurve ? maxX : debouncedEquation.maxX;
+
   return useMemo<ActiveCurveState>(() => {
     try {
       const resolved: ActiveCurve = resolveActiveCurve({
-        equation,
-        minX,
-        maxX,
+        equation: resolvedEquation,
+        minX: resolvedMinX,
+        maxX: resolvedMaxX,
         isCustomCurve,
         splineControlPoints,
       });
@@ -82,7 +121,7 @@ export function useActiveCurve(input: UseActiveCurveInput): ActiveCurveState {
     }
     // `splineControlPoints` is an array from the store; its identity changes only
     // when the store sets it, so this is a correct and cheap dependency.
-  }, [equation, minX, maxX, isCustomCurve, splineControlPoints]);
+  }, [resolvedEquation, resolvedMinX, resolvedMaxX, isCustomCurve, splineControlPoints]);
 }
 
 export { CURVE_SAMPLE_COUNT };

@@ -12,6 +12,9 @@
  *    that always faces the camera — shown only while an export renders — plus a 360°
  *    turntable picture (four views in one PNG) and a 360° orbit video (the camera
  *    circles the scene once over the clip).
+ *  - v31 (performance): `build()` no longer rebuilds the whole scene per curve
+ *    change — when the ticks/axes/theme are unchanged only the tubes are
+ *    rebuilt — and `setPoints` no longer snaps the camera back to default.
  *
  * Playback is read through `getProgress` (called every frame, no React re-renders):
  *   getProgress={() => { const s = useStudioStore.getState(); return s.isPlaying ? s.progress : null; }}
@@ -273,6 +276,31 @@ function createScene(
     while (data.children.length) { const c = data.children[0]; data.remove(c); disposeTree(c); }
     segs = []; head = null; sprites.length = 0;
   }
+
+  // PERFORMANCE (Nov 2026) — the frame vs the curve. Rebuilding the whole
+  // scene on every points change was the big lag: the floor, grid, axes and
+  // ~20 label sprites (each a canvas texture) were disposed and recreated
+  // for every keystroke, even when the equation's ticks and axis positions
+  // had not moved at all. `staticSig` is the fingerprint of everything the
+  // frame depends on; when it is unchanged, only the tubes are rebuilt.
+  let staticSig: string | null = null;
+  /** What the static frame depends on: tick values/steps, axis positions, theme. The tubes are NOT in here. */
+  function staticSignature(v: View, dark: boolean): string {
+    return JSON.stringify([
+      dark, v.xAxisY, v.yAxisX,
+      v.xTicks.ticks, v.xTicks.step,
+      v.yTicks.ticks, v.yTicks.step,
+    ]);
+  }
+  /** Dispose only the curve tubes + playhead — the frame stays standing. */
+  function clearCurve() {
+    for (const s of segs) {
+      data.remove(s.bright); data.remove(s.ghost);
+      disposeTree(s.bright); disposeTree(s.ghost);
+    }
+    if (head) { data.remove(head); disposeTree(head); head = null; }
+    segs = [];
+  }
   function lines(arr: number[], color: number, opacity: number) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
@@ -318,13 +346,34 @@ function createScene(
   }
 
   function build(): { ok: boolean; clipped: boolean } {
-    clearData();
-    if (!points.length) return { ok: false, clipped: false };
+    if (!points.length) { clearData(); staticSig = null; return { ok: false, clipped: false }; }
     view = computeView(points, W3, H3);
-    if (!view.segments.length) return { ok: false, clipped: view.clipped };
+    if (!view.segments.length) { clearData(); staticSig = null; return { ok: false, clipped: view.clipped }; }
     const v = view;
     const pal: Pal = curve3DPalette(bg.dark);
     applyLightsAndFog();
+    const sig = staticSignature(v, bg.dark);
+    if (sig !== staticSig) {
+      // New frame (new ticks / axes / theme): rebuild everything.
+      clearData();
+      staticSig = sig;
+      buildStatic(v, pal);
+    } else {
+      // Same frame, new curve: only the tubes move. The floor, grid, axes
+      // and label sprites survive untouched — that was the expensive half
+      // of every keystroke rebuild.
+      clearCurve();
+    }
+    if (!buildCurve(v, pal)) return { ok: false, clipped: v.clipped };
+
+    lastP = undefined; // force the progress state to be re-applied to the new meshes
+    layoutSprites();
+    needs = true;
+    return { ok: true, clipped: v.clipped };
+  }
+
+  /** Floor, grid, box, axes, cones and tick labels — everything except the tubes. */
+  function buildStatic(v: View, pal: Pal): void {
     const X = (x: number) => v.toX(x) - W3 / 2;
     const Y = (y: number) => v.toY(y) - H3 / 2;
     const floorY = -H3 / 2;
@@ -381,6 +430,12 @@ function createScene(
       label(formatTick(t, v.yTicks.step), new THREE.Vector3(-W3 / 2 - 0.14, sy, D3 / 2), 'tick', [1, 0.5], pal);
     }
     data.add(lines(td, pal.axis, 0.8));
+  }
+
+  /** Tubes + playhead only — the one part that must move when the points change. Returns false when nothing drawable was built. */
+  function buildCurve(v: View, pal: Pal): boolean {
+    const X = (x: number) => v.toX(x) - W3 / 2;
+    const Y = (y: number) => v.toY(y) - H3 / 2;
 
     // CURVE: one tube per continuous segment, parametrised by sample INDEX (not arc length)
     for (const seg of v.segments) {
@@ -408,15 +463,12 @@ function createScene(
       data.add(ghost, bright);
       segs.push({ start: seg.start, end: seg.end, curve, bright, ghost });
     }
-    if (!segs.length) return { ok: false, clipped: v.clipped };
+    if (!segs.length) return false;
 
     head = new THREE.Mesh(new THREE.SphereGeometry(0.085, 18, 18), new THREE.MeshBasicMaterial({ color: pal.head, toneMapped: false }));
     head.visible = false; data.add(head);
 
-    lastP = undefined; // force the progress state to be re-applied to the new meshes
-    layoutSprites();
-    needs = true;
-    return { ok: true, clipped: v.clipped };
+    return true;
   }
 
   /** p === null -> idle: whole curve shown. 0..1 -> curve draws in up to p, ghost curve behind it. */
@@ -582,7 +634,13 @@ function createScene(
 
   return {
     setPoints(next) {
-      points = next; userZoomed = false; tTheta = DEF.theta; tPhi = DEF.phi; target.set(0, 0, 0);
+      points = next;
+      // PERFORMANCE (Nov 2026) — the camera is deliberately NOT reset here.
+      // Every equation change used to snap the orbit back to the default
+      // angle and re-fit the zoom, so editing an equation threw away the
+      // view the user had just set up. The orbit, pan and zoom now survive
+      // an edit; double-click still resets them (onDbl), and layout() still
+      // refits the radius when the user has never zoomed.
       layout();
       return build();
     },
