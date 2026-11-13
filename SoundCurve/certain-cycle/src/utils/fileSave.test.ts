@@ -9,8 +9,12 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import { canShareFile, isShareAbort, performSave, type ShareCapableNavigator } from './fileSave';
+
+const read = (p: string) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), 'utf8');
 
 const CLIP = new File([new Uint8Array([1, 2, 3])], 'mathsonify.com-heart.mp4', { type: 'video/mp4' });
 const NAME = 'mathsonify.com-heart.mp4';
@@ -103,4 +107,48 @@ test('isShareAbort only matches AbortError', () => {
   assert.equal(isShareAbort(new TypeError('other')), false);
   assert.equal(isShareAbort(null), false);
   assert.equal(isShareAbort(undefined), false);
+});
+
+test('v32: forceDownload skips the share sheet even when the device can share', async () => {
+  // The 3D picture/video exports use this — the user asked for a real
+  // download, not the native share sheet. The share function must never
+  // be called, and the anchor download must fire exactly once.
+  const shared: unknown[] = [];
+  const nav: ShareCapableNavigator = {
+    canShare: () => true,
+    share: async (d) => { shared.push(d); },
+  };
+  const dl = spyDownload();
+
+  const outcome = await performSave(CLIP, NAME, { nav, ...dl, forceDownload: true });
+
+  assert.equal(outcome, 'downloaded');
+  assert.equal(shared.length, 0, 'forceDownload must never open the share sheet');
+  assert.deepEqual(dl.calls, [{ file: CLIP, filename: NAME }]);
+});
+
+test('v32: the 3D picture and turntable exports force a download', () => {
+  // Source wiring: both 3D image paths must pass forceDownload, so a
+  // phone never sees the share sheet for a 3D picture.
+  assert.match(
+    read('../utils/render3DImage.ts'),
+    /performSave\(file, filename, \{ forceDownload: true \}\)/,
+    'single 3D picture does not force a download',
+  );
+  assert.match(
+    read('../utils/render3DTurntable.ts'),
+    /performSave\(file, filename, \{ forceDownload: true \}\)/,
+    'turntable 3D picture does not force a download',
+  );
+});
+
+test('v32: the 3D video forces a download, the 2D video keeps the share sheet', () => {
+  const modal = read('../components/ExportModal.tsx');
+  // The Save action forces a download only for the 3D video; the 2D
+  // video keeps the share-first behaviour it was designed with.
+  assert.match(
+    modal,
+    /performSave\(file, video\.filename, \{ forceDownload: videoDimension === '3d' \}\)/,
+    'video Save does not force a download for 3D only',
+  );
 });

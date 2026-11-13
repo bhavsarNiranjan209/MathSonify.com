@@ -47,14 +47,14 @@ test('the scene API exposes the turntable picture', () => {
   const viewer = read('../components/Studio/Curve3DViewer.tsx');
   assert.match(
     viewer,
-    /exportTurntableImage\(equation: string\): Promise<\{ blob: Blob; filename: string \}>/,
+    /exportTurntableImage\(equation: string, labels\?: SceneApiLabelInfo\): Promise<\{ blob: Blob; filename: string \}>/,
     'SceneApi has no exportTurntableImage',
   );
   // It renders the four angles through the turntable composer.
   assert.match(viewer, /render3DTurntableImage\(/, 'exportTurntableImage does not use the turntable composer');
   // The live loop is paused while the four views render, so it cannot
   // redraw between them.
-  assert.match(viewer, /async exportTurntableImage\(equation: string\) \{\n\s+pauseLoop\(\);/, 'turntable does not pause the live loop');
+  assert.match(viewer, /async exportTurntableImage\(equation: string, labels\?: SceneApiLabelInfo\) \{\n\s+pauseLoop\(\);/, 'turntable does not pause the live loop');
 });
 
 test('the turntable composer draws four views plus the footer', () => {
@@ -64,15 +64,18 @@ test('the turntable composer draws four views plus the footer', () => {
   assert.match(source, /const first = renderView\(0\);/, 'composer does not render the first view up front');
   assert.match(source, /const view = renderView\(\(cells\[i\]\.angleDeg \* Math\.PI\) \/ 180\);/, 'composer does not render the other angles');
   assert.match(source, /ctx\.drawImage\(view, cells\[i\]\.x, cells\[i\]\.y, cells\[i\]\.w, cells\[i\]\.h\);/, 'composer does not draw each view into its cell');
-  // Same footer as the single 3D picture, and a distinct filename.
-  assert.match(source, /fillText\(`Equation: \$\{label\}`/, 'turntable has no equation footer');
+  // Same footer as the single 3D picture (v32: the shared labels helper —
+  // scientist name + equation name at the top for scientist equations,
+  // bottom equation in the theme colour), and a distinct filename.
+  assert.match(source, /drawExport3DLabels\(ctx, width, height, \{/, 'turntable does not use the shared 3D labels');
   assert.match(source, /mathsonify-\$\{slug\}-3d-360\.png/, 'turntable filename carries no -3d-360 marker');
 });
 
 test('the ExportModal offers the turntable picture in the 3D image tab', () => {
   const modal = read('../components/ExportModal.tsx');
   assert.match(modal, /const handleExport3DTurntableImage = async/, 'modal has no turntable handler');
-  assert.match(modal, /await threeDApi\.exportTurntableImage\(s\.equation\)/, 'turntable handler does not call exportTurntableImage');
+  // v32: the handler passes the labels (name + scientist + theme).
+  assert.match(modal, /await threeDApi\.exportTurntableImage\(s\.equation, \{/, 'turntable handler does not call exportTurntableImage');
   assert.match(modal, /Turntable · 4 views/, 'image tab offers no turntable choice');
   assert.match(
     modal,

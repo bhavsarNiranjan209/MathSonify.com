@@ -32,6 +32,17 @@ export interface SaveDeps {
   nav?: ShareCapableNavigator | null;
   /** Injected for tests; defaults to a real anchor download. */
   download?: (file: File, filename: string) => void;
+  /**
+   * v32: skip the share sheet entirely and download the file directly.
+   * The 3D picture/video exports use this — the user asked for a real
+   * download, not the native share sheet. A plain `<a download>` is the
+   * most direct save the page can trigger; on Android Chrome it downloads
+   * straight to the device, and on desktop it is the normal download. On
+   * iOS Safari the `download` attribute is often ignored and the file opens
+   * inline in the browser instead (the user can then save it from the
+   * browser) — that is a browser behaviour the page cannot override.
+   */
+  forceDownload?: boolean;
 }
 
 /**
@@ -78,6 +89,10 @@ export function downloadViaAnchor(file: File, filename: string): void {
  * dismissed is exactly the surprise this module exists to prevent. Any *other*
  * share failure (payload too large, permission denied) does fall through, since
  * there the user still deserves their file.
+ *
+ * v32: `forceDownload` skips the share sheet entirely and downloads the file
+ * directly. The 3D picture/video exports use it — the user asked for a real
+ * download there, not the native share sheet.
  */
 export async function performSave(
   file: File,
@@ -87,7 +102,7 @@ export async function performSave(
   const nav = deps.nav ?? (typeof navigator === 'undefined' ? null : (navigator as ShareCapableNavigator));
   const download = deps.download ?? downloadViaAnchor;
 
-  if (canShareFile(file, nav)) {
+  if (!deps.forceDownload && canShareFile(file, nav)) {
     try {
       await nav!.share!({ files: [file], title: filename });
       return 'shared';

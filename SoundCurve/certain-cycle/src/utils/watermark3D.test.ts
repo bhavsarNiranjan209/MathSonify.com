@@ -3,8 +3,8 @@
  *
  * The canvas drawing itself is DOM-only (covered by the headless visual
  * proof); what is tested here is the sizing math that makes the mark read
- * ~50px on a 720px-tall view — the same size as the 2D watermark — plus
- * the wiring that puts a camera-facing sprite in the scene.
+ * ~38px on a 720px-tall view (v32: down from 50px — the owner said it was
+ * too big) plus the wiring that puts a camera-facing sprite in the scene.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -29,7 +29,8 @@ test('the billboard carries the same mark as the 2D watermark', () => {
   assert.ok(Math.abs(WATERMARK_3D_TILT - -Math.PI / 6) < 1e-9, 'tilt is not -30°');
   // Same ghost as the 2D watermark: 50%.
   assert.equal(WATERMARK_3D_OPACITY, 0.5);
-  assert.equal(WATERMARK_3D_CAP_PX_AT_720, 50);
+  // v32: ~24% smaller than the original 50px — the owner said it was too big.
+  assert.equal(WATERMARK_3D_CAP_PX_AT_720, 38);
   // Manrope regular 400 — the owner's font pick, NOT bold.
   assert.match(watermarkBillboardFont(200), /^400 200px "Manrope"/);
 });
@@ -47,18 +48,18 @@ test('watermarkBillboardCanvasSize: fits the -30° rotated text', () => {
   assert.ok(a.width > 1000 * 0.8 && a.height > 200, 'canvas must contain the text');
 });
 
-test('watermarkBillboardSpriteScale: cap height reads ~50px on a 720p view', () => {
+test('watermarkBillboardSpriteScale: cap height reads ~38px on a 720p view', () => {
   const { scaleX, scaleY } = watermarkBillboardSpriteScale(999, 706, 144, 40);
   // Aspect is preserved.
   assert.ok(Math.abs(scaleX / scaleY - 999 / 706) < 0.001, 'sprite aspect is not the canvas aspect');
   // With sizeAttenuation off, a sprite of world height S covers
   // S·cot(fov/2)/2 of the viewport height. The cap height is
-  // capHeightPx/canvasH of the sprite height — it must come out at 50px
-  // on a 720px-tall view.
+  // capHeightPx/canvasH of the sprite height — it must come out at 38px
+  // on a 720px-tall view (v32: down from 50px).
   const fov = 40;
   const spriteScreenPx = scaleY * (1 / Math.tan((fov * Math.PI) / 360)) / 2 * 720;
   const capScreenPx = spriteScreenPx * (144 / 706);
-  assert.ok(Math.abs(capScreenPx - 50) < 0.5, `cap height is ${capScreenPx}px, not ~50px`);
+  assert.ok(Math.abs(capScreenPx - 38) < 0.5, `cap height is ${capScreenPx}px, not ~38px`);
   // A narrower field of view needs a smaller sprite for the same screen size.
   const narrow = watermarkBillboardSpriteScale(999, 706, 144, 20);
   assert.ok(narrow.scaleY < scaleY, 'narrower fov must shrink the sprite');

@@ -13,12 +13,12 @@
  *
  * SIZING: the sprite uses sizeAttenuation:false (like the axis/tick label
  * sprites), so its on-screen size is constant at any zoom or orbit radius.
- * The scale below is derived so the text's cap height reads ~50px on a
- * 720px-tall view — the same size as the 2D watermark — and scales
- * proportionally with the view, so exports at any size keep the same
- * proportion. The derivation is pure math (see watermarkBillboardSpriteScale)
- * and unit-tested here; the canvas drawing itself is DOM-only and is
- * covered by the headless visual proof.
+ * The scale below is derived so the text's cap height reads ~38px on a
+ * 720px-tall view (v32: down from 50px — the owner said it was too big)
+ * and scales proportionally with the view, so exports at any size keep the
+ * same proportion. The derivation is pure math (see
+ * watermarkBillboardSpriteScale) and unit-tested here; the canvas drawing
+ * itself is DOM-only and is covered by the headless visual proof.
  */
 import { WATERMARK_TEXT } from './videoScene';
 
@@ -31,8 +31,13 @@ export const WATERMARK_3D_TILT = -Math.PI / 6;
 /** Same ghost as the 2D watermark: 50% opacity. */
 export const WATERMARK_3D_OPACITY = 0.5;
 
-/** Target cap height of the watermark text on a 720px-tall view, in px. */
-export const WATERMARK_3D_CAP_PX_AT_720 = 50;
+/**
+ * Target cap height of the watermark text on a 720px-tall view, in px.
+ * v32: 38px, down from 50px (~24% smaller) — the owner said the billboard
+ * was too big. The 2D diagonal watermark stays at 50px; only the 3D
+ * billboard shrinks, so it reads as a mark rather than a headline.
+ */
+export const WATERMARK_3D_CAP_PX_AT_720 = 38;
 
 /** Texture font size, in px — large so the sprite stays sharp when upscaled. */
 export const WATERMARK_3D_FONT_PX = 200;

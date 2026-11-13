@@ -8,6 +8,11 @@ import type { Scientist } from '../data/scientists';
 // for real would pull Three.js into the store's graph.
 import type { SceneApi } from '../components/Studio/Curve3DViewer';
 import {
+  DEFAULT_VIDEO_COLOR_THEME,
+  isVideoColorTheme,
+  type VideoColorTheme,
+} from '../utils/videoScene';
+import {
   sampleEquationToControlPoints,
   deformControlPointsWithBrush,
   type SplineControlPoint,
@@ -82,6 +87,15 @@ export interface StudioState {
   showGrid: boolean;
   lineWidth: number;
   curveColor: string | null; // null = use theme default
+  /**
+   * v32: the export curve colour theme (White/Blue/Green/Purple — the same
+   * four themes the 2D export uses). The 3D tube uses this colour in the
+   * live view and in the 3D picture/video exports, so the 3D curve matches
+   * the 2D theme the user picked in the Export modal. Kept in the store
+   * (not only in the modal's localStorage prefs) so the live 3D view can
+   * react to it. Initialised from the same saved prefs the modal reads.
+   */
+  colorTheme: VideoColorTheme;
 
   // Active scientist context (for video export)
   activeScientist: Scientist | null;
@@ -158,6 +172,8 @@ export interface StudioActions {
   setShowGrid: (show: boolean) => void;
   setLineWidth: (width: number) => void;
   setCurveColor: (color: string | null) => void;
+  /** v32: the 3D tube (and the 3D exports) follow the export colour theme. */
+  setColorTheme: (theme: VideoColorTheme) => void;
 
   setActiveScientist: (scientist: Scientist | null, equationName: string | null) => void;
   setEquationOfTheDay: (name: string | null) => void;
@@ -181,6 +197,24 @@ export interface StudioActions {
   }) => void;
 
   resetToDefault: () => void;
+}
+
+/**
+ * v32: the export curve colour theme saved by the Export modal (same
+ * localStorage key the modal reads, `mathsonify-video-export`). Unknown or
+ * missing values fall back to white, so a stale or hand-edited pref can
+ * never leave the 3D tube without a colour.
+ */
+function loadSavedColorTheme(): VideoColorTheme {
+  if (typeof window === 'undefined') return DEFAULT_VIDEO_COLOR_THEME;
+  try {
+    const raw = window.localStorage.getItem('mathsonify-video-export');
+    if (!raw) return DEFAULT_VIDEO_COLOR_THEME;
+    const parsed = JSON.parse(raw) as { colorTheme?: unknown };
+    return isVideoColorTheme(parsed.colorTheme) ? parsed.colorTheme : DEFAULT_VIDEO_COLOR_THEME;
+  } catch {
+    return DEFAULT_VIDEO_COLOR_THEME;
+  }
 }
 
 const initialState: StudioState = {
@@ -232,6 +266,7 @@ const initialState: StudioState = {
   showGrid: true,
   lineWidth: 3,
   curveColor: null,
+  colorTheme: loadSavedColorTheme(),
 
   activeScientist: null,
   activeEquationName: null,
@@ -410,6 +445,7 @@ export const useStudioStore = create<StudioState & StudioActions>((set) => ({
   setShowGrid: (showGrid) => set({ showGrid }),
   setLineWidth: (lineWidth) => set({ lineWidth }),
   setCurveColor: (curveColor) => set({ curveColor }),
+  setColorTheme: (colorTheme) => set({ colorTheme }),
 
   setActiveScientist: (scientist, equationName) => {
     if (typeof window !== 'undefined') {

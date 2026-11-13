@@ -24,9 +24,17 @@
 import { getCanvasPalette, getThemeMode } from './theme';
 import { equationSlug, DEFAULT_MAX_DIMENSION, CAPTURE_SCALE } from './render3DImage';
 import { performSave } from './fileSave';
+import { drawExport3DLabels } from './export3DLabels';
+import type { VideoColorTheme } from './videoScene';
 
 export interface Render3DTurntableOptions {
   equation: string;
+  /** Display name of the equation (preset / scientist equation), if any. */
+  equationName?: string | null;
+  /** Scientist name — present only for a scientist equation. */
+  scientistName?: string | null;
+  /** Curve colour theme; the bottom equation is drawn in this colour. */
+  colorTheme?: VideoColorTheme;
   maxDimension?: number; // cap at 2048
 }
 
@@ -130,21 +138,18 @@ export async function render3DTurntableImage(
   ctx.lineTo(width, midY);
   ctx.stroke();
 
-  // Footer band — same as the single 3D picture.
-  const eq = opts?.equation ?? '';
-  const footerH = footer.h;
-  const footerY = footer.y;
-  ctx.fillStyle = palette.canvas;
-  ctx.fillRect(0, footerY, width, footerH);
-  const label = eq.trim() || 'equation';
-  ctx.font = `${Math.max(10, Math.round(width * 0.025))}px system-ui, sans-serif`;
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'left';
-  ctx.fillStyle = palette.canvas === '#ffffff' ? '#080A0C' : '#ffffff';
-  ctx.fillText(`Equation: ${label}`, 12, footerY + footerH / 2 - 2);
-  ctx.textAlign = 'right';
-  ctx.fillStyle = 'rgba(142, 148, 154, 0.85)';
-  ctx.fillText('mathsonify.com', width - 12, footerY + footerH / 2 - 2);
+  // Footer band — v32: names + bottom equation (shared 3D labels helper).
+  // Scientist equations get the scientist name + equation name at the top;
+  // user equations get no top name. The bottom equation is in the theme
+  // colour, Instrument Serif italic, like the 2D export.
+  const label = (opts?.equation ?? '').trim() || 'equation';
+  drawExport3DLabels(ctx, width, height, {
+    equation: label,
+    equationName: opts?.equationName ?? null,
+    scientistName: opts?.scientistName ?? null,
+    colorTheme: opts?.colorTheme,
+    canvasColor: palette.canvas,
+  });
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     off.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
@@ -153,6 +158,7 @@ export async function render3DTurntableImage(
   const slug = equationSlug(label);
   const filename = `mathsonify-${slug}-3d-360.png`;
   const file = new File([blob], filename, { type: 'image/png' });
-  await performSave(file, filename);
+  // v32: a real download, not the share sheet (same as the single picture).
+  await performSave(file, filename, { forceDownload: true });
   return { blob, filename };
 }

@@ -60,6 +60,9 @@ export default function ExportModal() {
   const scale = useStudioStore((s) => s.scale);
   const activeScientist = useStudioStore((s) => s.activeScientist);
   const activeEquationName = useStudioStore((s) => s.activeEquationName);
+  // v32: the export colour theme lives in the store (not only in this
+  // modal's localStorage prefs) so the live 3D view can follow it.
+  const setColorTheme = useStudioStore((s) => s.setColorTheme);
   // The live 3D scene's export API, present only while a 3D viewer is
   // mounted (the Studio's GraphPanel in 3D mode). When it exists, the
   // image and video tabs offer a 3D option alongside the 2D one.
@@ -192,7 +195,9 @@ export default function ExportModal() {
    * 3D image export (v29). Uses the live 3D scene's own render3DImage —
    * one frame, footer, PNG up to 2048px — so the picture is the 3D view
    * exactly as it looks on screen. Only offered while a 3D viewer is
-   * mounted (threeDApi is present).
+   * mounted (threeDApi is present). v32: passes the equation name,
+   * scientist name and colour theme so the picture carries the header
+   * and the bottom equation.
    */
   const handleExport3DImage = async () => {
     if (!threeDApi) return;
@@ -200,7 +205,11 @@ export default function ExportModal() {
       setIsExporting(true);
       setExportError('');
       const s = useStudioStore.getState();
-      await threeDApi.exportImage(s.equation);
+      await threeDApi.exportImage(s.equation, {
+        equationName: s.activeEquationName,
+        scientistName: s.activeScientist?.name ?? null,
+        colorTheme: videoPrefs.colorTheme,
+      });
       setDownloadReady(true);
       setIsExporting(false);
     } catch (err) {
@@ -220,7 +229,11 @@ export default function ExportModal() {
       setIsExporting(true);
       setExportError('');
       const s = useStudioStore.getState();
-      await threeDApi.exportTurntableImage(s.equation);
+      await threeDApi.exportTurntableImage(s.equation, {
+        equationName: s.activeEquationName,
+        scientistName: s.activeScientist?.name ?? null,
+        colorTheme: videoPrefs.colorTheme,
+      });
       setDownloadReady(true);
       setIsExporting(false);
     } catch (err) {
@@ -337,9 +350,9 @@ export default function ExportModal() {
   };
 
   /**
-   * The single Save action. Uses the Web Share API where the device can share
-   * files (giving the native Save-to-Photos / Reels sheet) and an anchor
-   * download otherwise.
+   * The single Save action. v32: a 3D video downloads directly (the user
+   * asked for a download, not the native share sheet); a 2D video keeps
+   * the share sheet where the device can share files, as before.
    */
   const handleSaveVideo = async () => {
     if (!video) return;
@@ -347,7 +360,9 @@ export default function ExportModal() {
       setIsSaving(true);
       setExportError('');
       const file = new File([video.blob], video.filename, { type: video.mimeType });
-      setSaveOutcome(await performSave(file, video.filename));
+      setSaveOutcome(
+        await performSave(file, video.filename, { forceDownload: videoDimension === '3d' }),
+      );
     } catch (err) {
       setExportError(err instanceof Error ? err.message : 'Could not save the video');
     } finally {
@@ -411,7 +426,11 @@ export default function ExportModal() {
           <button
             key={themeId}
             type="button"
-            onClick={() => setVideoPrefs((p) => ({ ...p, colorTheme: themeId }))}
+            onClick={() => {
+              setVideoPrefs((p) => ({ ...p, colorTheme: themeId }));
+              // v32: the live 3D tube follows the picked theme at once.
+              setColorTheme(themeId);
+            }}
             className="px-3 rounded-full text-xs font-semibold transition-all min-h-[44px] flex items-center gap-1.5"
             style={{
               background: videoPrefs.colorTheme === themeId ? 'var(--sc-accent)' : 'transparent',

@@ -50,6 +50,7 @@ import {
   type VideoExportResult,
 } from './videoExporter';
 import { getCanvasPalette, getThemeMode } from './theme';
+import { drawExport3DLabels } from './export3DLabels';
 import type { SceneApi } from '../components/Studio/Curve3DViewer';
 import type { SamplePoint } from './equationParser';
 
@@ -226,6 +227,17 @@ export async function export3DVideoOffline(
     // watermark is shown in every frame.
     const startAzimuth = api.getAzimuth();
     const frameUs = frameDurationUs(FPS);
+    // v32: the frame labels (scientist name + equation name at the top for
+    // scientist equations only, bottom equation in the theme colour for all)
+    // are the same shared 3D labels as the picture exports, drawn over the
+    // WebGL frame on every video frame.
+    const labelInfo = {
+      equation,
+      equationName: equationName ?? null,
+      scientistName: scientist?.name ?? null,
+      colorTheme: opts.colorTheme,
+      canvasColor: bg,
+    };
     for (let i = 0; i < frameCount; i++) {
       const tMs = i * (1000 / FPS);
       const progress = progressAtTime(tMs, mainMs);
@@ -234,6 +246,7 @@ export async function export3DVideoOffline(
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, VIDEO_W, VIDEO_H);
       ctx.drawImage(webglCanvas, 0, 0, VIDEO_W, VIDEO_H);
+      drawExport3DLabels(ctx, VIDEO_W, VIDEO_H, labelInfo);
       const frame = new VideoFrame(canvas, { timestamp: i * frameUs, duration: frameUs });
       videoEncoder.encode(frame, { keyFrame: i % FPS === 0 });
       frame.close();

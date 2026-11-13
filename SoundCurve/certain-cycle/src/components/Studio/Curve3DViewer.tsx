@@ -32,6 +32,8 @@ import {
   watermarkBillboardSpriteScale,
   WATERMARK_3D_OPACITY,
 } from '../../utils/watermark3D';
+import { useStudioStore } from '../../store/studioStore';
+import { videoColorThemeHex, type VideoColorTheme } from '../../utils/videoScene';
 
 export interface Curve3DViewerProps {
   points: XY[];
@@ -64,17 +66,31 @@ type Pal = Curve3DPalette;
  * (`exportTurntableImage`), a per-frame orbit angle on `renderFrame`, and
  * the billboard watermark (shown only while an export renders).
  */
+/**
+ * v32: the export colour theme (White/Blue/Green/Purple — the same four
+ * themes the 2D export uses). The 3D tube follows this theme in the live
+ * view and in the exports, so the 3D curve matches the 2D colour the user
+ * picked in the Export modal.
+ */
+export interface SceneApiLabelInfo {
+  equationName?: string | null;
+  scientistName?: string | null;
+  colorTheme?: VideoColorTheme;
+}
+
 export type SceneApi = {
   setPoints(p: XY[]): { ok: boolean; clipped: boolean };
   setTouchAction(t: 'none' | 'pan-y'): void;
+  /** v32: change the tube colour to the export colour theme (rebuilds the tubes only). */
+  setColorTheme(theme: VideoColorTheme): void;
   destroy(): void;
   /** Save the current 3D frame as a PNG (up to 2048px) via render3DImage. */
-  exportImage(equation: string): Promise<{ blob: Blob; filename: string }>;
+  exportImage(equation: string, labels?: SceneApiLabelInfo): Promise<{ blob: Blob; filename: string }>;
   /**
    * Save a 360° turntable picture: four views (0°/90°/180°/270° from the
    * current orbit) in one 2×2 PNG, each with the billboard watermark.
    */
-  exportTurntableImage(equation: string): Promise<{ blob: Blob; filename: string }>;
+  exportTurntableImage(equation: string, labels?: SceneApiLabelInfo): Promise<{ blob: Blob; filename: string }>;
   /**
    * Render ONE frame at the given playhead progress (0..1, or null for the
    * idle full curve) and return the WebGL canvas. The caller captures it
@@ -101,6 +117,8 @@ export default function Curve3DViewer({ points, label, getProgress, touchAction 
   onReadyRef.current = onReady;
   const [problem, setProblem] = useState<string | null>(null);
   const [clipped, setClipped] = useState(false);
+  // v32: the export colour theme drives the 3D tube colour (live + exports).
+  const colorTheme = useStudioStore((s) => s.colorTheme);
 
   useEffect(() => {
     const mount = mountRef.current!;
@@ -114,6 +132,10 @@ export default function Curve3DViewer({ points, label, getProgress, touchAction 
     return () => { apiRef.current?.destroy(); apiRef.current = null; onReadyRef.current?.(null); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // v32: when the export colour theme changes, the tube follows it. The
+  // scene API no-ops when the theme is unchanged, so the mount pass is free.
+  useEffect(() => { apiRef.current?.setColorTheme(colorTheme); }, [colorTheme]);
 
   useEffect(() => {
     const api = apiRef.current;
@@ -210,6 +232,14 @@ function createScene(
   let points: XY[] = [];
   let view: View | null = null;
   let bg: BgInfo = resolveBackground(mount);
+  // v32: the export colour theme (White/Blue/Green/Purple). The tube
+  // follows it in the live view and in the exports. Initialised from the
+  // store (which itself loads the saved Export-modal preference).
+  let colorTheme: VideoColorTheme = useStudioStore.getState().colorTheme;
+  /** The tube colour for the current theme, as a THREE colour number. */
+  function themeTubeColor(): number {
+    return parseInt(videoColorThemeHex(colorTheme).slice(1), 16);
+  }
   let segs: { start: number; end: number; curve: THREE.CatmullRomCurve3; bright: THREE.Mesh; ghost: THREE.Mesh }[] = [];
   let head: THREE.Mesh | null = null;
   const sprites: { s: THREE.Sprite; pxW: number; pxH: number }[] = [];
@@ -436,6 +466,11 @@ function createScene(
   function buildCurve(v: View, pal: Pal): boolean {
     const X = (x: number) => v.toX(x) - W3 / 2;
     const Y = (y: number) => v.toY(y) - H3 / 2;
+    // v32: the tube follows the export colour theme (White/Blue/Green/
+    // Purple — the same four themes the 2D export uses), not the fixed
+    // palette colour. The material's roughness/metalness/emissive
+    // intensity still come from the palette; only the colour is themed.
+    const tubeColor = themeTubeColor();
 
     // CURVE: one tube per continuous segment, parametrised by sample INDEX (not arc length)
     for (const seg of v.segments) {
@@ -450,14 +485,14 @@ function createScene(
       const bright = new THREE.Mesh(
         new THREE.TubeGeometry(curve, n, pal.tubeR, 10, false),
         new THREE.MeshPhysicalMaterial({
-          color: pal.tube, emissive: pal.emissive, emissiveIntensity: pal.emissiveI,
+          color: tubeColor, emissive: tubeColor, emissiveIntensity: pal.emissiveI,
           metalness: pal.metal, roughness: pal.rough, clearcoat: 0.6, clearcoatRoughness: 0.25,
         }),
       );
       bright.castShadow = true;
       const ghost = new THREE.Mesh(
         new THREE.TubeGeometry(curve, Math.min(600, n), 0.016, 6, false),
-        new THREE.MeshBasicMaterial({ color: pal.tube, transparent: true, opacity: 0.22, depthWrite: false, toneMapped: false }),
+        new THREE.MeshBasicMaterial({ color: tubeColor, transparent: true, opacity: 0.22, depthWrite: false, toneMapped: false }),
       );
       ghost.visible = false;
       data.add(ghost, bright);
@@ -465,7 +500,7 @@ function createScene(
     }
     if (!segs.length) return false;
 
-    head = new THREE.Mesh(new THREE.SphereGeometry(0.085, 18, 18), new THREE.MeshBasicMaterial({ color: pal.head, toneMapped: false }));
+    head = new THREE.Mesh(new THREE.SphereGeometry(0.085, 18, 18), new THREE.MeshBasicMaterial({ color: tubeColor, toneMapped: false }));
     head.visible = false; data.add(head);
 
     return true;
@@ -646,15 +681,33 @@ function createScene(
     },
     setTouchAction(t) { touchAction = t; canvas.style.touchAction = t; },
     /**
+     * v32: change the tube colour to the export colour theme. A no-op when
+     * the theme is unchanged (so the mount pass is free). Otherwise only
+     * the tubes rebuild — the static frame (floor, grid, axes, labels) is
+     * untouched, because the theme does not change the static signature.
+     */
+    setColorTheme(theme: VideoColorTheme) {
+      if (theme === colorTheme) return;
+      colorTheme = theme;
+      if (points.length) { build(); needs = true; }
+    },
+    /**
      * Save the current 3D frame as a PNG. Renders one frame first (via
      * render3DImage, which grabs in the same task), so the
      * preserveDrawingBuffer problem does not apply. The billboard
-     * watermark is shown for the render, then hidden again.
+     * watermark is shown for the render, then hidden again. `labels`
+     * carries the equation name / scientist name / colour theme for the
+     * picture's header and bottom equation (v32).
      */
-    async exportImage(equation: string) {
+    async exportImage(equation: string, labels?: SceneApiLabelInfo) {
       if (watermark) watermark.visible = true;
       try {
-        return await render3DImage(renderer, scene, camera, { equation });
+        return await render3DImage(renderer, scene, camera, {
+          equation,
+          equationName: labels?.equationName ?? null,
+          scientistName: labels?.scientistName ?? null,
+          colorTheme: labels?.colorTheme ?? colorTheme,
+        });
       } finally {
         if (watermark) watermark.visible = false;
       }
@@ -665,12 +718,17 @@ function createScene(
      * watermark. Pauses the live loop so it cannot redraw between the
      * four angle renders.
      */
-    async exportTurntableImage(equation: string) {
+    async exportTurntableImage(equation: string, labels?: SceneApiLabelInfo) {
       pauseLoop();
       try {
         return await render3DTurntableImage(
           (offsetRad) => renderFrameAt(null, theta + offsetRad, true),
-          { equation },
+          {
+            equation,
+            equationName: labels?.equationName ?? null,
+            scientistName: labels?.scientistName ?? null,
+            colorTheme: labels?.colorTheme ?? colorTheme,
+          },
         );
       } finally {
         resumeLoop();

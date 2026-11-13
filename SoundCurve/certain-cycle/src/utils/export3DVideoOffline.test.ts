@@ -81,8 +81,9 @@ test('the ExportModal offers the 360° orbit toggle in the 3D video tab', () => 
 
 test('the 3D scene exposes the export API (picture + per-frame video)', () => {
   const source = read('../components/Studio/Curve3DViewer.tsx');
-  // The API type carries the export methods.
-  assert.match(source, /exportImage\(equation: string\): Promise<\{ blob: Blob; filename: string \}>/, 'SceneApi has no exportImage');
+  // The API type carries the export methods (v32: exportImage takes the
+  // labels — equation name + scientist name + colour theme).
+  assert.match(source, /exportImage\(equation: string, labels\?: SceneApiLabelInfo\): Promise<\{ blob: Blob; filename: string \}>/, 'SceneApi has no exportImage');
   assert.match(source, /renderFrame\(progress: number \| null, opts\?: \{ azimuth\?: number; watermark\?: boolean \}\): HTMLCanvasElement/, 'SceneApi has no renderFrame (v30: azimuth + watermark opts)');
   assert.match(source, /pause\(\): void/, 'SceneApi has no pause');
   assert.match(source, /resume\(\): void/, 'SceneApi has no resume');
@@ -90,8 +91,9 @@ test('the 3D scene exposes the export API (picture + per-frame video)', () => {
   assert.match(source, /onReady\?: \(api: SceneApi \| null\) => void/, 'Curve3DViewer has no onReady prop');
   assert.match(source, /onReadyRef\.current\?\.\(apiRef\.current\)/, 'viewer does not hand the API to onReady');
   assert.match(source, /onReadyRef\.current\?\.\(null\)/, 'viewer does not clear the API on unmount');
-  // exportImage uses the existing render3DImage (one frame + footer + PNG).
-  assert.match(source, /render3DImage\(renderer, scene, camera, \{ equation \}\)/, 'exportImage does not call render3DImage');
+  // exportImage uses the existing render3DImage (one frame + footer + PNG),
+  // passing the labels through (v32).
+  assert.match(source, /render3DImage\(renderer, scene, camera, \{\s*equation,\s*equationName: labels\?\.equationName \?\? null,\s*scientistName: labels\?\.scientistName \?\? null,\s*colorTheme: labels\?\.colorTheme \?\? colorTheme,\s*\}\)/, 'exportImage does not call render3DImage with the labels');
   // renderFrame applies the progress then renders (so the playhead moves).
   assert.match(source, /applyProgress\(p\)/, 'renderFrame does not apply the progress');
   assert.match(source, /renderer\.render\(scene, camera\)/, 'renderFrame does not render the scene');
@@ -112,9 +114,10 @@ test('the ExportModal offers 3D picture and 3D video while a 3D viewer is mounte
   const source = read('../components/ExportModal.tsx');
   // It reads the live 3D API from the store.
   assert.match(source, /const threeDApi = useStudioStore\(\(s\) => s\.threeDApi\)/, 'ExportModal does not read threeDApi');
-  // 3D picture: a handler that calls the scene's exportImage.
+  // 3D picture: a handler that calls the scene's exportImage (v32: with
+  // the labels — equation name + scientist name + colour theme).
   assert.match(source, /const handleExport3DImage = async/, 'ExportModal has no 3D image handler');
-  assert.match(source, /await threeDApi\.exportImage\(s\.equation\)/, '3D image handler does not call exportImage');
+  assert.match(source, /await threeDApi\.exportImage\(s\.equation, \{/, '3D image handler does not call exportImage');
   // 3D video: the video handler routes to the offline 3D render.
   assert.match(source, /export3DVideoOffline\(threeDApi, base/, 'video handler does not call the 3D offline render');
   // Both tabs get a 2D / 3D toggle, only while a 3D viewer exists.
