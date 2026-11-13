@@ -31,8 +31,8 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
     <div class="relative">
       <!-- Hero -->
       <section class="text-center">
-        <span class="mb-[18px] inline-flex rounded-full border border-sc-line/15 px-3.5 py-1.5 font-mono text-[11px] text-sc-text-soft">support</span>
-        <h1 class="mx-auto mb-3.5 font-serif text-[clamp(36px,6.4vw,62px)] font-normal leading-[1.04] text-sc-text">
+        <span class="mb-[18px] inline-flex rounded-full border border-sc-line/15 px-3.5 py-1.5 font-mono text-[11px] text-sc-text-soft" data-i18n="support.badge">support</span>
+        <h1 class="mx-auto mb-3.5 font-serif text-[clamp(36px,6.4vw,62px)] font-normal leading-[1.04] text-sc-text" data-i18n-html="support.titleHtml">
           Help keep the <em>music</em> playing
         </h1>
         <p class="mx-auto max-w-[50ch] text-[clamp(15px,2vw,17px)] leading-[1.65] text-sc-text-soft">{story}</p>
@@ -58,7 +58,7 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
 
       <!-- Pay card -->
       <div id="pay" data-donate-url={donateUrl} class="mx-auto mt-1.5 max-w-[640px] rounded-[22px] border border-sc-line/15 bg-gradient-to-b from-white/[.045] to-white/[.012] p-[22px] shadow-[0_30px_80px_-40px_rgb(var(--sc-accent)/0.25)] max-sm:p-4">
-        <div id="tiers" class="grid grid-cols-3 gap-2.5" role="group" aria-label="Choose a size">
+        <div id="tiers" class="grid grid-cols-3 gap-2.5" role="group" aria-label="Choose a size" data-i18n="support.chooseSize" data-i18n-attr="aria-label">
           {
             SUPPORT.tiers.map((tier) => (
               <button
@@ -78,11 +78,11 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
 
         <div class="my-[18px] flex items-center gap-2.5 text-xs text-sc-text-soft">
           <span class="h-px flex-1 bg-sc-line/15"></span>
-          or choose your own amount
+          <span data-i18n="support.orCustom">or choose your own amount</span>
           <span class="h-px flex-1 bg-sc-line/15"></span>
         </div>
 
-        <div id="chips" class="flex flex-wrap justify-center gap-2" role="group" aria-label="Quick amounts">
+        <div id="chips" class="flex flex-wrap justify-center gap-2" role="group" aria-label="Quick amounts" data-i18n="support.quickAmounts" data-i18n-attr="aria-label">
           {
             SUPPORT.quickAmounts.map((v) => (
               <button type="button" class="chip" data-v={v} aria-pressed="false">
@@ -99,14 +99,17 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
             inputmode="decimal"
             autocomplete="off"
             aria-label="Amount in US dollars"
+            data-i18n="support.amountLabel"
+            data-i18n-attr="aria-label"
             placeholder="Any amount"
+            data-i18n-placeholder="support.amountPlaceholder"
             class="min-w-0 flex-1 border-0 bg-transparent px-2 py-[15px] font-mono text-[22px] text-sc-text outline-0"
           />
         </label>
         <div id="err" class="err min-h-[20px] text-[12.5px]" role="status" aria-live="polite"></div>
 
         <div class="mx-1 mb-3 mt-2.5 flex items-baseline justify-between">
-          <span class="text-[13px] text-sc-text-soft">Your support</span>
+          <span class="text-[13px] text-sc-text-soft" data-i18n="support.yourSupport">Your support</span>
           <b id="total" class="font-serif text-[44px] font-normal leading-none text-sc-text tabular-nums">{formatUSD(defaultAmount)}</b>
         </div>
 
@@ -119,10 +122,10 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
               rel="noopener noreferrer"
               class="cta flex w-full items-center justify-center gap-2.5 rounded-[14px] border-0 bg-sc-accent px-4 py-[17px] text-base font-semibold text-sc-on-accent shadow-[0_12px_36px_-14px_rgb(var(--sc-accent)/0.25)] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sc-accent"
             >
-              Continue to secure payment <span aria-hidden="true">→</span>
+              <span data-i18n="support.payCta">Continue to secure payment</span> <span aria-hidden="true">→</span>
             </a>
           ) : (
-            <p class="rounded-[14px] border border-dashed border-sc-line/15 px-4 py-3.5 text-center text-[13px] leading-relaxed text-sc-text-soft">
+            <p class="rounded-[14px] border border-dashed border-sc-line/15 px-4 py-3.5 text-center text-[13px] leading-relaxed text-sc-text-soft" data-i18n="support.paymentSoon">
               Secure payment opens soon — we&rsquo;re connecting a donation platform that accepts custom amounts and
               international cards. Pick an amount above and it will be ready when you are.
             </p>
@@ -137,66 +140,65 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
               ))}
             </div>
             <p class="mt-2.5 text-center text-[11.5px] leading-[1.55] text-sc-text-soft">
-              🔒 Payment is handled by our payment partner — we never see your card or bank details.
+              🔒 <span data-i18n="support.secureNote">Payment is handled by our payment partner — we never see your card or bank details.</span>
             </p>
           )
         }
       </div>
 
       <!-- Where it goes -->
-      <h2 class="mb-1.5 mt-14 text-center font-serif text-3xl font-normal text-sc-text">Where it goes</h2>
-      <p class="mx-auto mb-[22px] max-w-[52ch] text-center text-sm leading-relaxed text-sc-text-soft">
+      <h2 class="mb-1.5 mt-14 text-center font-serif text-3xl font-normal text-sc-text" data-i18n="support.whereTitle">Where it goes</h2>
+      <p class="mx-auto mb-[22px] max-w-[52ch] text-center text-sm leading-relaxed text-sc-text-soft" data-i18n="support.whereSub">
         No ads, no tracking, no paywall on the core experience. Support goes to three honest things:
       </p>
       <div class="grid grid-cols-3 gap-3 max-md:grid-cols-1">
         <div class="rounded-2xl border border-sc-line/15 bg-sc-surface p-5 transition hover:-translate-y-[3px] hover:border-sc-line/40">
           <div class="mb-3 grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-sc-line/15 bg-sc-sunken text-lg">🌐</div>
-          <b class="mb-1 block text-[14.5px] text-sc-text">The domain</b>
-          <p class="m-0 text-[13px] leading-relaxed text-sc-text-soft">mathsonify.com renews every year.</p>
+          <b class="mb-1 block text-[14.5px] text-sc-text" data-i18n="support.domain">The domain</b>
+          <p class="m-0 text-[13px] leading-relaxed text-sc-text-soft" data-i18n="support.domainDesc">mathsonify.com renews every year.</p>
         </div>
         <div class="rounded-2xl border border-sc-line/15 bg-sc-surface p-5 transition hover:-translate-y-[3px] hover:border-sc-line/40">
           <div class="mb-3 grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-sc-line/15 bg-sc-sunken text-lg">🖥</div>
-          <b class="mb-1 block text-[14.5px] text-sc-text">Hosting and email</b>
-          <p class="m-0 text-[13px] leading-relaxed text-sc-text-soft">The servers, and the service that tells you when SoundLab and Music Lab open.</p>
+          <b class="mb-1 block text-[14.5px] text-sc-text" data-i18n="support.hosting">Hosting and email</b>
+          <p class="m-0 text-[13px] leading-relaxed text-sc-text-soft" data-i18n="support.hostingDesc">The servers, and the service that tells you when SoundLab and Music Lab open.</p>
         </div>
         <div class="rounded-2xl border border-sc-line/15 bg-sc-surface p-5 transition hover:-translate-y-[3px] hover:border-sc-line/40">
           <div class="mb-3 grid h-[38px] w-[38px] place-items-center rounded-[10px] border border-sc-line/15 bg-sc-sunken text-lg">🛠</div>
-          <b class="mb-1 block text-[14.5px] text-sc-text">Time to build</b>
-          <p class="m-0 text-[13px] leading-relaxed text-sc-text-soft">New equations, new instruments and fixes — shaped by what people ask for.</p>
+          <b class="mb-1 block text-[14.5px] text-sc-text" data-i18n="support.time">Time to build</b>
+          <p class="m-0 text-[13px] leading-relaxed text-sc-text-soft" data-i18n="support.timeDesc">New equations, new instruments and fixes — shaped by what people ask for.</p>
         </div>
       </div>
-      <div class="mx-auto mt-4 max-w-[640px] rounded-[14px] border border-dashed border-sc-line/15 px-4 py-3.5 text-center text-[13px] leading-relaxed text-sc-text-soft">
+      <div class="mx-auto mt-4 max-w-[640px] rounded-[14px] border border-dashed border-sc-line/15 px-4 py-3.5 text-center text-[13px] leading-relaxed text-sc-text-soft" data-i18n-html="support.promiseHtml">
         <b class="text-sc-text">Support does not unlock anything.</b> Donations are voluntary gifts, not purchases. Everything you can use today stays free.
       </div>
 
       <!-- Free ways to help -->
-      <h2 class="mb-1.5 mt-14 text-center font-serif text-3xl font-normal text-sc-text">Can&rsquo;t donate? These help just as much</h2>
-      <p class="mx-auto mb-[22px] max-w-[52ch] text-center text-sm leading-relaxed text-sc-text-soft">Honestly, they might help more.</p>
+      <h2 class="mb-1.5 mt-14 text-center font-serif text-3xl font-normal text-sc-text" data-i18n="support.freeTitle">Can&rsquo;t donate? These help just as much</h2>
+      <p class="mx-auto mb-[22px] max-w-[52ch] text-center text-sm leading-relaxed text-sc-text-soft" data-i18n="support.freeSub">Honestly, they might help more.</p>
       <div class="grid grid-cols-3 gap-3 max-md:grid-cols-1">
         <button
           id="share"
           type="button"
           class="flex w-full items-center justify-center gap-2 rounded-xl border border-sc-line/15 bg-sc-surface px-[18px] py-3.5 text-[14.5px] font-semibold text-sc-text transition hover:-translate-y-0.5 hover:border-sc-line/40 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sc-accent"
         >
-          ↗ Share MathSonify
+          ↗ <span data-i18n="support.share">Share MathSonify</span>
         </button>
         <a
           href="/contact"
           class="flex w-full items-center justify-center gap-2 rounded-xl border border-sc-line/15 bg-sc-surface px-[18px] py-3.5 text-[14.5px] font-semibold text-sc-text transition hover:-translate-y-0.5 hover:border-sc-line/40 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sc-accent"
         >
-          ∑ Suggest an equation
+          ∑ <span data-i18n="support.suggest">Suggest an equation</span>
         </a>
         <a
           href="/guess"
           class="flex w-full items-center justify-center gap-2 rounded-xl border border-sc-line/15 bg-sc-surface px-[18px] py-3.5 text-[14.5px] font-semibold text-sc-text transition hover:-translate-y-0.5 hover:border-sc-line/40 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sc-accent"
         >
-          🎧 Challenge a friend in Guess
+          🎧 <span data-i18n="support.challenge">Challenge a friend in Guess</span>
         </a>
       </div>
 
       <p class="mx-auto mt-11 max-w-[640px] text-center text-xs leading-[1.7] text-sc-text-soft">
-        Support is voluntary and does not unlock features. Payment is processed by a third party whose privacy policy
-        applies there. Questions? <a href={`mailto:${CONTACT_EMAIL}`} class="text-sc-text underline underline-offset-2">{CONTACT_EMAIL}</a> · <a href="/privacy" class="text-sc-text underline underline-offset-2">Privacy</a> · <a href="/terms" class="text-sc-text underline underline-offset-2">Terms</a>
+        <span data-i18n="support.smallPrint">Support is voluntary and does not unlock features. Payment is processed by a third party whose privacy policy applies there.</span> Questions? <a href={`mailto:${CONTACT_EMAIL}`} class="text-sc-text underline underline-offset-2">{CONTACT_EMAIL}</a> · <a href="/privacy" class="text-sc-text underline underline-offset-2">Privacy</a> · <a href="/terms" class="text-sc-text underline underline-offset-2">Terms</a>
       </p>
     </div>
   </main>
@@ -214,7 +216,7 @@ const initialDonateUrl = donateUrl ? buildDonateUrl(donateUrl, defaultAmount) : 
           rel="noopener noreferrer"
           class="cta flex w-full items-center justify-center gap-2.5 rounded-[14px] border-0 bg-sc-accent px-4 py-3.5 text-base font-semibold text-sc-on-accent shadow-[0_12px_36px_-14px_rgb(var(--sc-accent)/0.25)] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sc-accent"
         >
-          Continue to payment →
+          <span data-i18n="support.payCtaShort">Continue to payment</span> →
         </a>
       </div>
     )

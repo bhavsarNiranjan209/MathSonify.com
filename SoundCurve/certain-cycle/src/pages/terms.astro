@@ -9,16 +9,16 @@ import Footer from '../components/Footer.astro';
 
   <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
     <div class="text-center max-w-2xl mx-auto mb-16">
-      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4" data-i18n="terms.badge">
         terms of service
       </div>
-      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-4">
+      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-4" data-i18n="terms.title">
         Terms of Use
       </h1>
-      <p class="text-sm text-sc-text-soft leading-relaxed max-w-lg mx-auto">
+      <p class="text-sm text-sc-text-soft leading-relaxed max-w-lg mx-auto" data-i18n="terms.intro">
         MathSonify is a free creative tool. These terms exist to set clear expectations — not to restrict your creativity.
       </p>
-      <div class="mt-4 text-xs text-sc-text-faint font-mono">
+      <div class="mt-4 text-xs text-sc-text-faint font-mono" data-i18n="terms.effective">
         Effective date: September 14, 2026 &nbsp;·&nbsp; Version 1.0
       </div>
     </div>
@@ -29,9 +29,9 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">01</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">Acceptance of terms</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.s1Title">Acceptance of terms</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s1Desc">
           By accessing or using MathSonify (mathsonify.com), you agree to be bound by these Terms of Use. If you do not agree to these terms, please do not use the service. Your continued use of MathSonify after any modifications to these terms constitutes your acceptance of the revised terms.
         </p>
       </div>
@@ -45,9 +45,9 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">5+</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">Age guidance</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.sAgeTitle">Age guidance</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n-html="terms.sAgeDesc">
           <strong class="text-sc-text">MathSonify is safe and appropriate for ages 5 and up.</strong> This is practical guidance rather than something a visitor has to agree to: the site collects no personal data at all — no accounts, no analytics, nothing you type ever leaves your device — so there is nothing here a young visitor would need to sign up for or promise on their own behalf. It is the same single standard stated in our Privacy Policy.
         </p>
       </div>
@@ -56,12 +56,12 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">02</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">What MathSonify is</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.s2Title">What MathSonify is</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s2Desc1">
           MathSonify is a browser-based creative tool that converts mathematical expressions into audio in real time. It uses the Web Audio API to synthesize sound from equations, renders visualizations on an HTML Canvas element, and runs entirely on your local device — no server-side processing is involved.
         </p>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s2Desc2">
           The service is provided free of charge, with no accounts, subscriptions, or payment required. All equations, audio, and visualizations are generated locally and never leave your browser.
         </p>
       </div>
@@ -70,27 +70,27 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">03</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">License to use</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.s3Title">License to use</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s3Intro">
           MathSonify grants you a free, non-exclusive, revocable, worldwide license to access and use the service for personal, educational, creative, or research purposes. This license is subject to the following conditions:
         </p>
         <ul class="space-y-3 text-sm text-sc-text-soft">
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>You may use MathSonify for any lawful purpose, including commercial creative work (e.g., composing music using MathSonify as a tool).</span>
+            <span data-i18n="terms.s3Item1">You may use MathSonify for any lawful purpose, including commercial creative work (e.g., composing music using MathSonify as a tool).</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>You may not copy, modify, distribute, sell, lease, or sublicense any part of the service, its source code, or its design.</span>
+            <span data-i18n="terms.s3Item2">You may not copy, modify, distribute, sell, lease, or sublicense any part of the service, its source code, or its design.</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>You may not reverse-engineer, decompile, or attempt to extract the source code of MathSonify, except to the extent permitted by applicable law.</span>
+            <span data-i18n="terms.s3Item3">You may not reverse-engineer, decompile, or attempt to extract the source code of MathSonify, except to the extent permitted by applicable law.</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>You may not use automated systems (bots, scrapers) to access or interact with the service in ways that impose an unreasonable load on the infrastructure.</span>
+            <span data-i18n="terms.s3Item4">You may not use automated systems (bots, scrapers) to access or interact with the service in ways that impose an unreasonable load on the infrastructure.</span>
           </li>
         </ul>
       </div>
@@ -99,16 +99,16 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">04</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">Your content</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.s4Title">Your content</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n-html="terms.s4Desc1">
           <strong class="text-sc-text">You own everything you create.</strong> Any equations you enter, audio you generate, and visualizations you produce belong to you. MathSonify processes all content locally on your device — we never see, store, or have access to your work.
         </p>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s4Desc2">
           When you export audio as a WAV file, that file is generated entirely by your browser and saved directly to your device. MathSonify does not host, backup, or manage your exported files.
         </p>
         <div class="p-4 rounded-lg bg-sc-accent/8 border border-sc-accent/25">
-          <p class="text-xs text-sc-text-soft leading-relaxed">
+          <p class="text-xs text-sc-text-soft leading-relaxed" data-i18n-html="terms.s4Note">
             <strong class="text-sc-accent">Important:</strong> MathSonify cannot recover lost work. Since all data stays in your browser, clearing your browser data or using a different device will not carry over your session. We recommend exporting any audio you wish to keep.
           </p>
         </div>
@@ -118,27 +118,27 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">05</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">Audio safety</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.s5Title">Audio safety</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s5Intro">
           MathSonify generates audio in real time from mathematical expressions. While we apply a master dynamics compressor and clipping protection, certain equations may produce:
         </p>
         <ul class="space-y-3 text-sm text-sc-text-soft">
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">⚠</span>
-            <span><strong class="text-sc-text">Sudden loud sounds</strong> — equations with rapid amplitude changes (e.g., exponential growth) can spike in volume.</span>
+            <span data-i18n-html="terms.s5Item1"><strong class="text-sc-text">Sudden loud sounds</strong> — equations with rapid amplitude changes (e.g., exponential growth) can spike in volume.</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">⚠</span>
-            <span><strong class="text-sc-text">High frequencies</strong> — fast-oscillating equations may produce tones near or above the upper limit of human hearing (20 kHz).</span>
+            <span data-i18n-html="terms.s5Item2"><strong class="text-sc-text">High frequencies</strong> — fast-oscillating equations may produce tones near or above the upper limit of human hearing (20 kHz).</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">⚠</span>
-            <span><strong class="text-sc-text">Rapid timbral shifts</strong> — complex expressions may create dissonant or jarring audio transitions.</span>
+            <span data-i18n-html="terms.s5Item3"><strong class="text-sc-text">Rapid timbral shifts</strong> — complex expressions may create dissonant or jarring audio transitions.</span>
           </li>
         </ul>
         <div class="p-4 rounded-lg bg-sc-accent/8 border border-sc-accent/25">
-          <p class="text-xs text-sc-text-soft leading-relaxed">
+          <p class="text-xs text-sc-text-soft leading-relaxed" data-i18n-html="terms.s5Note">
             <strong class="text-sc-accent">Recommendation:</strong> Start at a low volume setting (the slider defaults to 30%). Use quality headphones or speakers. If you have a history of sound-triggered conditions (photosensitive epilepsy, misophonia, hyperacusis), exercise additional caution.
           </p>
         </div>
@@ -148,27 +148,27 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">06</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">Prohibited uses</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.s6Title">Prohibited uses</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s6Intro">
           You agree not to use MathSonify for any purpose that is unlawful or prohibited by these terms. Specifically, you may not:
         </p>
         <ul class="space-y-3 text-sm text-sc-text-soft">
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">✗</span>
-            <span>Use the service to generate or distribute content that is harmful, abusive, hateful, or violates the rights of others.</span>
+            <span data-i18n="terms.s6Item1">Use the service to generate or distribute content that is harmful, abusive, hateful, or violates the rights of others.</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">✗</span>
-            <span>Attempt to disrupt, overload, or gain unauthorized access to the service or its associated infrastructure.</span>
+            <span data-i18n="terms.s6Item2">Attempt to disrupt, overload, or gain unauthorized access to the service or its associated infrastructure.</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">✗</span>
-            <span>Use the service to deliberately produce audio intended to cause harm, discomfort, or distress to others.</span>
+            <span data-i18n="terms.s6Item3">Use the service to deliberately produce audio intended to cause harm, discomfort, or distress to others.</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">✗</span>
-            <span>Imply any affiliation with, endorsement by, or official relationship to MathSonify when it does not exist.</span>
+            <span data-i18n="terms.s6Item4">Imply any affiliation with, endorsement by, or official relationship to MathSonify when it does not exist.</span>
           </li>
         </ul>
       </div>
@@ -177,12 +177,12 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">07</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">Intellectual property</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.s7Title">Intellectual property</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s7Desc1">
           MathSonify, including its design, code, branding, documentation, and all associated creative materials, is protected by copyright and applicable intellectual property laws. The MathSonify name, logo, and wordmark are trademarks of MathSonify.
         </p>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s7Desc2">
           The preset equation library references publicly known mathematical expressions named after their original authors. These are factual attributions and do not imply any endorsement or affiliation with the named mathematicians or their estates.
         </p>
       </div>
@@ -191,27 +191,27 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">08</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">Disclaimer of warranties</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.s8Title">Disclaimer of warranties</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n-html="terms.s8Intro">
           MathSonify is provided <strong class="text-sc-text">"as is"</strong> and <strong class="text-sc-text">"as available"</strong> without warranties of any kind, either express or implied. We do not warrant that:
         </p>
         <ul class="space-y-3 text-sm text-sc-text-soft">
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>The service will be uninterrupted, timely, secure, or error-free.</span>
+            <span data-i18n="terms.s8Item1">The service will be uninterrupted, timely, secure, or error-free.</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>The mathematical-to-audio translation will be accurate, complete, or meet any particular standard or expectation.</span>
+            <span data-i18n="terms.s8Item2">The mathematical-to-audio translation will be accurate, complete, or meet any particular standard or expectation.</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>The service will be compatible with all browsers, devices, or operating systems.</span>
+            <span data-i18n="terms.s8Item3">The service will be compatible with all browsers, devices, or operating systems.</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>Any content generated through the service will be suitable for any specific purpose.</span>
+            <span data-i18n="terms.s8Item4">Any content generated through the service will be suitable for any specific purpose.</span>
           </li>
         </ul>
       </div>
@@ -220,26 +220,26 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">09</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">Limitation of liability</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.s9Title">Limitation of liability</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s9Intro">
           To the fullest extent permitted by applicable law, MathSonify, its creators, contributors, and affiliates shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or related to your use of the service. This includes, but is not limited to:
         </p>
         <ul class="space-y-3 text-sm text-sc-text-soft">
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>Loss of data, revenue, or profits (though MathSonify processes everything locally, so there is no data on our servers to lose).</span>
+            <span data-i18n="terms.s9Item1">Loss of data, revenue, or profits (though MathSonify processes everything locally, so there is no data on our servers to lose).</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>Hearing discomfort or damage resulting from audio generated by mathematical expressions.</span>
+            <span data-i18n="terms.s9Item2">Hearing discomfort or damage resulting from audio generated by mathematical expressions.</span>
           </li>
           <li class="flex items-start gap-3">
             <span class="text-sc-accent mt-0.5">→</span>
-            <span>Service interruptions, bugs, or errors in the mathematical rendering or audio synthesis pipeline.</span>
+            <span data-i18n="terms.s9Item3">Service interruptions, bugs, or errors in the mathematical rendering or audio synthesis pipeline.</span>
           </li>
         </ul>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s9Outro">
           Our total aggregate liability for any claim arising from use of the service shall not exceed the amount you paid for the service — which is nothing, since MathSonify is free.
         </p>
       </div>
@@ -248,12 +248,12 @@ import Footer from '../components/Footer.astro';
       <div class="panel p-8 sm:p-10 space-y-5">
         <div class="flex items-center gap-3 mb-2">
           <span class="w-8 h-8 rounded-lg bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center font-mono text-xs text-sc-accent font-bold">10</span>
-          <h2 class="font-serif text-xl font-semibold text-sc-text">Modifications and termination</h2>
+          <h2 class="font-serif text-xl font-semibold text-sc-text" data-i18n="terms.s10Title">Modifications and termination</h2>
         </div>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s10Desc1">
           We reserve the right to modify, suspend, or discontinue MathSonify (or any part of it) at any time, with or without notice. We may also update these terms from time to time. Material changes will be reflected in the "Effective date" at the top of this page.
         </p>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="terms.s10Desc2">
           Since MathSonify requires no account, there is nothing to "terminate." You are free to stop using the service at any time. If we discontinue the service, any equations you have entered and audio you have exported remain yours — they are stored on your device, not ours.
         </p>
       </div>
@@ -262,14 +262,14 @@ import Footer from '../components/Footer.astro';
 
     <!-- Bottom note -->
     <div class="mt-12 p-6 rounded-xl bg-sc-surface border border-sc-line/15 text-center space-y-2">
-      <p class="text-xs text-sc-text-faint leading-relaxed max-w-lg mx-auto">
+      <p class="text-xs text-sc-text-faint leading-relaxed max-w-lg mx-auto" data-i18n-html="terms.bottomNote">
         These terms are provided for informational purposes and do not constitute legal advice. For questions about these terms, contact us at <a href="mailto:legal@mathsonify.com" class="text-sc-accent hover:underline">legal@mathsonify.com</a>.
       </p>
     </div>
 
     <!-- CTA -->
     <div class="mt-12 text-center">
-      <a href="/studio" class="btn-primary inline-flex items-center px-8 py-3.5 text-base">
+      <a href="/studio" class="btn-primary inline-flex items-center px-8 py-3.5 text-base" data-i18n="terms.cta">
         Open Studio
       </a>
     </div>

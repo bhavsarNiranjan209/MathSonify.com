@@ -10,13 +10,13 @@ import Footer from '../components/Footer.astro';
   <main class="min-h-screen pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
     <!-- Hero -->
     <div class="text-center max-w-3xl mx-auto mb-20">
-      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 border border-sc-accent/40 bg-sc-accent/15 rounded-full font-mono text-xs text-sc-accent mb-4" data-i18n="contact.badge">
         ♪ resonance channel open
       </div>
-      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-5">
+      <h1 class="font-serif text-4xl sm:text-5xl font-semibold text-sc-text tracking-tight mb-5" data-i18n-html="contact.title">
         Let's make some <span class="text-sc-accent">noise</span>
       </h1>
-      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed max-w-2xl mx-auto">
+      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed max-w-2xl mx-auto" data-i18n="contact.intro">
         Whether you're a mathematician who hears equations, a musician who sees frequencies, or a teacher who wants to bring math to life — we're all ears. Every great signal starts with a transmission.
       </p>
     </div>
@@ -49,8 +49,8 @@ import Footer from '../components/Footer.astro';
         <div class="w-12 h-12 rounded-xl bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center text-xl">
           ✉
         </div>
-        <h3 class="font-serif text-lg font-semibold text-sc-text">General Inquiries</h3>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <h3 class="font-serif text-lg font-semibold text-sc-text" data-i18n="contact.generalTitle">General Inquiries</h3>
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="contact.generalDesc">
           Questions about how MathSonify works, feature ideas, or just want to say hello? Drop us a line — we read every message like we read every equation.
         </p>
         <a
@@ -68,8 +68,8 @@ import Footer from '../components/Footer.astro';
         <div class="w-12 h-12 rounded-xl bg-sc-accent/15 border border-sc-accent/40 flex items-center justify-center text-xl">
           🔧
         </div>
-        <h3 class="font-serif text-lg font-semibold text-sc-text">Support</h3>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <h3 class="font-serif text-lg font-semibold text-sc-text" data-i18n="contact.supportTitle">Support</h3>
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="contact.supportDesc">
           Something sounds off? A graph misbehaving? An equation producing silence when it should scream? Need help using the Studio? Reach out and we'll help you get back in tune.
         </p>
         <a
@@ -90,10 +90,10 @@ import Footer from '../components/Footer.astro';
         </div>
       </div>
       <div class="relative z-10 space-y-5">
-        <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-sc-text">
+        <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-sc-text" data-i18n="contact.signalTitle">
           The frequency of good ideas
         </h2>
-        <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed max-w-2xl mx-auto">
+        <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed max-w-2xl mx-auto" data-i18n-html="contact.signalDesc">
           MathSonify started as a simple question: <em class="text-sc-text font-medium">"What does an equation actually sound like?"</em> That curiosity became a platform used by students, musicians, educators, and mathematicians worldwide. Your idea might be the next waveform we build.
         </p>
         <div class="flex items-center justify-center gap-3 pt-2">
@@ -109,14 +109,14 @@ import Footer from '../components/Footer.astro';
     <!-- What to expect -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
       <div class="space-y-4">
-        <h3 class="font-serif text-lg font-semibold text-sc-text">Response timing</h3>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <h3 class="font-serif text-lg font-semibold text-sc-text" data-i18n="contact.timingTitle">Response timing</h3>
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="contact.timingDesc">
           MathSonify is maintained by a small, dedicated team. We aim to respond to all inquiries within 2–3 business days. For urgent issues — like a broken sound engine or a critical build failure — include "URGENT" in your subject line and we'll prioritize it.
         </p>
       </div>
       <div class="space-y-4">
-        <h3 class="font-serif text-lg font-semibold text-sc-text">Ideas and feedback</h3>
-        <p class="text-sm text-sc-text-soft leading-relaxed">
+        <h3 class="font-serif text-lg font-semibold text-sc-text" data-i18n="contact.ideasTitle">Ideas and feedback</h3>
+        <p class="text-sm text-sc-text-soft leading-relaxed" data-i18n="contact.ideasDesc">
           MathSonify is shaped by the people who use it. Feature ideas, bug reports, and equation suggestions for our library are all welcome — if you can describe it, we want to hear it. Tell us what would make the Studio better for your classroom, concert, or kitchen-table experiment, and we'll add it to the list.
         </p>
       </div>
@@ -124,7 +124,7 @@ import Footer from '../components/Footer.astro';
 
     <!-- CTA -->
     <div class="mt-16 text-center">
-      <a href="/studio" class="btn-primary inline-flex items-center px-8 py-3.5 text-base">
+      <a href="/studio" class="btn-primary inline-flex items-center px-8 py-3.5 text-base" data-i18n="contact.cta">
         Open Studio
       </a>
     </div>

@@ -41,7 +41,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <!-- Status chip -->
       <div class="status-chip hidden sm:inline-flex items-center gap-2 px-3 py-1 border border-sc-line/20 bg-sc-surface rounded-full font-mono text-xs text-sc-text-soft mb-8" aria-hidden="true">
         <span class="w-1.5 h-1.5 rounded-full bg-sc-accent/60"></span>
-        status 404 · undefined
+        <span data-i18n="error404.status">status 404 · undefined</span>
       </div>
 
       <!-- Numerals + Plot -->
@@ -117,26 +117,26 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       </div>
 
       <!-- Equation -->
-      <div class="code-mat px-5 py-3 mb-8 text-center" role="note" aria-label="Equation">
+      <div class="code-mat px-5 py-3 mb-8 text-center" role="note" aria-label="Equation" data-i18n="error404.equationAria" data-i18n-attr="aria-label">
         <p class="font-mono text-sm sm:text-base text-sc-text">y = <span style="opacity:0.6;">1</span> / (x − 404)</p>
-        <p class="font-mono text-xs mt-1.5 text-sc-text-faint">undefined at x = 404</p>
+        <p class="font-mono text-xs mt-1.5 text-sc-text-faint" data-i18n="error404.undefinedAt">undefined at x = 404</p>
       </div>
 
       <!-- Headline -->
-      <h1 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-sc-text tracking-tight text-center mb-4">
+      <h1 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-semibold text-sc-text tracking-tight text-center mb-4" data-i18n="error404.title">
         This point doesn't exist.
       </h1>
 
       <!-- Subtext -->
-      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed text-center max-w-md mb-10">
+      <p class="text-sm sm:text-base text-sc-text-soft leading-relaxed text-center max-w-md mb-10" data-i18n="error404.sub">
         The page isn't on the curve — everything else still is.
       </p>
 
       <!-- Actions -->
       <div class="flex flex-col sm:flex-row items-center gap-3 mb-10">
-        <a href="/" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-primary text-center">Back to MathSonify</a>
-        <a href="/studio" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-ghost text-center">Open Studio</a>
-        <a href="/equations" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-ghost text-center">Explore equations</a>
+        <a href="/" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-primary text-center" data-i18n="error404.back">Back to MathSonify</a>
+        <a href="/studio" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-ghost text-center" data-i18n="error404.studio">Open Studio</a>
+        <a href="/equations" class="w-full sm:w-auto px-8 py-3.5 text-sm btn-ghost text-center" data-i18n="error404.equations">Explore equations</a>
       </div>
 
       <!-- Curve controls — replay the draw, hear it drawn, hear the break -->
@@ -146,25 +146,31 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           class="inline-flex items-center gap-2 px-5 py-2.5 border border-sc-line/20 bg-sc-surface rounded-full font-mono text-xs text-sc-text-soft transition hover:border-sc-accent/40 hover:text-sc-text focus:outline-none focus-visible:ring-2 focus-visible:ring-sc-accent/50"
           type="button"
           aria-label="Replay the curve drawing"
+          data-i18n="error404.replayAria"
+          data-i18n-attr="aria-label"
         >
-          <span>↻ replay the curve</span>
+          <span data-i18n="error404.replay">↻ replay the curve</span>
         </button>
         <button
           id="sonify-btn"
           class="inline-flex items-center gap-2 px-5 py-2.5 border border-sc-line/20 bg-sc-surface rounded-full font-mono text-xs text-sc-text-soft transition hover:border-sc-accent/40 hover:text-sc-text focus:outline-none focus-visible:ring-2 focus-visible:ring-sc-accent/50"
           type="button"
           aria-label="Draw the curve again with sound following it"
+          data-i18n="error404.sonifyAria"
+          data-i18n-attr="aria-label"
         >
-          <span id="sonify-label">♪ draw it with sound</span>
+          <span id="sonify-label" data-i18n="error404.sonify">♪ draw it with sound</span>
         </button>
         <button
           id="tap-btn"
           class="items-center gap-2 px-5 py-2.5 border border-sc-line/20 bg-sc-surface rounded-full font-mono text-xs text-sc-text-soft transition hover:border-sc-accent/40 hover:text-sc-text focus:outline-none focus-visible:ring-2 focus-visible:ring-sc-accent/50"
           type="button"
           aria-label="Tap the break — hear the curve fail"
+          data-i18n="error404.tapAria"
+          data-i18n-attr="aria-label"
           style="display:none;opacity:0;"
         >
-          <span id="tap-label">tap the break — hear it</span>
+          <span id="tap-label" data-i18n="error404.tap">tap the break — hear it</span>
         </button>
       </div>
     </div>
@@ -172,7 +178,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   <!-- Footer fallback -->
   <div class="relative z-10 text-center pb-8">
-    <p class="text-xs text-sc-text-faint font-mono">
+    <p class="text-xs text-sc-text-faint font-mono" data-i18n-html="error404.footer">
       No solution here — try the <a href="/equations" class="text-sc-accent underline underline-offset-2 hover:no-underline transition-colors">equation library</a> instead.
     </p>
   </div>
@@ -800,5 +806,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapBtn.click(); }
       });
     })();
+  </script>
+
+  <!--
+    i18n bootstrap: this page has no Navigation, so the translation engine
+    is not loaded by default. Bundled module script — if it fails, the page
+    still renders in English and the inline script above keeps working.
+  -->
+  <script>
+    import { getLang, applyStaticTranslations } from '../i18n/index';
+    applyStaticTranslations(getLang());
   </script>
 </BaseLayout>

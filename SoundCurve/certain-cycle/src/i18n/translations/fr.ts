@@ -212,5 +212,532 @@ const fr = {
   'eqref.polyDesc': 'Courbes présentant accélération, points d\'inflexion et croissance asymptotique.',
   'eqref.expTitle': 'Systèmes exponentiels, gaussiens et amortis',
   'eqref.expDesc': 'Modèles physiques de dissipation d\'énergie, probabilité et résonance du monde réel.',
+
+  // Navigation
+  'nav.soundlab': 'SoundLab',
+  'nav.musicLab': 'Music Lab',
+  'nav.draw': 'Dessiner',
+  'nav.guess': 'Guess',
+  'nav.support': 'Soutenir',
+
+  // Studio
+  'studio.equationOfTheDay': 'Équation du jour',
+  'studio.undo': 'Annuler',
+  'studio.redo': 'Rétablir',
+  'studio.cannotUndo': 'Aucune annulation disponible',
+  'studio.cannotRedo': 'Aucun rétablissement disponible',
+  'studio.pasteEquation': 'Coller une équation',
+  'studio.pasteHint': 'Collez une équation tirée d’un livre, d’un site web ou de LaTeX — nous la nettoyons et la traçons.',
+  'studio.pasteParamsNote':
+    'Les paramètres de votre équation (comme a ou k) sont fixés à 1 lors de l’application — modifiez le nombre dans l’équation pour les changer.',
+  'studio.use': 'Utiliser',
+  'studio.clear': 'Effacer',
+
+  // Guess — the listening game
+  'guess.round': 'Manche',
+  'guess.score': 'Score',
+  'guess.streak': 'Série',
+  'guess.listenTitle': 'Écoutez la courbe.',
+  'guess.listenHint': 'L’une de ces quatre équations a été jouée. Choisissez celle que vous avez entendue.',
+  'guess.wasIt': 'Voici ce que cela donnait.',
+  'guess.revealHint': 'La courbe est maintenant tracée et les options sont verrouillées.',
+  'guess.play': 'Écouter l’équation',
+  'guess.playing': 'Lecture en cours…',
+  'guess.played': 'Écouté',
+  'guess.correct': 'correcte',
+  'guess.yourAnswer': 'votre réponse',
+  'guess.feedbackCorrect': 'C’est exactement ce que vous avez entendu.',
+  'guess.feedbackWrong': 'Pas cette fois — c’est celle-ci que vous avez entendue.',
+  'guess.next': 'Manche suivante',
+  'guess.seeResults': 'Voir les résultats',
+  'guess.finalLabel': 'Score final',
+  'guess.finalPerfect': 'Un score parfait. Vous écoutez les mathématiques.',
+  'guess.finalGood': 'Bien entendu. Les courbes deviennent familières.',
+  'guess.finalKeepGoing': 'Un bon premier essai. Rejouez et commencez à reconnaître les familles.',
+  'guess.progressLabel': 'Progression de la manche',
+  'guess.stop': 'Arrêter',
+  'guess.fb.correct1': 'Exactement. C’est le son de cette courbe.',
+  'guess.fb.correct2': 'Vous l’avez saisie — la forme était bien là, dans votre oreille.',
+  'guess.fb.correct3': 'Bel appel. Cette famille devient familière.',
+  'guess.fb.correct4': 'Oui. Vous avez entendu la structure, pas seulement les notes.',
+  'guess.fb.correct5': 'En plein dans le mille. C’était la vôtre.',
+  'guess.fb.near1': 'Si proche — c’était une courbe sœur. Presque le même son.',
+  'guess.fb.near2': 'Presque. Ces deux-là vivent dans la même famille, la différence est donc subtile.',
+  'guess.fb.near3': 'Le bon quartier, la mauvaise porte. Écoutez en quoi les deux diffèrent.',
+  'guess.fb.near4': 'Presque. Vous étiez dans la bonne famille — c’est le détail qui a fait la différence.',
+  'guess.fb.near5': 'Si proche que cela vaut la peine de réécouter. Comparez les deux courbes ci-dessous.',
+  'guess.fb.miss1': 'Pas cette fois. La courbe est révélée — voyez où votre réponse a divergé.',
+  'guess.fb.miss2': 'Celle-là vous a échappé. Regardez sa forme maintenant.',
+  'guess.fb.miss3': 'Un vrai raté. Cette famille sonne très différemment de votre réponse.',
+  'guess.fb.miss4': 'Pas celle-là. Vous voyez maintenant pourquoi elles semblaient sans rapport.',
+  'guess.fb.miss5': 'Raté. La courbe révélée montre la famille que vous cherchiez.',
+  'guess.grade.legend': 'Légende. Dix sur dix — vous entendez les mathématiques.',
+  'guess.grade.great': 'Belle partie. Les familles deviennent une seconde nature.',
+  'guess.grade.learning': 'Bon progrès. Les manches presque réussies sont là où se fait l’apprentissage.',
+  'guess.grade.beginning': 'Un bon début. Rejouez et laissez les familles se séparer dans votre oreille.',
+  'guess.playAgain': 'Rejouer',
+  'guess.preGame.tag': 'Jeu normal',
+  'guess.preGame.title': 'Choisissez une difficulté',
+  'guess.preGame.subtitle': 'Choisissez un niveau, ou jouez avec la bibliothèque complète de 30 équations.',
+  'guess.difficulty.tag': 'Difficulté',
+  'guess.difficulty.subtitle':
+    'Fondamentaux faciles, interférences et percussions en moyen, ou balayages, décroissances et formes fenêtrées en difficile.',
+  'guess.difficulty.all': 'Les 30',
+
+  // Daily challenge card — sits beside normal play on /guess
+  'guess.daily.tag': 'Défi quotidien',
+  'guess.daily.title': 'Défi quotidien',
+  'guess.daily.subtitle': 'Un jeu mondial par jour, à l’heure de la côte Est des États-Unis. Les mêmes questions pour tout le monde.',
+  'guess.daily.playToday': 'Jouer aujourd’hui',
+  'guess.daily.playedToday': 'Joué aujourd’hui',
+  'guess.daily.streak': 'Série',
+  'guess.daily.nextIn': 'Prochain défi dans',
+  'guess.daily.finishTag': 'Résultat du jour',
+  'guess.daily.finishDate': 'Quotidien ·',
+  'guess.daily.finishStripLabel': 'Bande de réponses',
+  'guess.daily.share': 'Partager le résultat',
+  'guess.daily.copied': 'Copié',
+
+  // End-game tiers. Grade and message per band, ported from the reference. The low band is deliberately encouraging — it must never read as punishment.
+  'guess.tier.perfect.grade': 'Oreille parfaite ?! 🏆',
+  'guess.tier.perfect.msg': 'Toutes, du premier coup.',
+  'guess.tier.mid.grade': 'Bonne oreille. 🎧',
+  'guess.tier.mid.msg': 'Vous avez attrapé les évidentes — les paires proches demandent de la pratique.',
+  'guess.tier.low.grade': 'Continuez à vous entraîner.',
+  'guess.tier.low.msg': 'Les paires difficiles sont difficiles exprès — réessayez, votre oreille s’adapte vite.',
+
+  // AudioControls
+  'audio.support': 'Soutenir',
+  'audio.supportTooltip': 'Soutenez MathSonify — que la musique continue',
+
+  // SoundLab workspace
+  'soundlab.skipToPlayer': 'Aller à la composition sélectionnée',
+  'soundlab.eyebrow': 'Écoutez ce que les maths peuvent devenir',
+  'soundlab.subtitle': 'Quinze systèmes originaux d’équations, chacun façonné en une composition à écouter.',
+  'soundlab.compositions': 'Compositions',
+  'soundlab.earlyAccess': 'Accès anticipé',
+  'soundlab.soundlabLabel': 'SoundLab',
+  'soundlab.previewLabel': 'Aperçu',
+  'soundlab.earlyAccessLimited': 'Accès anticipé ·',
+  'soundlab.compositionsAvailableToday': 'compositions disponibles aujourd’hui.',
+  'soundlab.previewNotice': 'SoundLab est en aperçu. L’accès à la lecture ouvrira bientôt.',
+  'soundlab.nowSelected': 'Sélectionnée',
+  'soundlab.library': 'Bibliothèque SoundLab',
+  'soundlab.searchPlaceholder': 'Rechercher des compositions…',
+  'soundlab.searchLabel': 'Rechercher des compositions par titre, genre, équation ou instrument',
+  'soundlab.categories': 'Catégories SoundLab',
+  'soundlab.all': 'Toutes',
+  'soundlab.noResults': 'Aucune composition trouvée.',
+  'soundlab.clearFilters': 'Effacer les filtres',
+  'soundlab.selectedTrack': 'Piste sélectionnée',
+  'soundlab.type': 'Type',
+  'soundlab.instrument': 'Instrument',
+  'soundlab.viewEquation': 'Voir les détails de l’équation',
+  'soundlab.equationNote':
+    'Couche originale de composition MathSonify. La lecture est pour écouter ; l’équation n’est pas sous licence de réutilisation.',
+  'soundlab.compositionInfo': 'Infos sur la composition',
+  'soundlab.composition': 'Composition',
+  'soundlab.genre': 'Genre',
+  'soundlab.bpm': 'BPM',
+  'soundlab.scale': 'Gamme',
+  'soundlab.duration': 'Durée',
+  'soundlab.seconds': 'secondes',
+  'soundlab.tracks': 'Pistes',
+  'soundlab.status': 'Statut',
+  'soundlab.proprietary': 'Propriétaire',
+  'soundlab.rights': 'Lecture pour écouter ; équations non sous licence de réutilisation.',
+  'soundlab.beyondListening': 'Au-delà de l’écoute',
+  'soundlab.createOwn': 'Créez la vôtre',
+  'soundlab.createOwnDesc': 'Emmenez les mathématiques au-delà de l’écoute.',
+  'soundlab.openMusicLab': 'Ouvrir Music Lab →',
+  'soundlab.closeLibrary': 'Fermer les compositions',
+
+  // EquationInput
+  'eq.moreSymbols': 'Plus de symboles',
+
+  // How It Works page — rebuilt experience copy (the step1–5 keys above describe the old technical page and no longer match the live text)
+  'howItWorks.heroTag': 'Essayez vous-même',
+  'howItWorks.heroSub':
+    'Pas en le décrivant. Saisissez une équation, regardez-la devenir une courbe, et écoutez cette courbe jouée. Le scanner avance de gauche à droite, et chaque point qu’il traverse devient une note.',
+  'howItWorks.asideCurve': 'Une courbe',
+  'howItWorks.asideJourney': 'Un voyage',
+  'howItWorks.asideSound': 'Un son',
+  'howItWorks.journeyTitle': 'Le même voyage, à chaque fois',
+  'howItWorks.journeySub':
+    'Tout cela est une seule transformation, que l’équation soit <code class="font-mono text-sc-text">sin(x)</code> ou quelque chose de bien moins indulgent.',
+  'howItWorks.journey1Title': 'Mathématiques',
+  'howItWorks.journey1Desc': 'Vous écrivez une équation. Elle est analysée en arbre et jamais exécutée comme du code.',
+  'howItWorks.journey2Title': 'Géométrie',
+  'howItWorks.journey2Desc': 'La courbe est échantillonnée en points, chacun portant sa hauteur, sa pente et sa courbure.',
+  'howItWorks.journey3Title': 'Mouvement',
+  'howItWorks.journey3Desc': 'Un curseur balaie de gauche à droite. La position en x devient la position dans le temps.',
+  'howItWorks.journey4Title': 'Son',
+  'howItWorks.journey4Desc': 'La hauteur devient le pitch, la pente ouvre le filtre, et la courbe est entendue.',
+  'howItWorks.journey5Title': 'Musique',
+  'howItWorks.journey5Desc': 'Calée sur une gamme, la même mathématique devient quelque chose que vous pourriez réécouter.',
+  'howItWorks.exploreTag': 'Explorer',
+  'howItWorks.exploreTitle': 'Poursuivez le voyage',
+  'howItWorks.exploreSub':
+    'Essayez un défi, explorez d’autres équations, ou apprenez des scientifiques qui ont posé les fondations. La même transformation, des perspectives différentes.',
+  'howItWorks.exploreCap1': 'Une idée',
+  'howItWorks.exploreCap2': 'De nombreuses perspectives',
+  'howItWorks.cardGuessTitle': 'Guess',
+  'howItWorks.cardGuessDesc': 'Écoutez le son et devinez l’équation derrière.',
+  'howItWorks.cardEquationsTitle': 'Équations',
+  'howItWorks.cardEquationsDesc': 'Explorez une bibliothèque croissante d’équations et voyez comment chacune sonne.',
+  'howItWorks.cardScientistsTitle': 'Scientifiques',
+  'howItWorks.cardScientistsDesc': 'Découvrez les mathématiciens et scientifiques derrière ces idées.',
+  'howItWorks.openStudio': 'Ouvrir le Studio',
+
+  // Footer
+  'footer.support': 'Soutenez MathSonify',
+
+  // Export Modal — image export
+  'export.videoReady': 'Vidéo prête — vérifiez et enregistrez',
+
+  // Coming Soon pages
+  'comingSoon.soundlab.title': 'SoundLab',
+  'comingSoon.soundlab.subtitle': 'Un studio propriétaire de composition d’équations multipiste — bientôt disponible.',
+  'comingSoon.draw.title': 'Dessiner',
+  'comingSoon.draw.subtitle': 'Une expérience de dessin vers la musique — bientôt disponible.',
+  'comingSoon.musiclab.title': 'Music Lab',
+  'comingSoon.musiclab.subtitle': 'Un studio de création d’instruments mathématiques — bientôt disponible.',
+  'comingSoon.backToHome': 'Retour à MathSonify',
+
+  // Support page (the page itself renders English today, like pricing; these keys are the translation source)
+  'support.badge': 'soutien',
+  'support.title': 'Aidez la musique à continuer',
+
+  // Same title with the <em> the hero renders — data-i18n-html replaces innerHTML, so the plain support.title cannot carry the emphasis.
+  'support.titleHtml': 'Aidez la <em>musique</em> à continuer',
+  'support.titleEm': 'musique',
+  'support.lead':
+    'MathSonify a commencé par une question : à quoi ressemble une équation ? Tout ici est gratuit. Si cela a changé votre façon d’entendre les maths, un café permet de continuer ainsi.',
+  'support.chooseSize': 'Choisissez un montant',
+  'support.orCustom': 'ou choisissez votre propre montant',
+  'support.quickAmounts': 'Montants rapides',
+  'support.amountLabel': 'Montant en dollars américains',
+  'support.amountPlaceholder': 'N’importe quel montant',
+  'support.yourSupport': 'Votre soutien',
+  'support.payCta': 'Continuer vers le paiement sécurisé',
+  'support.payCtaShort': 'Continuer vers le paiement',
+  'support.paymentSoon':
+    'Le paiement sécurisé ouvrira bientôt — nous connectons une plateforme de dons qui accepte les montants personnalisés et les cartes internationales. Choisissez un montant ci-dessus et il sera prêt quand vous le serez.',
+  'support.secureNote':
+    'Le paiement est géré par notre partenaire de paiement — nous ne voyons jamais les données de votre carte ou de votre banque.',
+  'support.whereTitle': 'Où cela va',
+  'support.whereSub':
+    'Pas de publicités, pas de suivi, pas de paywall sur l’expérience principale. Le soutien va à trois choses honnêtes :',
+  'support.domain': 'Le domaine',
+  'support.domainDesc': 'mathsonify.com est renouvelé chaque année.',
+  'support.hosting': 'Hébergement et e-mail',
+  'support.hostingDesc': 'Les serveurs, et le service qui vous prévient quand SoundLab et Music Lab ouvrent.',
+  'support.time': 'Le temps de construire',
+  'support.timeDesc': 'De nouvelles équations, de nouveaux instruments et des correctifs — façonnés par ce que les gens demandent.',
+  'support.promise':
+    'Soutenir ne débloque rien. Les dons sont des cadeaux volontaires, pas des achats. Tout ce que vous pouvez utiliser aujourd’hui reste gratuit.',
+
+  // Same promise with the <b> the page renders on its first sentence.
+  'support.promiseHtml':
+    '<b class="text-sc-text">Soutenir ne débloque rien.</b> Les dons sont des cadeaux volontaires, pas des achats. Tout ce que vous pouvez utiliser aujourd’hui reste gratuit.',
+  'support.freeTitle': 'Vous ne pouvez pas donner ? Cela aide tout autant',
+  'support.freeSub': 'Honnêtement, cela aide peut-être encore plus.',
+  'support.share': 'Partager MathSonify',
+  'support.suggest': 'Suggérer une équation',
+  'support.challenge': 'Défiez un ami dans Guess',
+  'support.smallPrint':
+    'Le soutien est volontaire et ne débloque pas de fonctionnalités. Le paiement est traité par un tiers, dont la politique de confidentialité s’applique.',
+  'support.enterAmount': 'Saisissez un montant, ou choisissez-en un ci-dessus.',
+  'support.generous':
+    'Merci — c’est généreux. Les dons importants peuvent nécessiter une vérification supplémentaire de votre prestataire de paiement.',
+  'support.pickFirst': 'Choisissez d’abord un montant.',
+  'support.linkCopied': 'Lien copié',
+
+  // Privacy Policy page (rich-text keys carry the same inline HTML as the page; translators preserve the tags and translate only the text. localStorage key names, email addresses and the brand stay in English.)
+  'privacy.badge': 'architecture axée sur la confidentialité',
+  'privacy.title': 'Politique de confidentialité',
+  'privacy.intro':
+    'MathSonify repose sur une prémisse radicale : un outil créatif n’a pas besoin de savoir qui vous êtes. Cette politique explique comment cela fonctionne.',
+  'privacy.effective': 'Date d’entrée en vigueur : 14 septembre 2026 · Version 1.0',
+  'privacy.s1Title': 'Notre philosophie de confidentialité',
+  'privacy.s1Desc1':
+    'MathSonify a été conçu dès le départ comme une <strong class="text-sc-text">application zéro donnée</strong>. Nous ne nous contentons pas de minimiser la collecte de données — nous l’avons éliminée entièrement. Aucun serveur ne traite vos équations, aucune base de données ne stocke vos habitudes, et aucun pipeline d’analyse n’observe vos interactions. Quand vous fermez votre navigateur, rien de votre session n’existe nulle part, sauf sur votre propre appareil.',
+  'privacy.s1Desc2':
+    'Ce n’est pas un choix de politique — c’est un choix d’architecture. MathSonify fonctionne 100 % côté client en utilisant la Web Audio API, le rendu natif Canvas 2D, et un analyseur d’expressions mathjs en bac à sable. Les maths se font sur votre CPU. Le son passe par vos haut-parleurs. Rien ne quitte votre machine.',
+  'privacy.s2Title': 'Ce que nous ne collectons pas',
+  'privacy.s2Intro':
+    'Pour être explicite sur ce que MathSonify <em class="text-sc-text">ne</em> recueille, ne stocke, ne transmet ni ne monétise :',
+  'privacy.s2Item1':
+    '<strong class="text-sc-text">Aucun compte ni authentification.</strong> Aucune inscription, aucune connexion, aucun mot de passe, aucune adresse e-mail stockée nulle part.',
+  'privacy.s2Item2':
+    '<strong class="text-sc-text">Aucune analyse ni suivi.</strong> Nous n’utilisons ni Google Analytics, ni Mixpanel, ni Segment, ni Hotjar, ni aucun service de télémétrie tiers.',
+  'privacy.s2Item3': '<strong class="text-sc-text">Aucun cookie.</strong> MathSonify ne définit aucun cookie propre ou tiers. Point.',
+  'privacy.s2Item4':
+    '<strong class="text-sc-text">Aucune donnée d’équation ou d’utilisation.</strong> Les équations que vous tapez, l’audio que vous générez et les visualisations que vous créez ne quittent jamais votre navigateur.',
+  'privacy.s2Item5':
+    '<strong class="text-sc-text">Aucune publicité ni profilage.</strong> Nous ne diffusons pas de publicités, ne créons pas de profils d’utilisateurs et ne vendons pas de données à des tiers.',
+  'privacy.s2Item6':
+    '<strong class="text-sc-text">Aucune journalisation d’IP.</strong> Notre infrastructure d’hébergement ne journalise ni ne conserve les adresses IP des visiteurs au-delà de ce qui est nécessaire pour la diffusion éphémère des requêtes.',
+  'privacy.s3Title': 'Stockage local du navigateur',
+  'privacy.s3Intro':
+    'MathSonify utilise l’API <code class="px-1.5 py-0.5 rounded bg-sc-sunken text-sc-accent font-mono text-xs border border-sc-line/15">localStorage</code> de votre navigateur pour conserver quelques préférences et votre progression du défi quotidien Guess sur votre appareil :',
+  'privacy.s3Note1':
+    'Se souvient si vous préférez le mode d’affichage clair ou sombre. Valeur : <code class="text-sc-accent">"light"</code> ou <code class="text-sc-accent">"dark"</code>.',
+  'privacy.s3Note2':
+    'Se souvient de la langue d’interface sélectionnée. Valeur : un code de langue (p. ex. <code class="text-sc-accent">"en-US"</code>, <code class="text-sc-accent">"es"</code>).',
+  'privacy.s3Note3':
+    'Se souvient de vos derniers choix d’exportation : orientation et qualité pour les exportations d’image et de vidéo (paysage/portrait, 480p/720p/1080p) et la couleur de la courbe (blanc/bleu/vert/violet). Valeur : un petit objet JSON.',
+  'privacy.s3Note4':
+    'La date de votre dernier défi quotidien Guess noté. Valeur : une chaîne <code class="text-sc-accent">"YYYY-MM-DD"</code> dans le calendrier de la côte Est des États-Unis.',
+  'privacy.s3Note5': 'Vos résultats par question pour le défi quotidien d’aujourd’hui. Valeur : un tableau de booléens.',
+  'privacy.s3Note6': 'Votre série actuelle de jours consécutifs pour le défi quotidien Guess. Valeur : un nombre.',
+  'privacy.s3Outro':
+    'Ces données sont stockées exclusivement dans votre navigateur. Elles ne sont jamais transmises à un serveur, partagées avec un service, ni accessibles à un autre site web. Vous pouvez les effacer à tout moment dans les paramètres de votre navigateur — MathSonify vous redemandera simplement vos préférences lors de la prochaine visite.',
+  'privacy.s4Title': 'Dépendances tierces',
+  'privacy.s4Desc1':
+    'MathSonify fait des requêtes vers exactement un service externe : <strong class="text-sc-text">Google Fonts</strong> (fonts.googleapis.com et fonts.gstatic.com) pour charger la typographie. Google Fonts est régi par la <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" class="text-sc-accent hover:underline">Politique de confidentialité de Google</a>. Nous ne contrôlons pas ce que Google collecte en servant ces fichiers de polices, mais la pratique standard du secteur est que Google n’utilise pas les requêtes de polices pour le suivi individuel des utilisateurs.',
+  'privacy.s4Desc2':
+    'MathSonify n’utilise aucun autre script externe, CDN, fournisseur d’analyse, réseau publicitaire ou intégration de réseaux sociaux. Nos dépendances JavaScript (mathjs, React, Astro) sont regroupées et servies depuis notre propre domaine.',
+  'privacy.s5Title': 'Confidentialité des enfants',
+  'privacy.s5Desc1':
+    'MathSonify ne collecte sciemment aucune information personnelle d’aucun utilisateur, quel que soit son âge. Comme notre architecture ne nécessite aucune collecte de données, il n’y a aucun risque que les informations personnelles des enfants soient compromises via notre service.',
+  'privacy.s5Desc2':
+    '<strong class="text-sc-text">MathSonify est sûr et adapté aux enfants de 5 ans et plus</strong> — la même norme unique énoncée dans nos Conditions d’utilisation. Ce minimum si bas est défendable précisément parce que rien n’est collecté : sans comptes, sans analyse, et sans que rien ne soit jamais transmis, un jeune enfant ne peut être suivi, profilé ou contacté via le site, donc les risques habituels de confidentialité liés à l’âge n’ont rien à quoi s’accrocher. Le raisonnement traverse toute la politique : zéro donnée entrante signifie zéro donnée en danger.',
+  'privacy.s6Title': 'Modifications de cette politique',
+  'privacy.s6Desc':
+    'Si cette politique de confidentialité est mise à jour, la date d’entrée en vigueur en haut de cette page sera révisée et les modifications seront publiées ici. Compte tenu de l’architecture zéro donnée de MathSonify, il est peu probable que des modifications substantielles soient apportées à cette politique. Toute modification future ne fera qu’élargir les protections de confidentialité, jamais les réduire.',
+  'privacy.bottomNote':
+    'Cette politique de confidentialité est fournie à titre informatif et ne constitue pas un avis juridique. MathSonify s’engage à la transparence sur ses pratiques en matière de données. Pour toute question, écrivez à <a href="mailto:privacy@mathsonify.com" class="text-sc-accent hover:underline">privacy@mathsonify.com</a>.',
+  'privacy.cta': 'Ouvrir le Studio',
+
+  // Terms of Use page (same rich-text convention as Privacy)
+  'terms.badge': 'conditions de service',
+  'terms.title': 'Conditions d’utilisation',
+  'terms.intro':
+    'MathSonify est un outil créatif gratuit. Ces conditions existent pour fixer des attentes claires — pas pour restreindre votre créativité.',
+  'terms.effective': 'Date d’entrée en vigueur : 14 septembre 2026 · Version 1.0',
+  'terms.s1Title': 'Acceptation des conditions',
+  'terms.s1Desc':
+    'En accédant à MathSonify (mathsonify.com) ou en l’utilisant, vous acceptez d’être lié par ces Conditions d’utilisation. Si vous n’acceptez pas ces conditions, veuillez ne pas utiliser le service. Votre utilisation continue de MathSonify après toute modification de ces conditions vaut acceptation des conditions révisées.',
+  'terms.sAgeTitle': 'Conseils sur l’âge',
+  'terms.sAgeDesc':
+    '<strong class="text-sc-text">MathSonify est sûr et adapté aux enfants de 5 ans et plus.</strong> Il s’agit d’un conseil pratique plutôt que de quelque chose qu’un visiteur doit accepter : le site ne collecte aucune donnée personnelle — aucun compte, aucune analyse, rien de ce que vous tapez ne quitte votre appareil — il n’y a donc rien ici pour quoi un jeune visiteur aurait besoin de s’inscrire ou de s’engager en son propre nom. C’est la même norme unique énoncée dans notre Politique de confidentialité.',
+  'terms.s2Title': 'Ce qu’est MathSonify',
+  'terms.s2Desc1':
+    'MathSonify est un outil créatif basé sur le navigateur qui convertit les expressions mathématiques en audio en temps réel. Il utilise la Web Audio API pour synthétiser du son à partir d’équations, rend les visualisations sur un élément HTML Canvas, et fonctionne entièrement sur votre appareil local — aucun traitement côté serveur n’est impliqué.',
+  'terms.s2Desc2':
+    'Le service est fourni gratuitement, sans compte, abonnement ni paiement. Toutes les équations, l’audio et les visualisations sont générés localement et ne quittent jamais votre navigateur.',
+  'terms.s3Title': 'Licence d’utilisation',
+  'terms.s3Intro':
+    'MathSonify vous accorde une licence gratuite, non exclusive, révocable et mondiale pour accéder au service et l’utiliser à des fins personnelles, éducatives, créatives ou de recherche. Cette licence est soumise aux conditions suivantes :',
+  'terms.s3Item1':
+    'Vous pouvez utiliser MathSonify à toute fin licite, y compris pour un travail créatif commercial (p. ex. composer de la musique en utilisant MathSonify comme outil).',
+  'terms.s3Item2':
+    'Vous ne pouvez pas copier, modifier, distribuer, vendre, louer ou sous-licencier une partie du service, de son code source ou de son design.',
+  'terms.s3Item3':
+    'Vous ne pouvez pas procéder à de l’ingénierie inverse, décompiler ou tenter d’extraire le code source de MathSonify, sauf dans la mesure permise par la loi applicable.',
+  'terms.s3Item4':
+    'Vous ne pouvez pas utiliser de systèmes automatisés (bots, scrapers) pour accéder au service ou interagir avec lui d’une manière qui impose une charge déraisonnable sur l’infrastructure.',
+  'terms.s4Title': 'Votre contenu',
+  'terms.s4Desc1':
+    '<strong class="text-sc-text">Vous êtes propriétaire de tout ce que vous créez.</strong> Toutes les équations que vous saisissez, l’audio que vous générez et les visualisations que vous produisez vous appartiennent. MathSonify traite tout le contenu localement sur votre appareil — nous ne voyons, ne stockons et n’avons jamais accès à votre travail.',
+  'terms.s4Desc2':
+    'Lorsque vous exportez de l’audio sous forme de fichier WAV, ce fichier est généré entièrement par votre navigateur et enregistré directement sur votre appareil. MathSonify n’héberge, ne sauvegarde ni ne gère vos fichiers exportés.',
+  'terms.s4Note':
+    '<strong class="text-sc-accent">Important :</strong> MathSonify ne peut pas récupérer un travail perdu. Comme toutes les données restent dans votre navigateur, effacer les données de votre navigateur ou utiliser un autre appareil ne transférera pas votre session. Nous vous recommandons d’exporter tout audio que vous souhaitez conserver.',
+  'terms.s5Title': 'Sécurité audio',
+  'terms.s5Intro':
+    'MathSonify génère de l’audio en temps réel à partir d’expressions mathématiques. Bien que nous appliquions un compresseur maître de dynamique et une protection contre l’écrêtage, certaines équations peuvent produire :',
+  'terms.s5Item1':
+    '<strong class="text-sc-text">Des sons forts soudains</strong> — les équations aux variations rapides d’amplitude (p. ex. la croissance exponentielle) peuvent monter brusquement en volume.',
+  'terms.s5Item2':
+    '<strong class="text-sc-text">Des fréquences élevées</strong> — les équations qui oscillent rapidement peuvent produire des tons proches ou supérieurs à la limite supérieure de l’audition humaine (20 kHz).',
+  'terms.s5Item3':
+    '<strong class="text-sc-text">Des changements rapides de timbre</strong> — les expressions complexes peuvent créer des transitions audio dissonantes ou stridentes.',
+  'terms.s5Note':
+    '<strong class="text-sc-accent">Recommandation :</strong> Commencez à un volume bas (le curseur est à 30 % par défaut). Utilisez des écouteurs ou des haut-parleurs de qualité. Si vous avez des antécédents de troubles déclenchés par le son (épilepsie photosensible, misophonie, hyperacousie), soyez particulièrement prudent.',
+  'terms.s6Title': 'Utilisations interdites',
+  'terms.s6Intro':
+    'Vous acceptez de ne pas utiliser MathSonify à des fins illégales ou interdites par ces conditions. Plus précisément, vous ne pouvez pas :',
+  'terms.s6Item1':
+    'Utiliser le service pour générer ou distribuer du contenu nuisible, abusif, haineux, ou qui viole les droits d’autrui.',
+  'terms.s6Item2':
+    'Tenter de perturber, de surcharger ou d’obtenir un accès non autorisé au service ou à son infrastructure associée.',
+  'terms.s6Item3':
+    'Utiliser le service pour produire délibérément de l’audio destiné à causer du tort, de l’inconfort ou de la détresse à autrui.',
+  'terms.s6Item4':
+    'Laisser entendre une affiliation, un soutien ou une relation officielle avec MathSonify quand il n’en existe pas.',
+  'terms.s7Title': 'Propriété intellectuelle',
+  'terms.s7Desc1':
+    'MathSonify, y compris son design, son code, sa marque, sa documentation et tous les matériaux créatifs associés, est protégé par le droit d’auteur et les lois applicables sur la propriété intellectuelle. Le nom, le logo et la marque verbale MathSonify sont des marques de MathSonify.',
+  'terms.s7Desc2':
+    'La bibliothèque d’équations prédéfinies fait référence à des expressions mathématiques connues publiquement, nommées d’après leurs auteurs originaux. Ce sont des attributions factuelles qui n’impliquent aucun soutien ni affiliation avec les mathématiciens nommés ou leurs héritiers.',
+  'terms.s8Title': 'Exclusion de garanties',
+  'terms.s8Intro':
+    'MathSonify est fourni <strong class="text-sc-text">« tel quel »</strong> et <strong class="text-sc-text">« tel que disponible »</strong> sans garantie d’aucune sorte, expresse ou implicite. Nous ne garantissons pas que :',
+  'terms.s8Item1': 'Le service sera ininterrompu, ponctuel, sécurisé ou sans erreur.',
+  'terms.s8Item2':
+    'La traduction des mathématiques en audio sera exacte, complète ou conforme à une norme ou attente particulière.',
+  'terms.s8Item3': 'Le service sera compatible avec tous les navigateurs, appareils ou systèmes d’exploitation.',
+  'terms.s8Item4': 'Tout contenu généré via le service conviendra à un usage particulier.',
+  'terms.s9Title': 'Limitation de responsabilité',
+  'terms.s9Intro':
+    'Dans toute la mesure permise par la loi applicable, MathSonify, ses créateurs, contributeurs et affiliés ne seront pas responsables des dommages indirects, accessoires, spéciaux, consécutifs ou punitifs découlant de votre utilisation du service ou liés à celle-ci. Cela inclut, sans s’y limiter :',
+  'terms.s9Item1':
+    'La perte de données, de revenus ou de profits (bien que MathSonify traite tout localement, il n’y a donc aucune donnée sur nos serveurs à perdre).',
+  'terms.s9Item2': 'L’inconfort ou les dommages auditifs résultant de l’audio généré par des expressions mathématiques.',
+  'terms.s9Item3': 'Les interruptions de service, bugs ou erreurs dans le rendu mathématique ou le pipeline de synthèse audio.',
+  'terms.s9Outro':
+    'Notre responsabilité totale cumulée pour toute réclamation découlant de l’utilisation du service ne dépassera pas le montant que vous avez payé pour le service — c’est-à-dire rien, puisque MathSonify est gratuit.',
+  'terms.s10Title': 'Modifications et résiliation',
+  'terms.s10Desc1':
+    'Nous nous réservons le droit de modifier, suspendre ou interrompre MathSonify (ou une partie de celui-ci) à tout moment, avec ou sans préavis. Nous pouvons également mettre à jour ces conditions de temps à autre. Les modifications substantielles seront reflétées dans la « Date d’entrée en vigueur » en haut de cette page.',
+  'terms.s10Desc2':
+    'Comme MathSonify ne nécessite aucun compte, il n’y a rien à « résilier ». Vous êtes libre de cesser d’utiliser le service à tout moment. Si nous interrompons le service, les équations que vous avez saisies et l’audio que vous avez exporté restent à vous — ils sont stockés sur votre appareil, pas sur le nôtre.',
+  'terms.bottomNote':
+    'Ces conditions sont fournies à titre informatif et ne constituent pas un avis juridique. Pour toute question sur ces conditions, contactez-nous à <a href="mailto:legal@mathsonify.com" class="text-sc-accent hover:underline">legal@mathsonify.com</a>.',
+  'terms.cta': 'Ouvrir le Studio',
+
+  // Contact page (brand name, email addresses and the "URGENT" subject marker stay in English; everything else is translated)
+  'contact.badge': '♪ canal de résonance ouvert',
+  'contact.title': 'Faisons un peu de <span class="text-sc-accent">bruit</span>',
+  'contact.intro':
+    'Que vous soyez un mathématicien qui entend les équations, un musicien qui voit les fréquences, ou un enseignant qui veut donner vie aux maths — nous sommes tout ouïe. Chaque grand signal commence par une transmission.',
+  'contact.generalTitle': 'Demandes générales',
+  'contact.generalDesc':
+    'Des questions sur le fonctionnement de MathSonify, des idées de fonctionnalités, ou simplement envie de dire bonjour ? Écrivez-nous — nous lisons chaque message comme nous lisons chaque équation.',
+  'contact.supportTitle': 'Assistance',
+  'contact.supportDesc':
+    'Quelque chose sonne faux ? Un graphique qui se comporte mal ? Une équation qui produit du silence quand elle devrait crier ? Besoin d’aide pour utiliser le Studio ? Contactez-nous et nous vous aiderons à vous remettre en phase.',
+  'contact.signalTitle': 'La fréquence des bonnes idées',
+  'contact.signalDesc':
+    'MathSonify a commencé par une simple question : <em class="text-sc-text font-medium">« À quoi ressemble vraiment une équation ? »</em> Cette curiosité est devenue une plateforme utilisée par des étudiants, des musiciens, des enseignants et des mathématiciens du monde entier. Votre idée pourrait être la prochaine forme d’onde que nous construirons.',
+  'contact.timingTitle': 'Délais de réponse',
+  'contact.timingDesc':
+    'MathSonify est entretenu par une petite équipe dévouée. Nous visons à répondre à toutes les demandes sous 2 à 3 jours ouvrés. Pour les problèmes urgents — comme un moteur sonore cassé ou une panne critique de build — incluez « URGENT » dans l’objet et nous le traiterons en priorité.',
+  'contact.ideasTitle': 'Idées et retours',
+  'contact.ideasDesc':
+    'MathSonify est façonné par les personnes qui l’utilisent. Idées de fonctionnalités, rapports de bugs et suggestions d’équations pour notre bibliothèque sont tous bienvenus — si vous pouvez le décrire, nous voulons l’entendre. Dites-nous ce qui rendrait le Studio meilleur pour votre classe, votre concert ou votre expérience sur la table de cuisine, et nous l’ajouterons à la liste.',
+  'contact.cta': 'Ouvrir le Studio',
+
+  // Pricing / Premium page ("Premium", "Music Lab", "SoundLab", "Stripe" and "Buy Me a Coffee" are product/brand names and stay in English)
+  'pricing.badge': '♪ débloquez le Studio',
+  'pricing.title': 'MathSonify <span class="text-sc-accent">Premium</span>',
+  'pricing.intro':
+    'Allez plus loin. Créez vos propres instruments mathématiques, arrangez des notes, exportez votre travail et accédez à l’intégralité des archives SoundLab.',
+  'pricing.planTitle': 'Premium',
+  'pricing.planDesc': 'Accès complet à tout ce que MathSonify offre.',
+  'pricing.perMonth': '/mois',
+  'pricing.f1': '<strong class="font-semibold">Music Lab</strong> — studio complet de musique mathématique',
+  'pricing.f2': '<strong class="font-semibold">SoundLab complet</strong> — toutes les compositions, écoutes illimitées',
+  'pricing.f3': '<strong class="font-semibold">Instruments avancés</strong> — tous les modèles de synthèse',
+  'pricing.f4': '<strong class="font-semibold">Export WAV</strong> — téléchargez vos compositions',
+  'pricing.f5': '<strong class="font-semibold">Visualiseurs avancés</strong> — canvas réactif à l’audio',
+  'pricing.f6': '<strong class="font-semibold">Futures fonctionnalités premium</strong> — accès anticipé aux nouveaux outils',
+  'pricing.preview': 'Aperçu',
+  'pricing.checkout': 'Continuer vers le paiement sécurisé →',
+  'pricing.comingSoon': 'Bientôt disponible',
+  'pricing.secureNote':
+    'Les paiements sont traités en toute sécurité par Stripe. Aucune donnée de carte n’est stockée sur nos serveurs.',
+  'pricing.waitlistNote': 'Nous finalisons les tarifs — rejoignez la liste d’attente pour être averti.',
+  'pricing.getTitle': 'Ce que vous obtenez',
+  'pricing.get1': 'Music Lab, studio complet',
+  'pricing.get2': 'Archives complètes de SoundLab',
+  'pricing.get3': 'Export WAV et visualiseurs avancés',
+  'pricing.billingTitle': 'Facturation',
+  'pricing.billingDesc':
+    'Abonnement mensuel, résiliable à tout moment. Si vous résiliez, vous conservez l’accès jusqu’à la fin de votre période de facturation en cours.',
+  'pricing.supportTitle': 'Assistance',
+  'pricing.supportDesc':
+    'Des questions ? Écrivez-nous à <a href="mailto:hello@mathsonify.com" class="text-sc-accent underline underline-offset-2">hello@mathsonify.com</a>.',
+  'pricing.faqTitle': 'Questions',
+  'pricing.faq1Q': 'Y a-t-il un essai gratuit ?',
+  'pricing.faq1A':
+    'Premium est disponible immédiatement. Si une période d’essai est proposée, elle sera clairement affichée avant le paiement.',
+  'pricing.faq2Q': 'Quels moyens de paiement acceptez-vous ?',
+  'pricing.faq2A': 'Tous les paiements sont traités par Stripe, qui accepte les principales cartes de crédit et de débit.',
+  'pricing.faq3Q': 'Puis-je résilier à tout moment ?',
+  'pricing.faq3A': 'Oui. Résiliez depuis votre compte à tout moment. Votre accès se poursuit pendant la période payée.',
+  'pricing.faq4Q': 'Et si Premium n’est pas encore disponible ?',
+  'pricing.faq4A':
+    'L’expérience gratuite de MathSonify, les aperçus de SoundLab et Music Lab restent utilisables. Premium débloque les fonctionnalités plus avancées du Studio quand il sera lancé.',
+  'pricing.coffeeNote': 'Vous aimez MathSonify ? Vous pouvez aussi soutenir le projet directement.',
+  'pricing.coffeeCta': '☕ Buy Me a Coffee',
+
+  // Error pages — 500 / 503 (plain text; the retry button's "Retrying…" state is set by the page's own inline script)
+  'error500.badge': 'Erreur 500 · panne système',
+  'error500.code': 'f(x) → erreur système',
+  'error500.title': 'L’équation a cassé quelque part.',
+  'error500.desc': 'MathSonify a rencontré un problème inattendu. Attendez encore un instant et réessayez.',
+  'error500.retry': 'Réessayer',
+  'error500.home': 'Retour à MathSonify',
+  'error500.note': 'Si cela continue, le problème vient de notre côté, pas du vôtre.',
+  'error500.retrying': 'Nouvelle tentative…',
+  'error503.badge': 'Erreur 503 · maintenance',
+  'error503.code': 'f(x) → en pause',
+  'error503.title': 'Une courte pause.',
+  'error503.desc':
+    'MathSonify est indisponible un moment — un déploiement, un réglage, quelque chose de petit. Les équations seront vite de retour.',
+  'error503.retry': 'Réessayer',
+  'error503.home': 'Retour à MathSonify',
+  'error503.note':
+    'En général, juste quelques minutes. Si cela dure plus longtemps, quelque chose de plus gros a cassé — revenez bientôt.',
+  'error503.retrying': 'Nouvelle tentative…',
+
+  // Error pages — 404 (the "drawing…" / "…and then nothing." states are transient script states and stay in the page's own inline script)
+  'error404.status': 'statut 404 · indéfini',
+  'error404.undefinedAt': 'indéfini en x = 404',
+  'error404.title': 'Ce point n’existe pas.',
+  'error404.sub': 'La page n’est pas sur la courbe — tout le reste y est.',
+  'error404.back': 'Retour à MathSonify',
+  'error404.studio': 'Ouvrir le Studio',
+  'error404.equations': 'Explorer les équations',
+  'error404.replay': '↻ rejouer la courbe',
+  'error404.sonify': '♪ la dessiner avec du son',
+  'error404.tap': 'touchez la cassure — écoutez-la',
+  'error404.footer':
+    'Aucune solution ici — essayez plutôt la <a href="/equations" class="text-sc-accent underline underline-offset-2 hover:no-underline transition-colors">bibliothèque d’équations</a>.',
+  'error404.replayAria': 'Rejouer le tracé de la courbe',
+  'error404.sonifyAria': 'Tracer à nouveau la courbe avec le son qui la suit',
+  'error404.tapAria': 'Touchez la cassure — écoutez la courbe échouer',
+  'error404.equationAria': 'Équation',
+
+  // Offline page (the standalone page the service worker serves; the strings are also embedded inline there so they work with no network)
+  'offline.pill': 'hors ligne',
+  'offline.pillOnline': 'de retour en ligne',
+  'offline.title': 'Le signal <em>a été perdu.</em>',
+  'offline.titleOnline': 'Signal <em>rétabli.</em>',
+  'offline.subOffline':
+    'Vous n’êtes pas connecté, mais le Studio fonctionne toujours sur votre appareil. Les équations sont tracées et jouées ici même.',
+  'offline.subNoCache':
+    'Vous n’êtes pas connecté pour le moment. Vérifiez votre Wi-Fi ou vos données mobiles — nous serons là à votre retour.',
+  'offline.subOnline': 'Vous êtes de nouveau connecté. Rien n’a été perdu — reprenez exactement là où vous vous étiez arrêté.',
+  'offline.noRoute': 'aucune route',
+  'offline.deviceCap': 'votre appareil · f(x) = sin(x)',
+  'offline.internetCap': 'internet',
+  'offline.internetCapOnline': 'internet · connecté',
+  'offline.retry': 'Réessayer',
+  'offline.continue': 'Continuer',
+  'offline.openStudio': 'Ouvrir le Studio →',
+  'offline.hear': '♪ Écouter le signal',
+  'offline.statusWaiting': 'en attente de connexion… nous nous reconnecterons automatiquement',
+  'offline.statusOnline': '<b>connecté</b> · bon retour',
+  'offline.statusStill': 'toujours hors ligne — rien n’est revenu',
+  'offline.worksTitle': 'Fonctionne toujours hors ligne',
+  'offline.works1': 'Studio — écrire, tracer, écouter',
+  'offline.works2': 'Guess — manches d’entraînement',
+  'offline.works3': 'Exportations déjà réalisées',
+  'offline.needsTitle': 'Nécessite internet',
+  'offline.needs1': 'Ouverture des liens partagés',
+  'offline.needs2': 'Inscriptions aux notifications',
+  'offline.needs3': 'Soutien et paiements',
+  'offline.footer': 'MathSonify.com · vos équations sont tracées sur votre appareil',
+  'offline.toastOnline': 'De retour en ligne',
+  'offline.toastOffline': 'Connexion perdue',
+  'offline.toastSteady': 'Un signal stable',
+  'offline.toastSilence': '…puis le silence',
+
+  // Redirect page
+  'create.moved': 'Cette page a déménagé vers <a href="/studio">le Studio MathSonify</a>.',
 } as const;
 export default fr;

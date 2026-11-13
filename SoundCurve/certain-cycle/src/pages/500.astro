@@ -66,7 +66,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     <div class="relative z-10 flex w-full max-w-2xl flex-col items-center text-center">
 
-      <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-sc-text-faint">
+      <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-sc-text-faint" data-i18n="error500.badge">
         Error 500 · system fault
       </p>
 
@@ -101,15 +101,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           fill="none" stroke="rgb(var(--sc-text-faint))" stroke-width="1.5" stroke-dasharray="4 5" />
       </svg>
 
-      <p class="code-mat mt-6 px-3 py-1.5 text-[12px] text-sc-text-soft">
+      <p class="code-mat mt-6 px-3 py-1.5 text-[12px] text-sc-text-soft" data-i18n="error500.code">
         f(x) → system error
       </p>
 
-      <h1 class="mt-6 font-serif text-3xl font-semibold leading-tight text-sc-text sm:text-4xl">
+      <h1 class="mt-6 font-serif text-3xl font-semibold leading-tight text-sc-text sm:text-4xl" data-i18n="error500.title">
         The equation broke somewhere.
       </h1>
 
-      <p class="mt-4 max-w-md text-sm leading-relaxed text-sc-text-soft">
+      <p class="mt-4 max-w-md text-sm leading-relaxed text-sc-text-soft" data-i18n="error500.desc">
         MathSonify hit an unexpected problem. Give it another moment and try again.
       </p>
 
@@ -118,18 +118,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           type="button"
           id="ms-retry"
           class="btn-primary inline-flex min-h-[44px] items-center justify-center px-6 py-2.5 text-sm"
+          data-i18n="error500.retry"
         >
           Try Again
         </button>
         <a
           href="/"
           class="btn-ghost inline-flex min-h-[44px] items-center justify-center px-6 py-2.5 text-sm"
+          data-i18n="error500.home"
         >
           Back to MathSonify
         </a>
       </div>
 
-      <p class="mt-8 max-w-md text-xs leading-relaxed text-sc-text-faint">
+      <p class="mt-8 max-w-md text-xs leading-relaxed text-sc-text-faint" data-i18n="error500.note">
         If this keeps happening, the problem is on our side rather than yours.
       </p>
     </div>
@@ -147,6 +149,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         try { window.location.reload(); } catch (e) { window.location.href = '/'; }
       });
     })();
+  </script>
+
+  <!--
+    i18n bootstrap: this page has no Navigation, so the translation engine
+    is not loaded by default. Bundled module script — if it fails, the page
+    still renders in English and the inline retry script above keeps working.
+    The transient "Retrying…" state stays in that inline script on purpose.
+  -->
+  <script>
+    import { getLang, applyStaticTranslations } from '../i18n/index';
+    applyStaticTranslations(getLang());
   </script>
 </BaseLayout>
 

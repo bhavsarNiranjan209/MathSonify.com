@@ -34,7 +34,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     <div class="relative z-10 flex w-full max-w-2xl flex-col items-center text-center">
 
-      <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-sc-text-faint">
+      <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-sc-text-faint" data-i18n="error503.badge">
         Error 503 · maintenance
       </p>
 
@@ -63,15 +63,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           fill="none" stroke="rgb(var(--sc-text-faint))" stroke-width="1.5" stroke-dasharray="4 5" />
       </svg>
 
-      <p class="code-mat mt-6 px-3 py-1.5 text-[12px] text-sc-text-soft">
+      <p class="code-mat mt-6 px-3 py-1.5 text-[12px] text-sc-text-soft" data-i18n="error503.code">
         f(x) → resting
       </p>
 
-      <h1 class="mt-6 font-serif text-3xl font-semibold leading-tight text-sc-text sm:text-4xl">
+      <h1 class="mt-6 font-serif text-3xl font-semibold leading-tight text-sc-text sm:text-4xl" data-i18n="error503.title">
         Taking a short breather.
       </h1>
 
-      <p class="mt-4 max-w-md text-sm leading-relaxed text-sc-text-soft">
+      <p class="mt-4 max-w-md text-sm leading-relaxed text-sc-text-soft" data-i18n="error503.desc">
         MathSonify is down for a moment — a deploy, a tune-up, something small.
         The equations will be right back.
       </p>
@@ -81,18 +81,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           type="button"
           id="ms-retry"
           class="btn-primary inline-flex min-h-[44px] items-center justify-center px-6 py-2.5 text-sm"
+          data-i18n="error503.retry"
         >
           Try Again
         </button>
         <a
           href="/"
           class="btn-ghost inline-flex min-h-[44px] items-center justify-center px-6 py-2.5 text-sm"
+          data-i18n="error503.home"
         >
           Back to MathSonify
         </a>
       </div>
 
-      <p class="mt-8 max-w-md text-xs leading-relaxed text-sc-text-faint">
+      <p class="mt-8 max-w-md text-xs leading-relaxed text-sc-text-faint" data-i18n="error503.note">
         Usually just a few minutes. If it lasts longer, something bigger broke — check back soon.
       </p>
     </div>
@@ -108,6 +110,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         try { window.location.reload(); } catch (e) { window.location.href = '/'; }
       });
     })();
+  </script>
+
+  <!--
+    i18n bootstrap: this page has no Navigation, so the translation engine
+    is not loaded by default. Bundled module script — if it fails, the page
+    still renders in English and the inline retry script above keeps working.
+    The transient "Retrying…" state stays in that inline script on purpose.
+  -->
+  <script>
+    import { getLang, applyStaticTranslations } from '../i18n/index';
+    applyStaticTranslations(getLang());
   </script>
 </BaseLayout>
 

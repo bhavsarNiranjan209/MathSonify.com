@@ -28,6 +28,16 @@ const enGB = {
 
   // Equations
   'equations.tag': 'mathematical catalogue',
+
+  // Privacy Policy (US spellings overridden to UK)
+  'privacy.s1Desc1':
+    'MathSonify was designed from the ground up as a <strong class="text-sc-text">zero-data application</strong>. We don\'t just minimise data collection — we eliminated it entirely. There are no servers processing your equations, no databases storing your patterns, and no analytics pipelines watching your interactions. When you close your browser, nothing about your session exists anywhere except on your own device.',
+  'privacy.s3Note3':
+    'Remembers your last export choices: orientation and quality for image and video exports (landscape/portrait, 480p/720p/1080p) and the curve colour (white/blue/green/purple). Value: a small JSON object.',
+
+  // Terms of Use (US spellings overridden to UK)
+  'terms.s2Desc1':
+    'MathSonify is a browser-based creative tool that converts mathematical expressions into audio in real time. It uses the Web Audio API to synthesise sound from equations, renders visualisations on an HTML Canvas element, and runs entirely on your local device — no server-side processing is involved.',
 };
 
 export default enGB;

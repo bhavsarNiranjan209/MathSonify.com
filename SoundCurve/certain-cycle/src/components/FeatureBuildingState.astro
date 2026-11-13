@@ -65,6 +65,13 @@ const CONTENT: Record<FeatureId, Content> = {
 };
 
 const content = CONTENT[feature];
+
+// Per-feature i18n key for the eyebrow (the feature name itself).
+const TITLE_KEY: Record<FeatureId, string> = {
+  soundLab: 'comingSoon.soundlab.title',
+  draw: 'comingSoon.draw.title',
+  musicLab: 'comingSoon.musiclab.title',
+};
 ---
 <section
   class="fb relative min-h-[calc(100vh-4.5rem)] flex items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8 py-14"
@@ -83,7 +90,7 @@ const content = CONTENT[feature];
 
     <p class="inline-flex items-center gap-2 rounded-full border border-sc-line/20 bg-sc-surface px-3 py-1 font-mono text-[11px] text-sc-text-soft">
       <span class="fb-dot h-1.5 w-1.5 rounded-full bg-sc-accent" aria-hidden="true"></span>
-      <span>{content.eyebrow}</span>
+      <span data-i18n={TITLE_KEY[feature]}>{content.eyebrow}</span>
       <span class="text-sc-text-faint" aria-hidden="true">/</span>
       <span class="text-sc-text-faint">{content.status}</span>
     </p>
@@ -148,7 +155,7 @@ const content = CONTENT[feature];
 
     <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
       <a href="/" class="btn-primary inline-flex min-h-[44px] items-center justify-center gap-2 px-6 py-2.5 text-sm">
-        <span aria-hidden="true">←</span> Back to MathSonify
+        <span aria-hidden="true">←</span> <span data-i18n="comingSoon.backToHome">Back to MathSonify</span>
       </a>
       <a href={content.secondaryCta.href} class="btn-ghost inline-flex min-h-[44px] items-center justify-center px-6 py-2.5 text-sm">
         {content.secondaryCta.label}

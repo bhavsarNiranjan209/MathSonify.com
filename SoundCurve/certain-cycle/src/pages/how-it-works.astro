@@ -51,20 +51,21 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
       <div class="hwi-hero-art" aria-hidden="true"><canvas id="heroArt"></canvas></div>
       <div class="hwi-hero-aside" aria-hidden="true">
         <div class="font-instrument italic text-[19px] mb-[22px]">f(x)</div>
-        <span class="hwi-cap">A curve</span>
-        <span class="hwi-cap">A journey</span>
-        <span class="hwi-cap">A sound</span>
+        <span class="hwi-cap" data-i18n="howItWorks.asideCurve">A curve</span>
+        <span class="hwi-cap" data-i18n="howItWorks.asideJourney">A journey</span>
+        <span class="hwi-cap" data-i18n="howItWorks.asideSound">A sound</span>
         <hr class="w-[26px] border-0 border-t border-sc-line/25 mt-2.5" />
       </div>
       <span
         class="inline-flex font-mono text-[10.5px] tracking-[0.2em] uppercase border border-sc-line/25 bg-sc-surface rounded-full px-3.5 py-1.5 mb-[18px] relative"
+        data-i18n="howItWorks.heroTag"
       >
         Try it yourself
       </span>
-      <h1 class="font-instrument font-normal text-[clamp(46px,7vw,64px)] leading-[0.98] tracking-[-0.015em] text-sc-text m-0 mb-5 max-w-[6.4em] relative">
+      <h1 class="font-instrument font-normal text-[clamp(46px,7vw,64px)] leading-[0.98] tracking-[-0.015em] text-sc-text m-0 mb-5 max-w-[6.4em] relative" data-i18n="howItWorks.title">
         How math becomes music
       </h1>
-      <p class="relative text-sc-text opacity-80 text-base leading-[1.65] max-w-[46ch] m-0">
+      <p class="relative text-sc-text opacity-80 text-base leading-[1.65] max-w-[46ch] m-0" data-i18n="howItWorks.heroSub">
         Not by describing it. Type an equation, watch it become a curve, and hear
         that curve played. The scanner walks from left to right, and every point
         it passes becomes a note.
@@ -178,10 +179,10 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
 
     <!-- ── the transformation, stated as a journey ── -->
     <section class="max-w-5xl mx-auto mt-24 sm:mt-32">
-      <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-sc-text">
+      <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-sc-text" data-i18n="howItWorks.journeyTitle">
         The same journey, every time
       </h2>
-      <p class="mt-3 text-sm text-sc-text-soft leading-relaxed max-w-2xl">
+      <p class="mt-3 text-sm text-sc-text-soft leading-relaxed max-w-2xl" data-i18n-html="howItWorks.journeySub">
         Everything above is one transformation, whether the equation is
         <code class="font-mono text-sc-text">sin(x)</code> or something far less
         forgiving.
@@ -209,10 +210,10 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
                   <span class="font-mono text-xs text-sc-text-faint w-6 shrink-0">
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  <span class="font-serif text-lg text-sc-text flex-1">{title}</span>
+                  <span class="font-serif text-lg text-sc-text flex-1" data-i18n={`howItWorks.journey${i + 1}Title`}>{title}</span>
                   <span class="hwi-plus" aria-hidden="true">+</span>
                 </summary>
-                <p class="mt-3 text-sm text-sc-text-soft leading-relaxed pl-10">{body}</p>
+                <p class="mt-3 text-sm text-sc-text-soft leading-relaxed pl-10" data-i18n={`howItWorks.journey${i + 1}Desc`}>{body}</p>
               </details>
             </li>
           ))
@@ -224,18 +225,18 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
 
     <!-- ── EXPLORE: continue the journey (redesign mockup) ── -->
     <section class="max-w-5xl mx-auto mt-24 sm:mt-32 relative" aria-labelledby="hwi-deeper">
-      <span class="inline-flex font-mono text-[10.5px] tracking-[0.2em] uppercase border border-sc-line/25 bg-sc-surface rounded-full px-3.5 py-1.5">
+      <span class="inline-flex font-mono text-[10.5px] tracking-[0.2em] uppercase border border-sc-line/25 bg-sc-surface rounded-full px-3.5 py-1.5" data-i18n="howItWorks.exploreTag">
         Explore
       </span>
-      <h2 id="hwi-deeper" class="font-instrument font-normal text-[clamp(34px,5vw,46px)] leading-[1.05] mt-3.5 mb-2.5">
+      <h2 id="hwi-deeper" class="font-instrument font-normal text-[clamp(34px,5vw,46px)] leading-[1.05] mt-3.5 mb-2.5" data-i18n="howItWorks.exploreTitle">
         Continue the journey
       </h2>
-      <p class="text-sc-text opacity-80 max-w-[48ch] leading-[1.6] text-[15.5px] mb-[26px]">
+      <p class="text-sc-text opacity-80 max-w-[48ch] leading-[1.6] text-[15.5px] mb-[26px]" data-i18n="howItWorks.exploreSub">
         Try a challenge, explore more equations, or learn from the scientists who laid the foundations. Same transformation, different perspectives.
       </p>
       <div class="hwi-eside" aria-hidden="true">
-        <span class="hwi-cap">One idea</span>
-        <span class="hwi-cap">Many perspectives</span>
+        <span class="hwi-cap" data-i18n="howItWorks.exploreCap1">One idea</span>
+        <span class="hwi-cap" data-i18n="howItWorks.exploreCap2">Many perspectives</span>
         <hr class="w-[26px] border-0 border-t border-sc-line/25 mt-2" />
       </div>
       <div class="grid gap-4 sm:grid-cols-3">
@@ -243,30 +244,30 @@ import HowItWorksDemo from '../components/HowItWorks/HowItWorksDemo.tsx';
           <canvas id="hwi-a1" aria-hidden="true"></canvas>
           <span class="hwi-go-n">01</span>
           <svg class="hwi-go-ic" viewBox="0 0 24 24"><path d="M6 11h4M8 9v4M15 12h.01M18 10h.01"/><path d="M17.3 5H6.7a4 4 0 0 0-3.9 3.2l-1 5.6A3 3 0 0 0 4.7 17c.9 0 1.6-.4 2.2-1l1.4-1.4h7.4L17.1 16c.6.6 1.3 1 2.2 1a3 3 0 0 0 2.9-3.2l-1-5.6A4 4 0 0 0 17.3 5z"/></svg>
-          <h3>Guess</h3>
-          <p>Listen to the sound and guess the equation behind it.</p>
+          <h3 data-i18n="howItWorks.cardGuessTitle">Guess</h3>
+          <p data-i18n="howItWorks.cardGuessDesc">Listen to the sound and guess the equation behind it.</p>
           <span class="hwi-go-arr" aria-hidden="true">⟶</span>
         </a>
         <a class="hwi-go group" href="/equations">
           <canvas id="hwi-a2" aria-hidden="true"></canvas>
           <span class="hwi-go-n">02</span>
           <svg class="hwi-go-ic" viewBox="0 0 24 24"><path d="M12 7v13M3 5a1 1 0 0 1 1-1h5a3 3 0 0 1 3 3 3 3 0 0 1 3-3h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 2 3 3 0 0 0-3-2H4a1 1 0 0 1-1-1z"/></svg>
-          <h3>Equations</h3>
-          <p>Explore a growing library of equations and see how each one sounds.</p>
+          <h3 data-i18n="howItWorks.cardEquationsTitle">Equations</h3>
+          <p data-i18n="howItWorks.cardEquationsDesc">Explore a growing library of equations and see how each one sounds.</p>
           <span class="hwi-go-arr" aria-hidden="true">⟶</span>
         </a>
         <a class="hwi-go group" href="/scientists">
           <canvas id="hwi-a3" aria-hidden="true"></canvas>
           <span class="hwi-go-n">03</span>
           <svg class="hwi-go-ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/><circle cx="17" cy="9" r="2.4"/><path d="M17.5 14a4 4 0 0 1 3.5 4v1"/></svg>
-          <h3>Scientists</h3>
-          <p>Learn about the mathematicians and scientists behind these ideas.</p>
+          <h3 data-i18n="howItWorks.cardScientistsTitle">Scientists</h3>
+          <p data-i18n="howItWorks.cardScientistsDesc">Learn about the mathematicians and scientists behind these ideas.</p>
           <span class="hwi-go-arr" aria-hidden="true">⟶</span>
         </a>
       </div>
       <div class="flex justify-center mt-[34px] mb-[54px]">
         <a href="/studio" class="btn-primary inline-flex items-center gap-2.5 px-7 py-4 text-[15px]">
-          Open the Studio <span aria-hidden="true">→</span>
+          <span data-i18n="howItWorks.openStudio">Open the Studio</span> <span aria-hidden="true">→</span>
         </a>
       </div>
     </section>

@@ -65,16 +65,679 @@ footer{position:relative;text-align:center;padding:18px;font-size:12px;color:var
 <body>
 <div class="top"><span class="logo"><i>S</i>MathSonify.com</span><div class="tog" id="theme"><button data-t="light">Light</button><button data-t="dark" class="on">Dark</button></div></div>
 <main>
- <span class="pill" id="pill"><i class="dot"></i><span id="pillT">offline</span></span>
- <h1 id="h1">The signal <em>dropped.</em></h1>
- <p class="sub" id="sub"></p>
- <div class="stage" id="stage"><canvas id="cv" aria-label="A wave on the left, your device, that cannot reach a dotted line on the right, the internet, because the line is broken in the middle"></canvas><div class="mid" id="mid">no route</div><span class="cap l">your device · f(x) = sin(x)</span><span class="cap r" id="capR">the internet</span></div>
- <div class="actions"><button class="btn solid" id="retry"><span id="retryT">Try again</span></button><a class="btn" id="open" href="/studio">Open the Studio →</a><button class="btn ghost" id="hear">♪ Hear the signal</button></div>
+ <span class="pill" id="pill"><i class="dot"></i><span id="pillT" data-i18n="offline.pill">offline</span></span>
+ <h1 id="h1" data-i18n-html="offline.title">The signal <em>dropped.</em></h1>
+ <p class="sub" id="sub" data-i18n="offline.subOffline"></p>
+ <div class="stage" id="stage"><canvas id="cv" aria-label="A wave on the left, your device, that cannot reach a dotted line on the right, the internet, because the line is broken in the middle"></canvas><div class="mid" data-i18n="offline.noRoute" id="mid">no route</div><span class="cap l" data-i18n="offline.deviceCap">your device · f(x) = sin(x)</span><span class="cap r" id="capR" data-i18n="offline.internetCap">the internet</span></div>
+ <div class="actions"><button class="btn solid" id="retry"><span id="retryT" data-i18n="offline.retry">Try again</span></button><a class="btn" id="open" href="/studio" data-i18n="offline.openStudio">Open the Studio →</a><button class="btn ghost" data-i18n="offline.hear" id="hear">♪ Hear the signal</button></div>
  <div class="status" id="status" role="status" aria-live="polite"></div>
- <section class="works" id="works"><div class="card yes"><h3>Still works, offline</h3><ul><li>Studio — type, graph, play</li><li>Guess — practice rounds</li><li>Exports you already made</li></ul></div><div class="card no"><h3>Needs the internet</h3><ul><li>Opening shared links</li><li>Notify-me sign-ups</li><li>Support and payments</li></ul></div></section>
+ <section class="works" id="works"><div class="card yes"><h3 data-i18n="offline.worksTitle">Still works, offline</h3><ul><li data-i18n="offline.works1">Studio — type, graph, play</li><li data-i18n="offline.works2">Guess — practice rounds</li><li data-i18n="offline.works3">Exports you already made</li></ul></div><div class="card no"><h3 data-i18n="offline.needsTitle">Needs the internet</h3><ul><li data-i18n="offline.needs1">Opening shared links</li><li data-i18n="offline.needs2">Notify-me sign-ups</li><li data-i18n="offline.needs3">Support and payments</li></ul></div></section>
 </main>
-<footer>MathSonify.com · your equations are drawn on your device</footer>
+<footer data-i18n="offline.footer">MathSonify.com · your equations are drawn on your device</footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<!-- Offline translations: this page must translate with zero network, so the
+     offline.* strings are embedded here per language (same values as the
+     offline.* keys in src/i18n/translations/en.ts). en-GB and unknown
+     languages fall back to the en-US row; a missing key falls back to the
+     English text already in the HTML. MathSonify, MathSonify.com,
+     f(x) = sin(x), ♪ and → stay in English in every language. -->
+<script is:inline>
+var OFFLINE_TEXT = {
+"en-US": {
+"offline.pill": "offline",
+"offline.pillOnline": "back online",
+"offline.title": "The signal <em>dropped.</em>",
+"offline.titleOnline": "Signal <em>restored.</em>",
+"offline.subOffline": "You are not connected, but the Studio still runs on your device. Equations are drawn and played right here.",
+"offline.subNoCache": "You are not connected right now. Check your Wi-Fi or mobile data — we will be here when you are back.",
+"offline.subOnline": "You are connected again. Nothing was lost — pick up exactly where you left off.",
+"offline.noRoute": "no route",
+"offline.deviceCap": "your device · f(x) = sin(x)",
+"offline.internetCap": "the internet",
+"offline.internetCapOnline": "the internet · connected",
+"offline.retry": "Try again",
+"offline.continue": "Continue",
+"offline.openStudio": "Open the Studio →",
+"offline.hear": "♪ Hear the signal",
+"offline.statusWaiting": "waiting for a connection… we will reconnect automatically",
+"offline.statusOnline": "<b>connected</b> · welcome back",
+"offline.statusStill": "still offline — nothing came back",
+"offline.worksTitle": "Still works, offline",
+"offline.works1": "Studio — type, graph, play",
+"offline.works2": "Guess — practice rounds",
+"offline.works3": "Exports you already made",
+"offline.needsTitle": "Needs the internet",
+"offline.needs1": "Opening shared links",
+"offline.needs2": "Notify-me sign-ups",
+"offline.needs3": "Support and payments",
+"offline.footer": "MathSonify.com · your equations are drawn on your device",
+"offline.toastOnline": "Back online",
+"offline.toastOffline": "Connection lost",
+"offline.toastSteady": "A steady signal",
+"offline.toastSilence": "…and then silence"
+},
+"es": {
+"offline.pill": "sin conexión",
+"offline.pillOnline": "de nuevo en línea",
+"offline.title": "La señal <em>se perdió.</em>",
+"offline.titleOnline": "Señal <em>restablecida.</em>",
+"offline.subOffline": "No tienes conexión, pero el Studio sigue funcionando en tu dispositivo. Las ecuaciones se dibujan y se escuchan aquí mismo.",
+"offline.subNoCache": "Ahora mismo no tienes conexión. Revisa tu wifi o tus datos móviles: estaremos aquí cuando vuelvas.",
+"offline.subOnline": "Ya estás conectado de nuevo. No se perdió nada: sigue justo donde lo dejaste.",
+"offline.noRoute": "sin ruta",
+"offline.deviceCap": "tu dispositivo · f(x) = sin(x)",
+"offline.internetCap": "internet",
+"offline.internetCapOnline": "internet · conectado",
+"offline.retry": "Intentar de nuevo",
+"offline.continue": "Continuar",
+"offline.openStudio": "Abrir el Studio →",
+"offline.hear": "♪ Escuchar la señal",
+"offline.statusWaiting": "esperando conexión… nos reconectaremos automáticamente",
+"offline.statusOnline": "<b>conectado</b> · bienvenido de nuevo",
+"offline.statusStill": "todavía sin conexión — no volvió nada",
+"offline.worksTitle": "Sigue funcionando sin conexión",
+"offline.works1": "Studio — escribe, grafica, escucha",
+"offline.works2": "Guess — rondas de práctica",
+"offline.works3": "Exportaciones que ya hiciste",
+"offline.needsTitle": "Necesita internet",
+"offline.needs1": "Abrir enlaces compartidos",
+"offline.needs2": "Registros de avisos",
+"offline.needs3": "Apoyo y pagos",
+"offline.footer": "MathSonify.com · tus ecuaciones se dibujan en tu dispositivo",
+"offline.toastOnline": "De nuevo en línea",
+"offline.toastOffline": "Conexión perdida",
+"offline.toastSteady": "Una señal estable",
+"offline.toastSilence": "…y luego silencio"
+},
+"pt": {
+"offline.pill": "offline",
+"offline.pillOnline": "de volta online",
+"offline.title": "O sinal <em>caiu.</em>",
+"offline.titleOnline": "Sinal <em>restabelecido.</em>",
+"offline.subOffline": "Você não está conectado, mas o Studio continua funcionando no seu dispositivo. As equações são desenhadas e tocadas aqui mesmo.",
+"offline.subNoCache": "Você não está conectado agora. Verifique seu Wi-Fi ou seus dados móveis — estaremos aqui quando você voltar.",
+"offline.subOnline": "Você está conectado novamente. Nada foi perdido — continue exatamente de onde parou.",
+"offline.noRoute": "sem rota",
+"offline.deviceCap": "seu dispositivo · f(x) = sin(x)",
+"offline.internetCap": "a internet",
+"offline.internetCapOnline": "a internet · conectado",
+"offline.retry": "Tentar novamente",
+"offline.continue": "Continuar",
+"offline.openStudio": "Abrir o Studio →",
+"offline.hear": "♪ Ouvir o sinal",
+"offline.statusWaiting": "aguardando conexão… vamos reconectar automaticamente",
+"offline.statusOnline": "<b>conectado</b> · bem-vindo de volta",
+"offline.statusStill": "ainda offline — nada voltou",
+"offline.worksTitle": "Ainda funciona offline",
+"offline.works1": "Studio — digite, grafique, ouça",
+"offline.works2": "Guess — rodadas de treino",
+"offline.works3": "Exportações que você já fez",
+"offline.needsTitle": "Precisa de internet",
+"offline.needs1": "Abrir links compartilhados",
+"offline.needs2": "Inscrições para avisos",
+"offline.needs3": "Apoio e pagamentos",
+"offline.footer": "MathSonify.com · suas equações são desenhadas no seu dispositivo",
+"offline.toastOnline": "De volta online",
+"offline.toastOffline": "Conexão perdida",
+"offline.toastSteady": "Um sinal estável",
+"offline.toastSilence": "…e então silêncio"
+},
+"fr": {
+"offline.pill": "hors ligne",
+"offline.pillOnline": "de retour en ligne",
+"offline.title": "Le signal <em>a été perdu.</em>",
+"offline.titleOnline": "Signal <em>rétabli.</em>",
+"offline.subOffline": "Vous n’êtes pas connecté, mais le Studio fonctionne toujours sur votre appareil. Les équations sont tracées et jouées ici même.",
+"offline.subNoCache": "Vous n’êtes pas connecté pour le moment. Vérifiez votre Wi-Fi ou vos données mobiles — nous serons là à votre retour.",
+"offline.subOnline": "Vous êtes de nouveau connecté. Rien n’a été perdu — reprenez exactement là où vous vous étiez arrêté.",
+"offline.noRoute": "aucune route",
+"offline.deviceCap": "votre appareil · f(x) = sin(x)",
+"offline.internetCap": "internet",
+"offline.internetCapOnline": "internet · connecté",
+"offline.retry": "Réessayer",
+"offline.continue": "Continuer",
+"offline.openStudio": "Ouvrir le Studio →",
+"offline.hear": "♪ Écouter le signal",
+"offline.statusWaiting": "en attente de connexion… nous nous reconnecterons automatiquement",
+"offline.statusOnline": "<b>connecté</b> · bon retour",
+"offline.statusStill": "toujours hors ligne — rien n’est revenu",
+"offline.worksTitle": "Fonctionne toujours hors ligne",
+"offline.works1": "Studio — écrire, tracer, écouter",
+"offline.works2": "Guess — manches d’entraînement",
+"offline.works3": "Exportations déjà réalisées",
+"offline.needsTitle": "Nécessite internet",
+"offline.needs1": "Ouverture des liens partagés",
+"offline.needs2": "Inscriptions aux notifications",
+"offline.needs3": "Soutien et paiements",
+"offline.footer": "MathSonify.com · vos équations sont tracées sur votre appareil",
+"offline.toastOnline": "De retour en ligne",
+"offline.toastOffline": "Connexion perdue",
+"offline.toastSteady": "Un signal stable",
+"offline.toastSilence": "…puis le silence"
+},
+"de": {
+"offline.pill": "offline",
+"offline.pillOnline": "wieder online",
+"offline.title": "Das Signal ist <em>abgerissen.</em>",
+"offline.titleOnline": "Signal <em>wiederhergestellt.</em>",
+"offline.subOffline": "Du bist nicht verbunden, aber das Studio läuft weiterhin auf deinem Gerät. Gleichungen werden genau hier gezeichnet und gespielt.",
+"offline.subNoCache": "Du bist gerade nicht verbunden. Prüfe dein WLAN oder deine mobilen Daten — wir sind hier, wenn du zurück bist.",
+"offline.subOnline": "Du bist wieder verbunden. Nichts ist verloren gegangen — mach genau da weiter, wo du aufgehört hast.",
+"offline.noRoute": "keine Route",
+"offline.deviceCap": "dein Gerät · f(x) = sin(x)",
+"offline.internetCap": "das Internet",
+"offline.internetCapOnline": "das Internet · verbunden",
+"offline.retry": "Erneut versuchen",
+"offline.continue": "Weiter",
+"offline.openStudio": "Studio öffnen →",
+"offline.hear": "♪ Signal hören",
+"offline.statusWaiting": "warte auf Verbindung… wir verbinden automatisch neu",
+"offline.statusOnline": "<b>verbunden</b> · willkommen zurück",
+"offline.statusStill": "immer noch offline — nichts kam zurück",
+"offline.worksTitle": "Funktioniert weiterhin offline",
+"offline.works1": "Studio — tippen, zeichnen, abspielen",
+"offline.works2": "Guess — Übungsrunden",
+"offline.works3": "Bereits erstellte Exporte",
+"offline.needsTitle": "Braucht Internet",
+"offline.needs1": "Geteilte Links öffnen",
+"offline.needs2": "Anmeldungen für Benachrichtigungen",
+"offline.needs3": "Unterstützung und Zahlungen",
+"offline.footer": "MathSonify.com · deine Gleichungen werden auf deinem Gerät gezeichnet",
+"offline.toastOnline": "Wieder online",
+"offline.toastOffline": "Verbindung verloren",
+"offline.toastSteady": "Ein stabiles Signal",
+"offline.toastSilence": "…und dann Stille"
+},
+"ja": {
+"offline.pill": "オフライン",
+"offline.pillOnline": "オンラインに復帰",
+"offline.title": "信号が<em>途切れました。</em>",
+"offline.titleOnline": "信号が<em>復旧しました。</em>",
+"offline.subOffline": "接続されていませんが、Studioはお使いのデバイス上で動作しています。方程式はここで描かれ、演奏されます。",
+"offline.subNoCache": "現在接続されていません。Wi-Fiまたはモバイルデータを確認してください。戻ってきたとき、ここにいます。",
+"offline.subOnline": "再び接続されました。何も失われていません — 中断したところからそのまま続けてください。",
+"offline.noRoute": "経路なし",
+"offline.deviceCap": "お使いのデバイス · f(x) = sin(x)",
+"offline.internetCap": "インターネット",
+"offline.internetCapOnline": "インターネット · 接続済み",
+"offline.retry": "もう一度試す",
+"offline.continue": "続ける",
+"offline.openStudio": "Studioを開く →",
+"offline.hear": "♪ 信号を聴く",
+"offline.statusWaiting": "接続を待っています… 自動的に再接続します",
+"offline.statusOnline": "<b>接続済み</b> · おかえりなさい",
+"offline.statusStill": "まだオフラインです — 何も戻ってきませんでした",
+"offline.worksTitle": "オフラインでも動作します",
+"offline.works1": "Studio — 入力、描画、演奏",
+"offline.works2": "Guess — 練習ラウンド",
+"offline.works3": "作成済みのエクスポート",
+"offline.needsTitle": "インターネットが必要です",
+"offline.needs1": "共有リンクを開く",
+"offline.needs2": "通知の登録",
+"offline.needs3": "サポートとお支払い",
+"offline.footer": "MathSonify.com · 方程式はお使いのデバイス上で描かれます",
+"offline.toastOnline": "オンラインに復帰しました",
+"offline.toastOffline": "接続が切れました",
+"offline.toastSteady": "安定した信号",
+"offline.toastSilence": "…そして沈黙"
+},
+"zh": {
+"offline.pill": "离线",
+"offline.pillOnline": "恢复在线",
+"offline.title": "信号<em>中断了。</em>",
+"offline.titleOnline": "信号<em>已恢复。</em>",
+"offline.subOffline": "您当前未连接，但 Studio 仍在您的设备上运行。方程式就在这里绘制和播放。",
+"offline.subNoCache": "您现在没有连接。请检查 Wi-Fi 或移动数据——您回来时我们还在这里。",
+"offline.subOnline": "您已重新连接。什么都没有丢失——从您离开的地方继续。",
+"offline.noRoute": "无路由",
+"offline.deviceCap": "您的设备 · f(x) = sin(x)",
+"offline.internetCap": "互联网",
+"offline.internetCapOnline": "互联网 · 已连接",
+"offline.retry": "重试",
+"offline.continue": "继续",
+"offline.openStudio": "打开 Studio →",
+"offline.hear": "♪ 收听信号",
+"offline.statusWaiting": "正在等待连接…我们将自动重新连接",
+"offline.statusOnline": "<b>已连接</b> · 欢迎回来",
+"offline.statusStill": "仍处于离线状态——没有任何回应",
+"offline.worksTitle": "离线仍可使用",
+"offline.works1": "Studio——输入、绘图、播放",
+"offline.works2": "Guess——练习轮次",
+"offline.works3": "您已创建的导出",
+"offline.needsTitle": "需要互联网",
+"offline.needs1": "打开共享链接",
+"offline.needs2": "通知注册",
+"offline.needs3": "支持与付款",
+"offline.footer": "MathSonify.com · 您的方程式在您的设备上绘制",
+"offline.toastOnline": "恢复在线",
+"offline.toastOffline": "连接已断开",
+"offline.toastSteady": "信号稳定",
+"offline.toastSilence": "……然后一片寂静"
+},
+"ko": {
+"offline.pill": "오프라인",
+"offline.pillOnline": "다시 온라인",
+"offline.title": "신호가 <em>끊겼습니다.</em>",
+"offline.titleOnline": "신호가 <em>복구되었습니다.</em>",
+"offline.subOffline": "연결되어 있지 않지만 Studio는 기기에서 계속 실행됩니다. 방정식은 바로 여기에서 그려지고 재생됩니다.",
+"offline.subNoCache": "지금 연결되어 있지 않습니다. Wi-Fi나 모바일 데이터를 확인해 주세요. 돌아오시면 여기 있겠습니다.",
+"offline.subOnline": "다시 연결되었습니다. 잃은 것은 없습니다. 중단한 곳에서 그대로 이어가세요.",
+"offline.noRoute": "경로 없음",
+"offline.deviceCap": "내 기기 · f(x) = sin(x)",
+"offline.internetCap": "인터넷",
+"offline.internetCapOnline": "인터넷 · 연결됨",
+"offline.retry": "다시 시도",
+"offline.continue": "계속",
+"offline.openStudio": "Studio 열기 →",
+"offline.hear": "♪ 신호 듣기",
+"offline.statusWaiting": "연결 대기 중… 자동으로 다시 연결됩니다",
+"offline.statusOnline": "<b>연결됨</b> · 다시 오신 것을 환영합니다",
+"offline.statusStill": "여전히 오프라인입니다 — 아무것도 돌아오지 않았습니다",
+"offline.worksTitle": "오프라인에서도 작동합니다",
+"offline.works1": "Studio — 입력, 그래프, 재생",
+"offline.works2": "Guess — 연습 라운드",
+"offline.works3": "이미 만든 내보내기",
+"offline.needsTitle": "인터넷이 필요합니다",
+"offline.needs1": "공유 링크 열기",
+"offline.needs2": "알림 신청",
+"offline.needs3": "후원 및 결제",
+"offline.footer": "MathSonify.com · 방정식은 기기에서 그려집니다",
+"offline.toastOnline": "다시 온라인",
+"offline.toastOffline": "연결이 끊겼습니다",
+"offline.toastSteady": "안정적인 신호",
+"offline.toastSilence": "…그리고 침묵"
+},
+"ar": {
+"offline.pill": "دون اتصال",
+"offline.pillOnline": "عاد الاتصال",
+"offline.title": "انقطعت <em>الإشارة.</em>",
+"offline.titleOnline": "تمت استعادة <em>الإشارة.</em>",
+"offline.subOffline": "أنت غير متصل، لكن الاستوديو ما زال يعمل على جهازك. المعادلات تُرسم وتُعزف هنا مباشرة.",
+"offline.subNoCache": "أنت غير متصل الآن. تحقق من شبكة Wi-Fi أو بيانات الجوال — سنكون هنا عندما تعود.",
+"offline.subOnline": "أنت متصل مجددًا. لم يُفقد شيء — تابع من حيث توقفت تمامًا.",
+"offline.noRoute": "لا يوجد مسار",
+"offline.deviceCap": "جهازك · f(x) = sin(x)",
+"offline.internetCap": "الإنترنت",
+"offline.internetCapOnline": "الإنترنت · متصل",
+"offline.retry": "حاول مجددًا",
+"offline.continue": "متابعة",
+"offline.openStudio": "افتح الاستوديو →",
+"offline.hear": "♪ استمع إلى الإشارة",
+"offline.statusWaiting": "بانتظار الاتصال… سنعيد الاتصال تلقائيًا",
+"offline.statusOnline": "<b>متصل</b> · مرحبًا بعودتك",
+"offline.statusStill": "ما زلت دون اتصال — لم يعد شيء",
+"offline.worksTitle": "ما زال يعمل دون اتصال",
+"offline.works1": "الاستوديو — اكتب، ارسم، شغّل",
+"offline.works2": "Guess — جولات تدريب",
+"offline.works3": "التصديرات التي أنشأتها بالفعل",
+"offline.needsTitle": "يحتاج إلى الإنترنت",
+"offline.needs1": "فتح الروابط المشتركة",
+"offline.needs2": "التسجيل في الإشعارات",
+"offline.needs3": "الدعم والمدفوعات",
+"offline.footer": "MathSonify.com · معادلاتك تُرسم على جهازك",
+"offline.toastOnline": "عاد الاتصال",
+"offline.toastOffline": "انقطع الاتصال",
+"offline.toastSteady": "إشارة ثابتة",
+"offline.toastSilence": "…ثم صمت"
+},
+"it": {
+"offline.pill": "offline",
+"offline.pillOnline": "di nuovo online",
+"offline.title": "Il segnale <em>è caduto.</em>",
+"offline.titleOnline": "Segnale <em>ripristinato.</em>",
+"offline.subOffline": "Non sei connesso, ma lo Studio continua a funzionare sul tuo dispositivo. Le equazioni vengono disegnate e suonate proprio qui.",
+"offline.subNoCache": "Al momento non sei connesso. Controlla il Wi-Fi o i dati mobili — saremo qui quando tornerai.",
+"offline.subOnline": "Sei di nuovo connesso. Non è andato perso nulla — riprendi esattamente da dove avevi lasciato.",
+"offline.noRoute": "nessuna rotta",
+"offline.deviceCap": "il tuo dispositivo · f(x) = sin(x)",
+"offline.internetCap": "internet",
+"offline.internetCapOnline": "internet · connesso",
+"offline.retry": "Riprova",
+"offline.continue": "Continua",
+"offline.openStudio": "Apri lo Studio →",
+"offline.hear": "♪ Ascolta il segnale",
+"offline.statusWaiting": "in attesa di connessione… ci riconnetteremo automaticamente",
+"offline.statusOnline": "<b>connesso</b> · bentornato",
+"offline.statusStill": "ancora offline — non è tornato nulla",
+"offline.worksTitle": "Funziona ancora offline",
+"offline.works1": "Studio — scrivi, disegna, suona",
+"offline.works2": "Guess — turni di pratica",
+"offline.works3": "Esportazioni già fatte",
+"offline.needsTitle": "Serve internet",
+"offline.needs1": "Aprire i link condivisi",
+"offline.needs2": "Iscrizioni agli avvisi",
+"offline.needs3": "Supporto e pagamenti",
+"offline.footer": "MathSonify.com · le tue equazioni vengono disegnate sul tuo dispositivo",
+"offline.toastOnline": "Di nuovo online",
+"offline.toastOffline": "Connessione persa",
+"offline.toastSteady": "Un segnale stabile",
+"offline.toastSilence": "…e poi silenzio"
+},
+"no": {
+"offline.pill": "frakoblet",
+"offline.pillOnline": "tilbake på nett",
+"offline.title": "Signalet <em>falt ut.</em>",
+"offline.titleOnline": "Signal <em>gjenopprettet.</em>",
+"offline.subOffline": "Du er ikke tilkoblet, men Studioet kjører fortsatt på enheten din. Ligninger tegnes og spilles av akkurat her.",
+"offline.subNoCache": "Du er ikke tilkoblet akkurat nå. Sjekk Wi-Fi eller mobildata — vi er her når du er tilbake.",
+"offline.subOnline": "Du er tilkoblet igjen. Ingenting gikk tapt — fortsett akkurat der du slapp.",
+"offline.noRoute": "ingen rute",
+"offline.deviceCap": "enheten din · f(x) = sin(x)",
+"offline.internetCap": "internettet",
+"offline.internetCapOnline": "internettet · tilkoblet",
+"offline.retry": "Prøv igjen",
+"offline.continue": "Fortsett",
+"offline.openStudio": "Åpne Studioet →",
+"offline.hear": "♪ Hør signalet",
+"offline.statusWaiting": "venter på tilkobling… vi kobler til automatisk igjen",
+"offline.statusOnline": "<b>tilkoblet</b> · velkommen tilbake",
+"offline.statusStill": "fortsatt frakoblet — ingenting kom tilbake",
+"offline.worksTitle": "Fungerer fortsatt frakoblet",
+"offline.works1": "Studio — skriv, tegn, spill av",
+"offline.works2": "Guess — øvingsrunder",
+"offline.works3": "Eksporter du allerede har laget",
+"offline.needsTitle": "Trenger internett",
+"offline.needs1": "Åpne delte lenker",
+"offline.needs2": "Påmeldinger til varsler",
+"offline.needs3": "Støtte og betalinger",
+"offline.footer": "MathSonify.com · ligningene dine tegnes på enheten din",
+"offline.toastOnline": "Tilbake på nett",
+"offline.toastOffline": "Tilkobling mistet",
+"offline.toastSteady": "Et stabilt signal",
+"offline.toastSilence": "…og så stillhet"
+},
+"da": {
+"offline.pill": "offline",
+"offline.pillOnline": "tilbage online",
+"offline.title": "Signalet <em>faldt ud.</em>",
+"offline.titleOnline": "Signal <em>genoprettet.</em>",
+"offline.subOffline": "Du er ikke forbundet, men Studiet kører stadig på din enhed. Ligninger tegnes og afspilles lige her.",
+"offline.subNoCache": "Du er ikke forbundet lige nu. Tjek din Wi-Fi eller mobildata — vi er her, når du er tilbage.",
+"offline.subOnline": "Du er forbundet igen. Intet gik tabt — fortsæt præcis, hvor du slap.",
+"offline.noRoute": "ingen rute",
+"offline.deviceCap": "din enhed · f(x) = sin(x)",
+"offline.internetCap": "internettet",
+"offline.internetCapOnline": "internettet · forbundet",
+"offline.retry": "Prøv igen",
+"offline.continue": "Fortsæt",
+"offline.openStudio": "Åbn Studiet →",
+"offline.hear": "♪ Hør signalet",
+"offline.statusWaiting": "venter på forbindelse… vi forbinder automatisk igen",
+"offline.statusOnline": "<b>forbundet</b> · velkommen tilbage",
+"offline.statusStill": "stadig offline — intet kom tilbage",
+"offline.worksTitle": "Virker stadig offline",
+"offline.works1": "Studie — skriv, tegn, afspil",
+"offline.works2": "Guess — øverunder",
+"offline.works3": "Eksporter, du allerede har lavet",
+"offline.needsTitle": "Kræver internet",
+"offline.needs1": "Åbning af delte links",
+"offline.needs2": "Tilmeldinger til besked",
+"offline.needs3": "Støtte og betalinger",
+"offline.footer": "MathSonify.com · dine ligninger tegnes på din enhed",
+"offline.toastOnline": "Tilbage online",
+"offline.toastOffline": "Forbindelse mistet",
+"offline.toastSteady": "Et stabilt signal",
+"offline.toastSilence": "…og så stilhed"
+},
+"nl": {
+"offline.pill": "offline",
+"offline.pillOnline": "weer online",
+"offline.title": "Het signaal is <em>weggevallen.</em>",
+"offline.titleOnline": "Signaal <em>hersteld.</em>",
+"offline.subOffline": "Je bent niet verbonden, maar de Studio draait nog steeds op je apparaat. Vergelijkingen worden hier getekend en afgespeeld.",
+"offline.subNoCache": "Je bent nu niet verbonden. Controleer je wifi of mobiele data — we zijn er weer als je terug bent.",
+"offline.subOnline": "Je bent weer verbonden. Er is niets verloren gegaan — ga verder waar je gebleven was.",
+"offline.noRoute": "geen route",
+"offline.deviceCap": "je apparaat · f(x) = sin(x)",
+"offline.internetCap": "het internet",
+"offline.internetCapOnline": "het internet · verbonden",
+"offline.retry": "Opnieuw proberen",
+"offline.continue": "Doorgaan",
+"offline.openStudio": "Open de Studio →",
+"offline.hear": "♪ Hoor het signaal",
+"offline.statusWaiting": "wachten op verbinding… we verbinden automatisch opnieuw",
+"offline.statusOnline": "<b>verbonden</b> · welkom terug",
+"offline.statusStill": "nog steeds offline — er kwam niets terug",
+"offline.worksTitle": "Werkt nog steeds offline",
+"offline.works1": "Studio — typen, tekenen, afspelen",
+"offline.works2": "Guess — oefenrondes",
+"offline.works3": "Exports die je al maakte",
+"offline.needsTitle": "Heeft internet nodig",
+"offline.needs1": "Gedeelde links openen",
+"offline.needs2": "Aanmeldingen voor meldingen",
+"offline.needs3": "Steun en betalingen",
+"offline.footer": "MathSonify.com · je vergelijkingen worden op je apparaat getekend",
+"offline.toastOnline": "Weer online",
+"offline.toastOffline": "Verbinding verloren",
+"offline.toastSteady": "Een stabiel signaal",
+"offline.toastSilence": "…en toen stilte"
+},
+"sv": {
+"offline.pill": "offline",
+"offline.pillOnline": "tillbaka online",
+"offline.title": "Signalen <em>försvann.</em>",
+"offline.titleOnline": "Signal <em>återställd.</em>",
+"offline.subOffline": "Du är inte ansluten, men Studion körs fortfarande på din enhet. Ekvationer ritas och spelas upp precis här.",
+"offline.subNoCache": "Du är inte ansluten just nu. Kontrollera ditt Wi-Fi eller mobildata — vi finns här när du är tillbaka.",
+"offline.subOnline": "Du är ansluten igen. Ingenting gick förlorat — fortsätt precis där du slutade.",
+"offline.noRoute": "ingen väg",
+"offline.deviceCap": "din enhet · f(x) = sin(x)",
+"offline.internetCap": "internet",
+"offline.internetCapOnline": "internet · ansluten",
+"offline.retry": "Försök igen",
+"offline.continue": "Fortsätt",
+"offline.openStudio": "Öppna Studion →",
+"offline.hear": "♪ Hör signalen",
+"offline.statusWaiting": "väntar på anslutning… vi ansluter automatiskt igen",
+"offline.statusOnline": "<b>ansluten</b> · välkommen tillbaka",
+"offline.statusStill": "fortfarande offline — ingenting kom tillbaka",
+"offline.worksTitle": "Fungerar fortfarande offline",
+"offline.works1": "Studio — skriv, rita, spela upp",
+"offline.works2": "Guess — övningsrundor",
+"offline.works3": "Exporter du redan gjort",
+"offline.needsTitle": "Behöver internet",
+"offline.needs1": "Öppna delade länkar",
+"offline.needs2": "Anmälningar till aviseringar",
+"offline.needs3": "Stöd och betalningar",
+"offline.footer": "MathSonify.com · dina ekvationer ritas på din enhet",
+"offline.toastOnline": "Tillbaka online",
+"offline.toastOffline": "Anslutning förlorad",
+"offline.toastSteady": "En stabil signal",
+"offline.toastSilence": "…och sedan tystnad"
+},
+"fi": {
+"offline.pill": "offline",
+"offline.pillOnline": "takaisin verkossa",
+"offline.title": "Signaali <em>katkesi.</em>",
+"offline.titleOnline": "Signaali <em>palautettu.</em>",
+"offline.subOffline": "Et ole yhteydessä, mutta Studio toimii yhä laitteellasi. Yhtälöt piirretään ja soitetaan juuri tässä.",
+"offline.subNoCache": "Et ole yhteydessä juuri nyt. Tarkista Wi-Fi tai mobiilidata — olemme täällä, kun palaat.",
+"offline.subOnline": "Olet taas yhteydessä. Mitään ei kadonnut — jatka juuri siitä, mihin jäit.",
+"offline.noRoute": "ei reittiä",
+"offline.deviceCap": "laitteesi · f(x) = sin(x)",
+"offline.internetCap": "internet",
+"offline.internetCapOnline": "internet · yhdistetty",
+"offline.retry": "Yritä uudelleen",
+"offline.continue": "Jatka",
+"offline.openStudio": "Avaa Studio →",
+"offline.hear": "♪ Kuuntele signaali",
+"offline.statusWaiting": "odotetaan yhteyttä… yhdistämme automaattisesti uudelleen",
+"offline.statusOnline": "<b>yhdistetty</b> · tervetuloa takaisin",
+"offline.statusStill": "yhä offline — mitään ei palannut",
+"offline.worksTitle": "Toimii yhä offline",
+"offline.works1": "Studio — kirjoita, piirrä, soita",
+"offline.works2": "Guess — harjoituskierrokset",
+"offline.works3": "Viemäsi, jotka olet jo tehnyt",
+"offline.needsTitle": "Tarvitsee internetin",
+"offline.needs1": "Jaettujen linkkien avaaminen",
+"offline.needs2": "Ilmoittautumiset ilmoituksiin",
+"offline.needs3": "Tuki ja maksut",
+"offline.footer": "MathSonify.com · yhtälösi piirretään laitteellasi",
+"offline.toastOnline": "Takaisin verkossa",
+"offline.toastOffline": "Yhteys katkesi",
+"offline.toastSteady": "Vakaa signaali",
+"offline.toastSilence": "…ja sitten hiljaisuus"
+},
+"ga": {
+"offline.pill": "as líne",
+"offline.pillOnline": "ar ais ar líne",
+"offline.title": "Thit an comhartha <em>amach.</em>",
+"offline.titleOnline": "Comhartha <em>athchóirithe.</em>",
+"offline.subOffline": "Níl tú ceangailte, ach tá an Studio ag rith fós ar do ghléas. Tarraingítear agus seinntear na cothromóidí anseo féin.",
+"offline.subNoCache": "Níl tú ceangailte faoi láthair. Seiceáil do Wi-Fi nó do shonraí soghluaiste — beimid anseo nuair a fhilleann tú.",
+"offline.subOnline": "Tá tú ceangailte arís. Níor cailleadh rud ar bith — lean ar aghaidh díreach ón áit ar stop tú.",
+"offline.noRoute": "gan bhealach",
+"offline.deviceCap": "do ghléas · f(x) = sin(x)",
+"offline.internetCap": "an t-idirlíon",
+"offline.internetCapOnline": "an t-idirlíon · ceangailte",
+"offline.retry": "Bain triail eile as",
+"offline.continue": "Lean ar aghaidh",
+"offline.openStudio": "Oscail an Studio →",
+"offline.hear": "♪ Éist leis an gcomhartha",
+"offline.statusWaiting": "ag fanacht le nasc… athcheanglóimid go huathoibríoch",
+"offline.statusOnline": "<b>ceangailte</b> · fáilte ar ais",
+"offline.statusStill": "as líne fós — níor tháinig rud ar bith ar ais",
+"offline.worksTitle": "Ag obair fós as líne",
+"offline.works1": "Studio — clóscríobh, tarraing, seinn",
+"offline.works2": "Guess — babhtaí cleachtaidh",
+"offline.works3": "Easpórtálacha atá déanta agat cheana",
+"offline.needsTitle": "Teastaíonn an t-idirlíon",
+"offline.needs1": "Naisc chomhroinnte a oscailt",
+"offline.needs2": "Clárúcháin fógra",
+"offline.needs3": "Tacaíocht agus íocaíochtaí",
+"offline.footer": "MathSonify.com · tarraingítear do chothromóidí ar do ghléas",
+"offline.toastOnline": "Ar ais ar líne",
+"offline.toastOffline": "Nasc caillte",
+"offline.toastSteady": "Comhartha seasmhach",
+"offline.toastSilence": "…agus ansin tost"
+},
+"mi": {
+"offline.pill": "tuimotu",
+"offline.pillOnline": "hoki mai ki te ipurangi",
+"offline.title": "Kua <em>ngaro</em> te tohu.",
+"offline.titleOnline": "Kua <em>whakaora</em> te tohu.",
+"offline.subOffline": "Kāore koe i te hono, engari kei te rere tonu te Studio i runga i tō pūrere. Ka tuhia, ka whakatangihia ngā whārite i konei tonu.",
+"offline.subNoCache": "Kāore koe i te hono i tēnei wā. Tirohia tō Wi-Fi, ō raraunga pūkoro rānei — ka noho mātou ki konei ina hoki mai koe.",
+"offline.subOnline": "Kua hono anō koe. Kāore he mea i ngaro — haere tonu mai i te wāhi i mutu ai koe.",
+"offline.noRoute": "kāore he ara",
+"offline.deviceCap": "tō pūrere · f(x) = sin(x)",
+"offline.internetCap": "te ipurangi",
+"offline.internetCapOnline": "te ipurangi · kua hono",
+"offline.retry": "Whakamātauria anō",
+"offline.continue": "Haere tonu",
+"offline.openStudio": "Whakatuwheratia te Studio →",
+"offline.hear": "♪ Whakarongo ki te tohu",
+"offline.statusWaiting": "e tatari ana mō te hononga… ka hono aunoa anō mātou",
+"offline.statusOnline": "<b>kua hono</b> · nau mai hoki mai",
+"offline.statusStill": "tuimotu tonu — kāore he mea i hoki mai",
+"offline.worksTitle": "Kei te mahi tonu, tuimotu",
+"offline.works1": "Studio — tuhi, tuhi kauwhata, whakatangi",
+"offline.works2": "Guess — ngā rauna whakaharatau",
+"offline.works3": "Ngā kaweake kua oti i a koe",
+"offline.needsTitle": "Me whai ipurangi",
+"offline.needs1": "Te whakatuwhera i ngā hononga tiritiri",
+"offline.needs2": "Ngā rēhitatanga whakamōhio",
+"offline.needs3": "Tautoko me ngā utu",
+"offline.footer": "MathSonify.com · ka tuhia ō whārite ki runga i tō pūrere",
+"offline.toastOnline": "Hoki mai ki te ipurangi",
+"offline.toastOffline": "Kua ngaro te hononga",
+"offline.toastSteady": "He tohu pūmau",
+"offline.toastSilence": "…kātahi ka noho puku"
+},
+"ms": {
+"offline.pill": "luar talian",
+"offline.pillOnline": "kembali dalam talian",
+"offline.title": "Isyarat <em>terputus.</em>",
+"offline.titleOnline": "Isyarat <em>dipulihkan.</em>",
+"offline.subOffline": "Anda tidak bersambung, tetapi Studio masih berjalan pada peranti anda. Persamaan dilukis dan dimainkan di sini.",
+"offline.subNoCache": "Anda tidak bersambung sekarang. Semak Wi-Fi atau data mudah alih anda — kami akan berada di sini apabila anda kembali.",
+"offline.subOnline": "Anda bersambung semula. Tiada apa-apa yang hilang — sambung tepat di tempat anda berhenti.",
+"offline.noRoute": "tiada laluan",
+"offline.deviceCap": "peranti anda · f(x) = sin(x)",
+"offline.internetCap": "internet",
+"offline.internetCapOnline": "internet · bersambung",
+"offline.retry": "Cuba lagi",
+"offline.continue": "Teruskan",
+"offline.openStudio": "Buka Studio →",
+"offline.hear": "♪ Dengar isyarat",
+"offline.statusWaiting": "menunggu sambungan… kami akan menyambung semula secara automatik",
+"offline.statusOnline": "<b>bersambung</b> · selamat kembali",
+"offline.statusStill": "masih luar talian — tiada apa-apa yang kembali",
+"offline.worksTitle": "Masih berfungsi luar talian",
+"offline.works1": "Studio — taip, lukis, main",
+"offline.works2": "Guess — pusingan latihan",
+"offline.works3": "Eksport yang telah anda buat",
+"offline.needsTitle": "Memerlukan internet",
+"offline.needs1": "Membuka pautan kongsi",
+"offline.needs2": "Pendaftaran pemberitahuan",
+"offline.needs3": "Sokongan dan pembayaran",
+"offline.footer": "MathSonify.com · persamaan anda dilukis pada peranti anda",
+"offline.toastOnline": "Kembali dalam talian",
+"offline.toastOffline": "Sambungan terputus",
+"offline.toastSteady": "Isyarat yang stabil",
+"offline.toastSilence": "…dan kemudian senyap"
+},
+"lb": {
+"offline.pill": "offline",
+"offline.pillOnline": "erëm online",
+"offline.title": "D'Signal ass <em>ewech.</em>",
+"offline.titleOnline": "Signal <em>erëm do.</em>",
+"offline.subOffline": "Du bass net verbonnen, mee de Studio leeft weider op dengem Apparat. Gleichunge ginn hei gezeechent a gespillt.",
+"offline.subNoCache": "Du bass elo net verbonnen. Kuck deng Wi-Fi oder deng mobil Daten no — mir sinn hei, wann s du zeréck bass.",
+"offline.subOnline": "Du bass erëm verbonnen. Näischt ass verluer gaang — maach genee do weider, wou s du opgehalen hues.",
+"offline.noRoute": "kee Wee",
+"offline.deviceCap": "dengen Apparat · f(x) = sin(x)",
+"offline.internetCap": "d'Internet",
+"offline.internetCapOnline": "d'Internet · verbonnen",
+"offline.retry": "Nach eng Kéier probéieren",
+"offline.continue": "Weider",
+"offline.openStudio": "De Studio opmaachen →",
+"offline.hear": "♪ D'Signal héieren",
+"offline.statusWaiting": "waart op eng Verbindung… mir verbannen automatesch erëm",
+"offline.statusOnline": "<b>verbonnen</b> · wëllkomm zeréck",
+"offline.statusStill": "nach ëmmer offline — näischt ass zeréckkomm",
+"offline.worksTitle": "Funktionéiert nach ëmmer offline",
+"offline.works1": "Studio — tippen, zeechnen, spillen",
+"offline.works2": "Guess — Trainingsronnen",
+"offline.works3": "Exporten, déi s du schonn gemaach hues",
+"offline.needsTitle": "Braucht d'Internet",
+"offline.needs1": "Gedeelt Linken opmaachen",
+"offline.needs2": "Umeldunge fir Notifikatiounen",
+"offline.needs3": "Ënnerstëtzung a Bezuelen",
+"offline.footer": "MathSonify.com · deng Gleichunge ginn op dengem Apparat gezeechent",
+"offline.toastOnline": "Erëm online",
+"offline.toastOffline": "Verbindung verluer",
+"offline.toastSteady": "E stabilt Signal",
+"offline.toastSilence": "…an dann Rou"
+}
+};
+/* Look a key up for the visitor's stored language ('mathsonify-lang');
+   null when the language or the key is missing, so callers fall back to
+   the English text already in the HTML. */
+function msOfflineT(key){
+  try{
+    var lang=localStorage.getItem('mathsonify-lang')||'en-US';
+    if(lang==='en')lang='en-US';
+    var row=OFFLINE_TEXT[lang]||OFFLINE_TEXT['en-US'];
+    if(row&&row[key]!=null)return row[key];
+    var en=OFFLINE_TEXT['en-US'];
+    return en&&en[key]!=null?en[key]:null;
+  }catch(e){return null;}
+}
+/* Swap the static [data-i18n] / [data-i18n-html] text on load. The page's
+   own script re-applies the same table whenever the connection state
+   changes, so the dynamic strings stay translated too. */
+(function(){
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var v=msOfflineT(el.getAttribute('data-i18n'));
+    if(v!=null)el.textContent=v;
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(function(el){
+    var v=msOfflineT(el.getAttribute('data-i18n-html'));
+    if(v!=null)el.innerHTML=v;
+  });
+})();
+</script>
 <script is:inline>
 const $=s=>document.querySelector(s),TAU=Math.PI*2,RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ink=a=>'rgba('+getComputedStyle(document.documentElement).getPropertyValue('--ink').trim()+','+a+')';
@@ -90,15 +753,19 @@ document.querySelectorAll('#theme button').forEach(b=>b.onclick=()=>{document.do
 syncThemeButtons();
 function fit(){const d=Math.min(devicePixelRatio||1,2),w=cv.clientWidth,h=cv.clientHeight;if(!w)return null;if(cv.width!==Math.round(w*d)){cv.width=Math.round(w*d);cv.height=Math.round(h*d);}const x=cv.getContext('2d');x.setTransform(d,0,0,d,0,0);return{x,w,h};}
 function copy(){
- $('#pill').classList.toggle('ok',online);$('#pillT').textContent=online?'back online':'offline';
- $('#h1').innerHTML=online?'Signal <em>restored.</em>':'The signal <em>dropped.</em>';
- $('#sub').textContent=online?'You are connected again. Nothing was lost — pick up exactly where you left off.':cached?'You are not connected, but the Studio still runs on your device. Equations are drawn and played right here.':'You are not connected right now. Check your Wi-Fi or mobile data — we will be here when you are back.';
- var rt=$('#retryT');if(rt)rt.textContent=online?'Continue':'Try again';$('#open').style.display=(cached&&!online)?'':'none';$('#works').style.display=(cached&&!online)?'':'none';
- $('#capR').textContent=online?'the internet · connected':'the internet';$('#mid').style.opacity=online?0:1;
- $('#status').innerHTML=online?'<b>connected</b> · welcome back':'waiting for a connection<span class="dots"></span> we will reconnect automatically';}
+ /* Dynamic strings come from the embedded OFFLINE_TEXT table (msOfflineT),
+    with the English text as fallback — copy() re-runs on every state
+    change, so it must translate, not just the one-off swap above. */
+ $('#pill').classList.toggle('ok',online);$('#pillT').textContent=online?(msOfflineT('offline.pillOnline')||'back online'):(msOfflineT('offline.pill')||'offline');
+ $('#h1').innerHTML=online?(msOfflineT('offline.titleOnline')||'Signal <em>restored.</em>'):(msOfflineT('offline.title')||'The signal <em>dropped.</em>');
+ $('#sub').textContent=online?(msOfflineT('offline.subOnline')||'You are connected again. Nothing was lost — pick up exactly where you left off.'):(cached?(msOfflineT('offline.subOffline')||'You are not connected, but the Studio still runs on your device. Equations are drawn and played right here.'):(msOfflineT('offline.subNoCache')||'You are not connected right now. Check your Wi-Fi or mobile data — we will be here when you are back.'));
+ var rt=$('#retryT');if(rt)rt.textContent=online?(msOfflineT('offline.continue')||'Continue'):(msOfflineT('offline.retry')||'Try again');$('#open').style.display=(cached&&!online)?'':'none';$('#works').style.display=(cached&&!online)?'':'none';
+ $('#capR').textContent=online?(msOfflineT('offline.internetCapOnline')||'the internet · connected'):(msOfflineT('offline.internetCap')||'the internet');$('#mid').style.opacity=online?0:1;
+ var w=msOfflineT('offline.statusWaiting')||'waiting for a connection… we will reconnect automatically';
+ $('#status').innerHTML=online?(msOfflineT('offline.statusOnline')||'<b>connected</b> · welcome back'):w.replace('…','<span class="dots"></span>');}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2200);}
 function setOnline(v,say){
-  if(v===online)return;online=v;copy();if(say)toast(v?'Back online':'Connection lost');
+  if(v===online)return;online=v;copy();if(say)toast(v?(msOfflineT('offline.toastOnline')||'Back online'):(msOfflineT('offline.toastOffline')||'Connection lost'));
   /* The worker serves this page under the URL the visitor wanted, so a
      reload on reconnect takes them straight back to where they were. */
   if(v){backTimer=setTimeout(function(){window.location.reload();},1400);}
@@ -118,18 +785,18 @@ $('#retry').onclick=()=>{
   const ctl=new AbortController();const timer=setTimeout(function(){ctl.abort();},4000);
   fetch('/favicon.jpeg?probe='+Date.now(),{cache:'no-store',signal:ctl.signal}).then(function(r){
     clearTimeout(timer);if(done)return;done=true;checking=false;b.disabled=false;
-    b.innerHTML='<span id="retryT">Try again</span>';
+    b.innerHTML='<span id="retryT">'+(msOfflineT('offline.retry')||'Try again')+'</span>';
     if(r&&r.ok){setOnline(true,true);return;}
     throw new Error('not ok');
   }).catch(function(){
-    clearTimeout(timer);if(done)return;done=true;checking=false;b.disabled=false;b.innerHTML='<span id="retryT">Try again</span>';
+    clearTimeout(timer);if(done)return;done=true;checking=false;b.disabled=false;b.innerHTML='<span id="retryT">'+(msOfflineT('offline.retry')||'Try again')+'</span>';
     $('#stage').classList.remove('shake');void $('#stage').offsetWidth;$('#stage').classList.add('shake');
-    $('#status').textContent='still offline — nothing came back';setTimeout(copy,2200);
+    $('#status').textContent=msOfflineT('offline.statusStill')||'still offline — nothing came back';setTimeout(copy,2200);
   });
 };
 let ac;$('#hear').onclick=()=>{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=440;o.connect(g).connect(ac.destination);
  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.05);g.gain.setValueAtTime(.12,t+.9);g.gain.setValueAtTime(.0001,t+.905); // the signal cuts out, abruptly
- if(online){g.gain.setValueAtTime(.12,t+.905);g.gain.exponentialRampToValueAtTime(.0001,t+1.6);}o.start(t);o.stop(t+1.7);toast(online?'A steady signal':'…and then silence');};
+ if(online){g.gain.setValueAtTime(.12,t+.905);g.gain.exponentialRampToValueAtTime(.0001,t+1.6);}o.start(t);o.stop(t+1.7);toast(online?(msOfflineT('offline.toastSteady')||'A steady signal'):(msOfflineT('offline.toastSilence')||'…and then silence'));};
 function spark(x,y){if(RM)return;for(let i=0;i<16;i++){const a=Math.random()*TAU,s=40+Math.random()*90;parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:1});}}
 function draw(now){requestAnimationFrame(draw);const dt=Math.min(.05,(now-lastNow)/1000);lastNow=now;if(!vis)return;
  gap+=((online?0:1)-gap)*Math.min(1,dt*(online?4:6));if(Math.abs(gap-(online?0:1))<.002)gap=online?0:1;

@@ -103,7 +103,12 @@ export function t(key: TranslationKey, lang?: Lang): string {
   return dict[key] ?? (DICTS[FALLBACK_LANG] as Record<string, string>)[key] ?? key;
 }
 
-// Scan the page for [data-i18n] and replace textContent / placeholders
+// Scan the page for [data-i18n] and replace textContent / placeholders.
+// Elements with [data-i18n-html] get their innerHTML replaced instead —
+// for rich paragraphs that contain inline markup (<strong>, <a>, <code>,
+// <em>). The translation values for those keys carry the same inline tags;
+// only the text between the tags is translated. All values are authored
+// by us (trusted), never user input, so innerHTML is safe here.
 export function applyStaticTranslations(lang?: Lang): void {
   if (typeof document === 'undefined') return;
   const l = lang ?? getLang();
@@ -122,6 +127,14 @@ export function applyStaticTranslations(lang?: Lang): void {
     } else {
       el.textContent = val;
     }
+  });
+
+  // Rich-text elements: replace innerHTML (translation carries the tags)
+  document.querySelectorAll<HTMLElement>('[data-i18n-html]').forEach((el) => {
+    const key = el.dataset.i18nHtml;
+    if (!key) return;
+    const val = dict[key] ?? fallback[key];
+    if (val != null) el.innerHTML = val;
   });
 
   // Handle placeholders
