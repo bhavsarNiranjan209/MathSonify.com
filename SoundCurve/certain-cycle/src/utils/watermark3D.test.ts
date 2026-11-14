@@ -1,3 +1,4 @@
+
 /**
  * 3D billboard watermark (v30): pure geometry + source wiring.
  *

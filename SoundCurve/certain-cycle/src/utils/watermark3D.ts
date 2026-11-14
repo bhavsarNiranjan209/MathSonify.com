@@ -40,7 +40,7 @@ export const WATERMARK_3D_OPACITY = 0.5;
 export const WATERMARK_3D_CAP_PX_AT_720 = 38;
 
 /** Texture font size, in px — large so the sprite stays sharp when upscaled. */
-export const WATERMARK_3D_FONT_PX = 200;
+export const WATERMARK_3D_FONT_PX = 150;
 
 /**
  * Canvas size that fits the watermark text rotated by WATERMARK_3D_TILT.
