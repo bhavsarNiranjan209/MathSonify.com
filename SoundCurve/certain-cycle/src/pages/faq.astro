@@ -1,0 +1,46 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navigation from '../components/Navigation.astro';
+import Footer from '../components/Footer.astro';
+
+const faqItems = [
+  {
+    question: 'How does MathSonify work?',
+    answer: 'MathSonify transforms mathematical equations into audio and visual graphs. Users can explore equations from famous scientists, edit them in a studio, and export visualizations as images or videos.'
+  },
+  {
+    question: 'Can I use MathSonify for free?',
+    answer: 'Yes, MathSonify is completely free to use. There are no ads, no tracking, and no paywall. If it changed how you hear math, a coffee keeps it that way.'
+  },
+  {
+    question: 'What kinds of equations can I explore?',
+    answer: 'You can explore equations from famous scientists, edit them in the studio, or use predefined templates. The app supports a wide range of mathematical expressions.'
+  },
+  {
+    question: 'How do I export my visualization?',
+    answer: 'You can export your equation visualization as an image (PNG) or video (WebM). The export options are available in the studio interface.'
+  }
+];
+
+export default function Faq() {
+  return (
+    <BaseLayout title="MathSonify - FAQ">
+      <Navigation />
+
+      <main class="min-h-screen pt-20 pb-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto relative overflow-x-hidden">
+
+        <section class="prose max-w-2xl mx-auto py-16">
+          <h1 class="text-3xl font-serif font-normal leading-[1.04] text-sc-text mb-8">Frequently Asked Questions</h1>
+          {faqItems.map((item, index) => (
+            <div key={index} class="mb-8">
+              <h2 class="text-2xl font-serif font-bold text-sc-text mb-3">{item.question}</h2>
+              <p class="text-sc-text-soft leading-relaxed">{item.answer}</p>
+            </div>
+          ))}
+        </section>
+
+        <Footer />
+      </main>
+    </BaseLayout>
+  );
+}
